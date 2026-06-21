@@ -1,0 +1,17 @@
+# Lefthook config — runs locally on git events. See https://lefthook.dev
+#
+# Hooks installed via `bun run prepare` (runs lefthook install).
+# Skip a hook for a single commit with: LEFTHOOK=0 git commit
+# Or per-hook: lefthook run pre-commit --no-tty (etc.)
+
+pre-commit:
+  parallel: true
+  commands:
+    biome-check:
+      glob: '*.{js,ts,jsx,tsx,json,jsonc}'
+      run: bunx biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+
+pre-push:
+  commands:
+    typecheck:
+      run: bun --filter '*' typecheck

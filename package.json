@@ -1,27 +1,28 @@
 {
   "name": "authprint",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
+  "description": "Auth-native flow design tool. See REQUIREMENTS.md.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "next": "16.2.9",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "dev": "bun --filter '@authprint/web' dev",
+    "build": "bun --filter '*' build",
+    "start": "bun --filter '@authprint/web' start",
+    "lint": "biome check . && bun --filter '@authprint/web' lint:next",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "typecheck": "bun --filter '*' typecheck",
+    "test": "bun test",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "babel-plugin-react-compiler": "1.0.0",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.9",
-    "tailwindcss": "^4",
+    "@biomejs/biome": "2.5.0",
+    "@types/bun": "1.3.14",
+    "lefthook": "2.1.9",
     "typescript": "^5"
   },
   "ignoreScripts": [

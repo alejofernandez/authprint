@@ -1,0 +1,11 @@
+{
+  "name": "@authprint/dsl-spec",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Authprint DSL specification document(s). Prose, grammar reference, examples, semantics.",
+  "license": "CC-BY-4.0",
+  "scripts": {
+    "typecheck": "true",
+    "test": "true"
+  }
+}
