@@ -108,7 +108,7 @@ function checkScenarioReferences(flow: Flow, nodeById: Map<string, Node>): Diagn
       const { outcomeId, sequence } = scenario.expectedOutcome;
       if (outcomeId !== undefined) {
         const node = nodeById.get(outcomeId);
-        if (!node || node.type !== 'outcome') {
+        if (node?.type !== 'outcome') {
           out.push({
             severity: 'error',
             code: 'validation-scenario-outcome-not-found',
