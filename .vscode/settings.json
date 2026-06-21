@@ -1,0 +1,10 @@
+{
+  "files.associations": {
+    "*.authprint": "yaml",
+    "*.authprint.layout": "yaml"
+  },
+  "yaml.schemas": {},
+  "yaml.completion": true,
+  "yaml.validate": true,
+  "yaml.format.enable": true
+}
