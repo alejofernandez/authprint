@@ -7,7 +7,10 @@ import { ContextSchema } from './predicate.ts';
 import { ScenarioSchema } from './scenario.ts';
 
 // The top-level Flow container per REQUIREMENTS.md §5 Flow-level attributes.
-// This is the root of an .authprint document's `flow:` key.
+//
+// An .authprint file's root IS a Flow — there is no wrapper key. Forward-compat
+// for schema-format versioning (if ever needed) will use a top-level
+// `apiVersion: authprint/vN` field (Kubernetes-style), not a nested wrapper.
 
 export const FlowSchema = z.object({
   id: z.string().min(1),
@@ -29,12 +32,3 @@ export const FlowSchema = z.object({
 });
 
 export type Flow = z.infer<typeof FlowSchema>;
-
-// The on-disk document shape is `{ flow: { ... } }`. This wrapper lets us
-// reserve top-level keys for future extensions (e.g., schema-version field).
-
-export const FlowDocumentSchema = z.object({
-  flow: FlowSchema,
-});
-
-export type FlowDocument = z.infer<typeof FlowDocumentSchema>;

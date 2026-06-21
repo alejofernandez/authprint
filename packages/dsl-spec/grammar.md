@@ -4,22 +4,23 @@
 
 ## File-level shape
 
-An `.authprint` file is a YAML document with a single top-level key `flow:`:
+An `.authprint` file is a YAML document whose root IS the flow — **no wrapper key**:
 
 ```yaml
-flow:
-  id: <string>
-  name: <string>
-  description: <string?>     # optional
-  theme: <light | dark | both>   # default: light
-  context: { ... }            # default: {}
-  nodes: [ ... ]              # default: []
-  edges: [ ... ]              # default: []
-  annotations: [ ... ]        # default: []
-  scenarios: [ ... ]          # default: []
+id: <string>
+name: <string>
+description: <string?>     # optional
+theme: <light | dark | both>   # default: light
+context: { ... }            # default: {}
+nodes: [ ... ]              # default: []
+edges: [ ... ]              # default: []
+annotations: [ ... ]        # default: []
+scenarios: [ ... ]          # default: []
 ```
 
-The `flow:` wrapper exists so future top-level keys (e.g., a `version:` schema-format field) can coexist without breaking documents.
+The file extension `.authprint` is the indicator that the document is a flow; a wrapper key would be redundant.
+
+**Forward-compat for schema-format versioning** (if/when needed): adopt the Kubernetes-style top-level `apiVersion: authprint/vN` field, not a nested wrapper. Not in v1.
 
 ## Strict YAML subset
 
@@ -87,118 +88,117 @@ Accepted for `screen`, `decision`, `action`, `external`, `outcome`. Emit a `voca
 ## Document shape (full reference)
 
 ```yaml
-flow:
-  id: <string>                  # required, non-empty
-  name: <string>                # required, non-empty
-  description: <string?>        # optional
-  theme: <light | dark | both>  # optional, default: light
+id: <string>                  # required, non-empty
+name: <string>                # required, non-empty
+description: <string?>        # optional
+theme: <light | dark | both>  # optional, default: light
 
-  context:                       # optional, default: {}
-    <slot-name>:
-      type: <boolean | number | string | enum>
-      values: [<string>, ...]    # required iff type=enum
+context:                      # optional, default: {}
+  <slot-name>:
+    type: <boolean | number | string | enum>
+    values: [<string>, ...]   # required iff type=enum
 
-  nodes:                         # optional, default: []
-    # Entry
-    - type: entry
-      id: <string>
+nodes:                        # optional, default: []
+  # Entry
+  - type: entry
+    id: <string>
 
-    # Screen
-    - type: screen
-      id: <string>
-      name: <string>
-      kind: <ScreenKind>          # built-in or custom
-      traits: [<TraitId>, ...]    # closed set; see vocabulary.md
-      fields:
-        - name: <string>
-          type: <FieldType>       # built-in or custom; see vocabulary.md
-          required: <true | false>
-      fidelity: <lo-fi | wireframe | mockup>
+  # Screen
+  - type: screen
+    id: <string>
+    name: <string>
+    kind: <ScreenKind>          # built-in or custom
+    traits: [<TraitId>, ...]    # closed set; see vocabulary.md
+    fields:
+      - name: <string>
+        type: <FieldType>       # built-in or custom; see vocabulary.md
+        required: <true | false>
+    fidelity: <lo-fi | wireframe | mockup>
 
-    # Decision
-    - type: decision
-      id: <string>
-      name: <string?>             # optional
-      kind: <DecisionKind>        # built-in or custom
-      predicate:
-        slot: <string>             # name of a declared Context slot
-        op: <PredicateOp>          # see vocabulary.md
-        value: <any>               # cross-checked against slot type
+  # Decision
+  - type: decision
+    id: <string>
+    name: <string?>             # optional
+    kind: <DecisionKind>        # built-in or custom
+    predicate:
+      slot: <string>             # name of a declared Context slot
+      op: <PredicateOp>          # see vocabulary.md
+      value: <any>               # cross-checked against slot type
 
-    # Action
-    - type: action
-      id: <string>
-      name: <string>
-      kind: <ActionKind>          # built-in or custom
+  # Action
+  - type: action
+    id: <string>
+    name: <string>
+    kind: <ActionKind>          # built-in or custom
 
-    # External
-    - type: external
-      id: <string>
-      name: <string>
-      kind: <ExternalKind>        # built-in or custom
+  # External
+  - type: external
+    id: <string>
+    name: <string>
+    kind: <ExternalKind>        # built-in or custom
 
-    # Outcome
-    - type: outcome
-      id: <string>
-      name: <string>
-      kind: <OutcomeKind>         # built-in or custom
+  # Outcome
+  - type: outcome
+    id: <string>
+    name: <string>
+    kind: <OutcomeKind>         # built-in or custom
 
-  edges:                          # optional, default: []
-    - id: <string>
-      source: <NodeId>
-      target: <NodeId>             # must differ from source
-      label: <string?>             # optional
-      trigger:
-        # from entry:
-        type: unconditional
-        # from screen:
-        type: interaction
-        action: <UserAction>       # built-in or custom; see vocabulary.md
-        # from decision:
-        type: branch
-        value: <boolean>           # v1: boolean only
-        # from action:
-        type: on-success | on-error
-        # from external:
-        type: on-success | on-error | on-denied | on-cancelled
+edges:                          # optional, default: []
+  - id: <string>
+    source: <NodeId>
+    target: <NodeId>             # must differ from source
+    label: <string?>             # optional
+    trigger:
+      # from entry:
+      type: unconditional
+      # from screen:
+      type: interaction
+      action: <UserAction>       # built-in or custom; see vocabulary.md
+      # from decision:
+      type: branch
+      value: <boolean>           # v1: boolean only
+      # from action:
+      type: on-success | on-error
+      # from external:
+      type: on-success | on-error | on-denied | on-cancelled
 
-  annotations:                    # optional, default: []
-    - id: <string>
-      kind: <note | rationale>
-      text: <string>
-      attachment:
-        # node-attached:
-        type: node
+annotations:                    # optional, default: []
+  - id: <string>
+    kind: <note | rationale>
+    text: <string>
+    attachment:
+      # node-attached:
+      type: node
+      nodeId: <NodeId>
+      # edge-attached:
+      type: edge
+      edgeId: <EdgeId>
+      # floating on canvas:
+      type: floating
+      x: <number>
+      y: <number>
+
+scenarios:                      # optional, default: []
+  - id: <string>
+    name: <string>
+    description: <string?>
+    initialContext:
+      <slot-name>: <value>       # type per slot declaration
+    inputScript:
+      # screen step:
+      - type: screen
         nodeId: <NodeId>
-        # edge-attached:
-        type: edge
-        edgeId: <EdgeId>
-        # floating on canvas:
-        type: floating
-        x: <number>
-        y: <number>
-
-  scenarios:                      # optional, default: []
-    - id: <string>
-      name: <string>
-      description: <string?>
-      initialContext:
-        <slot-name>: <value>       # type per slot declaration
-      inputScript:
-        # screen step:
-        - type: screen
-          nodeId: <NodeId>
-          action: <string>
-        # action step:
-        - type: action
-          nodeId: <NodeId>
-          result: success | error
-        # external step:
-        - type: external
-          nodeId: <NodeId>
-          result: success | error | denied | cancelled
-      expectedOutcome:             # optional assertion
-        outcomeId: <NodeId?>
+        action: <string>
+      # action step:
+      - type: action
+        nodeId: <NodeId>
+        result: success | error
+      # external step:
+      - type: external
+        nodeId: <NodeId>
+        result: success | error | denied | cancelled
+    expectedOutcome:             # optional assertion
+      outcomeId: <NodeId?>
         sequence: [<NodeId>, ...]?
 ```
 

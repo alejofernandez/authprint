@@ -1,15 +1,17 @@
 // Parser: YAML text → Flow.
 //
 // Pipeline: yaml.parseDocument (strict 1.2) → reject anchors/aliases → toJS
-// → FlowDocumentSchema (zod) → vocabulary check (warnings only).
+// → FlowSchema (zod) → vocabulary check (warnings only).
+//
+// The on-disk root IS a Flow — there is no wrapper key.
 //
 // Position-rich diagnostics from zod errors are deferred to a v1.x pass;
 // for now diagnostics carry a JSONPath-style location string from zod.
 
 import { isAlias, isMap, isNode, isPair, isScalar, isSeq, parseDocument } from 'yaml';
 import { z } from 'zod';
-import type { Flow, FlowDocument } from '../schema/flow.ts';
-import { FlowDocumentSchema } from '../schema/flow.ts';
+import type { Flow } from '../schema/flow.ts';
+import { FlowSchema } from '../schema/flow.ts';
 import {
   isBuiltinActionKind,
   isBuiltinDecisionKind,
@@ -45,7 +47,6 @@ export type Diagnostic = {
 
 export type ParseResult = {
   flow: Flow | null;
-  document: FlowDocument | null;
   diagnostics: Diagnostic[];
 };
 
@@ -77,21 +78,21 @@ export function parse(input: string): ParseResult {
   }
 
   if (doc.errors.length > 0) {
-    return { flow: null, document: null, diagnostics };
+    return { flow: null, diagnostics };
   }
 
   // 2. Reject anchors and aliases. Walk every node in the document.
   const anchorAliasErrors = collectAnchorAndAliasErrors(doc.contents);
   diagnostics.push(...anchorAliasErrors);
   if (anchorAliasErrors.some((d) => d.severity === 'error')) {
-    return { flow: null, document: null, diagnostics };
+    return { flow: null, diagnostics };
   }
 
   // 3. Convert to plain JS for zod.
   const raw = doc.toJS();
 
-  // 4. Schema validation.
-  const parsed = FlowDocumentSchema.safeParse(raw);
+  // 4. Schema validation. The document root IS a Flow.
+  const parsed = FlowSchema.safeParse(raw);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       diagnostics.push({
@@ -101,15 +102,14 @@ export function parse(input: string): ParseResult {
         path: issue.path.length > 0 ? formatPath(issue.path) : undefined,
       });
     }
-    return { flow: null, document: null, diagnostics };
+    return { flow: null, diagnostics };
   }
 
   // 5. Vocabulary check (warnings only — custom kinds are allowed).
   diagnostics.push(...checkVocabulary(parsed.data));
 
   return {
-    flow: parsed.data.flow,
-    document: parsed.data,
+    flow: parsed.data,
     diagnostics,
   };
 }
@@ -161,19 +161,18 @@ function collectAnchorAndAliasErrors(contents: unknown): Diagnostic[] {
 
 // ─── Vocabulary check ───────────────────────────────────────────────────────
 
-function checkVocabulary(doc: FlowDocument): Diagnostic[] {
+function checkVocabulary(flow: Flow): Diagnostic[] {
   const warnings: Diagnostic[] = [];
-  const { flow } = doc;
 
   flow.nodes.forEach((node, i) => {
-    const path = `flow.nodes[${i}].kind`;
+    const path = `nodes[${i}].kind`;
     switch (node.type) {
       case 'screen':
         if (!isBuiltinScreenKind(node.kind)) {
           warnings.push(warnUnknownKind('vocabulary-unknown-screen-kind', node.kind, path));
         }
         node.fields.forEach((field, fi) => {
-          const fpath = `flow.nodes[${i}].fields[${fi}].type`;
+          const fpath = `nodes[${i}].fields[${fi}].type`;
           if (!isBuiltinFieldType(field.type)) {
             warnings.push(warnUnknownKind('vocabulary-unknown-field-type', field.type, fpath));
           }
@@ -232,5 +231,5 @@ function formatPath(path: ReadonlyArray<string | number | symbol>): string {
 }
 
 // Re-export the types for consumers.
-export type { Flow, FlowDocument };
+export type { Flow };
 export { z };

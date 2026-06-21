@@ -8,9 +8,8 @@ const here = fileURLToPath(new URL('.', import.meta.url));
 describe('parse — happy path', () => {
   test('minimal flow parses with schema defaults applied', () => {
     const input = `
-flow:
-  id: f1
-  name: Minimal flow
+id: f1
+name: Minimal flow
 `;
     const r = parse(input);
     expect(r.diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
@@ -35,16 +34,15 @@ flow:
 
 describe('parse — error paths', () => {
   test('invalid YAML produces yaml-parse-error', () => {
-    const r = parse('flow:\n  id: f1\n   bad: indent');
+    const r = parse('id: f1\nname: F1\n  bad: indent');
     expect(r.flow).toBeNull();
     expect(r.diagnostics.some((d) => d.code === 'yaml-parse-error')).toBe(true);
   });
 
   test('anchor is rejected', () => {
     const r = parse(`
-flow:
-  id: f1
-  name: &n Anchor flow
+id: f1
+name: &n Anchor flow
 `);
     expect(r.flow).toBeNull();
     expect(r.diagnostics.some((d) => d.code === 'yaml-anchor-rejected')).toBe(true);
@@ -54,10 +52,9 @@ flow:
     // Define an anchor and use an alias — both should be rejected, but the
     // alias is the key behavior to test.
     const r = parse(`
-flow:
-  id: f1
-  name: &n Anchor flow
-  description: *n
+id: f1
+name: &n Anchor flow
+description: *n
 `);
     expect(r.flow).toBeNull();
     // Either rejection code is acceptable as long as the parse fails cleanly.
@@ -70,17 +67,16 @@ flow:
 
   test('schema violation surfaces with path', () => {
     const r = parse(`
-flow:
-  id: f1
-  name: F1
-  nodes:
-    - type: screen
-      id: s1
-      name: X
-      kind: password
-      traits: ["this-trait-is-not-real"]
-      fields: []
-      fidelity: lo-fi
+id: f1
+name: F1
+nodes:
+  - type: screen
+    id: s1
+    name: X
+    kind: password
+    traits: ["this-trait-is-not-real"]
+    fields: []
+    fidelity: lo-fi
 `);
     expect(r.flow).toBeNull();
     const schemaError = r.diagnostics.find((d) => d.code === 'schema-violation');
@@ -92,17 +88,16 @@ flow:
 describe('parse — vocabulary warnings', () => {
   test('unknown screen kind emits warning, flow still returned', () => {
     const r = parse(`
-flow:
-  id: f1
-  name: F1
-  nodes:
-    - type: screen
-      id: s1
-      name: X
-      kind: completely-custom-kind
-      traits: []
-      fields: []
-      fidelity: lo-fi
+id: f1
+name: F1
+nodes:
+  - type: screen
+    id: s1
+    name: X
+    kind: completely-custom-kind
+    traits: []
+    fields: []
+    fidelity: lo-fi
 `);
     expect(r.flow).not.toBeNull();
     expect(r.diagnostics.some((d) => d.code === 'vocabulary-unknown-screen-kind')).toBe(true);
@@ -110,20 +105,19 @@ flow:
 
   test('unknown field type emits warning', () => {
     const r = parse(`
-flow:
-  id: f1
-  name: F1
-  nodes:
-    - type: screen
-      id: s1
-      name: X
-      kind: password
-      traits: []
-      fields:
-        - name: weird
-          type: not-a-real-field-type
-          required: true
-      fidelity: lo-fi
+id: f1
+name: F1
+nodes:
+  - type: screen
+    id: s1
+    name: X
+    kind: password
+    traits: []
+    fields:
+      - name: weird
+        type: not-a-real-field-type
+        required: true
+    fidelity: lo-fi
 `);
     expect(r.flow).not.toBeNull();
     expect(r.diagnostics.some((d) => d.code === 'vocabulary-unknown-field-type')).toBe(true);
@@ -131,28 +125,27 @@ flow:
 
   test('known kinds emit no vocabulary warnings', () => {
     const r = parse(`
-flow:
-  id: f1
-  name: F1
-  nodes:
-    - type: screen
-      id: s1
-      name: Sign in
-      kind: password
-      traits: []
-      fields:
-        - name: identifier
-          type: identifier
-          required: true
-      fidelity: lo-fi
-    - type: external
-      id: x1
-      name: Google
-      kind: google
-    - type: outcome
-      id: o1
-      name: Authenticated
-      kind: authenticated
+id: f1
+name: F1
+nodes:
+  - type: screen
+    id: s1
+    name: Sign in
+    kind: password
+    traits: []
+    fields:
+      - name: identifier
+        type: identifier
+        required: true
+    fidelity: lo-fi
+  - type: external
+    id: x1
+    name: Google
+    kind: google
+  - type: outcome
+    id: o1
+    name: Authenticated
+    kind: authenticated
 `);
     expect(r.flow).not.toBeNull();
     expect(r.diagnostics.filter((d) => d.code.startsWith('vocabulary-'))).toEqual([]);

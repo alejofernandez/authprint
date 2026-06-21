@@ -26,15 +26,13 @@ import type { Context, Predicate } from '../schema/predicate.ts';
 import type { Scenario, ScriptStep } from '../schema/scenario.ts';
 
 export type SerializeOptions = {
-  /** Wrap output in `{ flow: ... }` document. Default: true (matches on-disk shape). */
-  asDocument?: boolean;
+  // Reserved for future options (e.g., includeLayout when the layout layer
+  // is integrated). Empty in v1.
 };
 
-export function serialize(flow: Flow, options: SerializeOptions = {}): string {
-  const { asDocument = true } = options;
+export function serialize(flow: Flow, _options: SerializeOptions = {}): string {
   const canonical = canonicalizeFlow(flow);
-  const value = asDocument ? { flow: canonical } : canonical;
-  return yamlStringify(value, {
+  return yamlStringify(canonical, {
     indent: 2,
     lineWidth: 0, // disable line wrapping for predictable diffs
     defaultStringType: 'PLAIN',

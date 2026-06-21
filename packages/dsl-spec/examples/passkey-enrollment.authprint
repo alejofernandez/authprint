@@ -4,226 +4,221 @@
 # they don't already have a passkey enrolled we offer enrollment as the last
 # step before reaching the authenticated outcome.
 
-flow:
-  id: example-passkey-enrollment
-  name: Passkey enrollment
+id: example-passkey-enrollment
+name: Passkey enrollment
 
-  context:
-    user.has_passkey:
-      type: boolean
-    user.exists:
-      type: boolean
+context:
+  user.has_passkey:
+    type: boolean
+  user.exists:
+    type: boolean
 
-  nodes:
-    - type: entry
-      id: e1
+nodes:
+  - type: entry
+    id: e1
 
-    - type: screen
-      id: s-identifier
-      name: Enter your email
-      kind: identifier-collect
-      traits: []
-      fields:
-        - name: email
-          type: email
-          required: true
-      fidelity: lo-fi
+  - type: screen
+    id: s-identifier
+    name: Enter your email
+    kind: identifier-collect
+    fields:
+      - name: email
+        type: email
+        required: true
 
-    - type: decision
-      id: d-user-exists
-      kind: user-exists
-      predicate:
-        slot: user.exists
-        op: equals
-        value: true
+  - type: decision
+    id: d-user-exists
+    kind: user-exists
+    predicate:
+      slot: user.exists
+      op: equals
+      value: true
 
-    - type: screen
-      id: s-passkey
-      name: Sign in with passkey
-      kind: passkey-auth
-      traits: [alternative-method-link]
-      fields:
-        - name: passkey
-          type: passkey
-          required: true
-      fidelity: lo-fi
+  - type: screen
+    id: s-passkey
+    name: Sign in with passkey
+    kind: passkey-auth
+    traits:
+      - alternative-method-link
+    fields:
+      - name: passkey
+        type: passkey
+        required: true
 
-    - type: screen
-      id: s-otp
-      name: Enter the code we sent you
-      kind: mfa-challenge
-      traits: []
-      fields:
-        - name: otp
-          type: otp
-          required: true
-      fidelity: lo-fi
+  - type: screen
+    id: s-otp
+    name: Enter the code we sent you
+    kind: mfa-challenge
+    fields:
+      - name: otp
+        type: otp
+        required: true
 
-    - type: action
-      id: a-send-otp
-      name: Send sign-in code
-      kind: send-otp
+  - type: action
+    id: a-send-otp
+    name: Send sign-in code
+    kind: send-otp
 
-    - type: decision
-      id: d-has-passkey
-      kind: passkey-available
-      predicate:
-        slot: user.has_passkey
-        op: equals
-        value: true
+  - type: decision
+    id: d-has-passkey
+    kind: passkey-available
+    predicate:
+      slot: user.has_passkey
+      op: equals
+      value: true
 
-    - type: screen
-      id: s-passkey-enroll
-      name: Set up a passkey
-      kind: passkey-enroll
-      traits: [passkey-promotion]
-      fields:
-        - name: passkey
-          type: passkey
-          required: true
-      fidelity: lo-fi
+  - type: screen
+    id: s-passkey-enroll
+    name: Set up a passkey
+    kind: passkey-enroll
+    traits:
+      - passkey-promotion
+    fields:
+      - name: passkey
+        type: passkey
+        required: true
 
-    - type: outcome
-      id: o-authenticated
-      name: Authenticated
-      kind: authenticated
+  - type: outcome
+    id: o-authenticated
+    name: Authenticated
+    kind: authenticated
 
-    - type: outcome
-      id: o-abandoned
-      name: User left
-      kind: abandoned
+  - type: outcome
+    id: o-abandoned
+    name: User left
+    kind: abandoned
 
-  edges:
-    - id: edge-entry-identifier
-      source: e1
-      target: s-identifier
-      trigger:
-        type: unconditional
+edges:
+  - id: edge-entry-identifier
+    source: e1
+    target: s-identifier
+    trigger:
+      type: unconditional
 
-    - id: edge-identifier-userexists
-      source: s-identifier
-      target: d-user-exists
-      trigger:
-        type: interaction
+  - id: edge-identifier-userexists
+    source: s-identifier
+    target: d-user-exists
+    trigger:
+      type: interaction
+      action: submit
+
+  # Returning user with credentials → try passkey first.
+  - id: edge-userexists-passkey
+    source: d-user-exists
+    target: s-passkey
+    trigger:
+      type: branch
+      value: true
+
+  # New user → send OTP to verify ownership of the email.
+  - id: edge-userexists-sendotp
+    source: d-user-exists
+    target: a-send-otp
+    trigger:
+      type: branch
+      value: false
+
+  - id: edge-sendotp-success
+    source: a-send-otp
+    target: s-otp
+    trigger:
+      type: on-success
+
+  - id: edge-sendotp-error
+    source: a-send-otp
+    target: o-abandoned
+    trigger:
+      type: on-error
+
+  - id: edge-otp-haspasskey
+    source: s-otp
+    target: d-has-passkey
+    trigger:
+      type: interaction
+      action: submit
+
+  - id: edge-passkey-haspasskey
+    source: s-passkey
+    target: d-has-passkey
+    trigger:
+      type: interaction
+      action: submit
+
+  # Already has a passkey → straight to authenticated.
+  - id: edge-haspasskey-authenticated
+    source: d-has-passkey
+    target: o-authenticated
+    trigger:
+      type: branch
+      value: true
+
+  # No passkey yet → offer enrollment.
+  - id: edge-haspasskey-enroll
+    source: d-has-passkey
+    target: s-passkey-enroll
+    trigger:
+      type: branch
+      value: false
+
+  - id: edge-enroll-authenticated
+    source: s-passkey-enroll
+    target: o-authenticated
+    trigger:
+      type: interaction
+      action: submit
+
+  # User skips enrollment — still authenticated.
+  - id: edge-enroll-skip
+    source: s-passkey-enroll
+    target: o-authenticated
+    trigger:
+      type: interaction
+      action: skip
+
+annotations:
+  - id: ann-otp-fallback
+    kind: rationale
+    text: |
+      Email OTP is the recovery channel for users who can't use a passkey
+      (lost device or unsupported browser). We deliberately don't ship
+      backup codes — nobody stores them, and email already covers the case.
+    attachment:
+      type: node
+      nodeId: s-otp
+
+scenarios:
+  - id: sc-returning-with-passkey
+    name: Returning user with passkey signs in
+    initialContext:
+      user.exists: true
+      user.has_passkey: true
+    inputScript:
+      - type: screen
+        nodeId: s-identifier
         action: submit
-
-    # Returning user with credentials → try passkey first.
-    - id: edge-userexists-passkey
-      source: d-user-exists
-      target: s-passkey
-      trigger:
-        type: branch
-        value: true
-
-    # New user → send OTP to verify ownership of the email.
-    - id: edge-userexists-sendotp
-      source: d-user-exists
-      target: a-send-otp
-      trigger:
-        type: branch
-        value: false
-
-    - id: edge-sendotp-success
-      source: a-send-otp
-      target: s-otp
-      trigger:
-        type: on-success
-
-    - id: edge-sendotp-error
-      source: a-send-otp
-      target: o-abandoned
-      trigger:
-        type: on-error
-
-    - id: edge-otp-haspasskey
-      source: s-otp
-      target: d-has-passkey
-      trigger:
-        type: interaction
+      - type: screen
+        nodeId: s-passkey
         action: submit
+    expectedOutcome:
+      outcomeId: o-authenticated
 
-    - id: edge-passkey-haspasskey
-      source: s-passkey
-      target: d-has-passkey
-      trigger:
-        type: interaction
+  - id: sc-new-user-enrolls-passkey
+    name: New user signs up via OTP and enrolls a passkey
+    initialContext:
+      user.exists: false
+      user.has_passkey: false
+    inputScript:
+      - type: screen
+        nodeId: s-identifier
         action: submit
-
-    # Already has a passkey → straight to authenticated.
-    - id: edge-haspasskey-authenticated
-      source: d-has-passkey
-      target: o-authenticated
-      trigger:
-        type: branch
-        value: true
-
-    # No passkey yet → offer enrollment.
-    - id: edge-haspasskey-enroll
-      source: d-has-passkey
-      target: s-passkey-enroll
-      trigger:
-        type: branch
-        value: false
-
-    - id: edge-enroll-authenticated
-      source: s-passkey-enroll
-      target: o-authenticated
-      trigger:
-        type: interaction
-        action: submit
-
-    # User skips enrollment — still authenticated.
-    - id: edge-enroll-skip
-      source: s-passkey-enroll
-      target: o-authenticated
-      trigger:
-        type: interaction
-        action: skip
-
-  annotations:
-    - id: ann-otp-fallback
-      kind: rationale
-      text: |
-        Email OTP is the recovery channel for users who can't use a passkey
-        (lost device or unsupported browser). We deliberately don't ship
-        backup codes — nobody stores them, and email already covers the case.
-      attachment:
-        type: node
+      - type: action
+        nodeId: a-send-otp
+        result: success
+      - type: screen
         nodeId: s-otp
-
-  scenarios:
-    - id: sc-returning-with-passkey
-      name: Returning user with passkey signs in
-      initialContext:
-        user.exists: true
-        user.has_passkey: true
-      inputScript:
-        - type: screen
-          nodeId: s-identifier
-          action: submit
-        - type: screen
-          nodeId: s-passkey
-          action: submit
-      expectedOutcome:
-        outcomeId: o-authenticated
-
-    - id: sc-new-user-enrolls-passkey
-      name: New user signs up via OTP and enrolls a passkey
-      initialContext:
-        user.exists: false
-        user.has_passkey: false
-      inputScript:
-        - type: screen
-          nodeId: s-identifier
-          action: submit
-        - type: action
-          nodeId: a-send-otp
-          result: success
-        - type: screen
-          nodeId: s-otp
-          action: submit
-        - type: screen
-          nodeId: s-passkey-enroll
-          action: submit
-      expectedOutcome:
-        outcomeId: o-authenticated
+        action: submit
+      - type: screen
+        nodeId: s-passkey-enroll
+        action: submit
+    expectedOutcome:
+      outcomeId: o-authenticated

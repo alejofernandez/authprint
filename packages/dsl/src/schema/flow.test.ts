@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { AnnotationSchema } from './annotation.ts';
-import { FlowDocumentSchema, FlowSchema } from './flow.ts';
+import { FlowSchema } from './flow.ts';
 import { ContextSlotSchema } from './predicate.ts';
 import { ScenarioSchema } from './scenario.ts';
 import { VersionSchema } from './version.ts';
@@ -105,7 +105,7 @@ describe('Scenario', () => {
   });
 });
 
-describe('Flow & FlowDocument', () => {
+describe('Flow', () => {
   test('minimal flow parses with defaults applied', () => {
     const r = FlowSchema.safeParse({
       id: 'f1',
@@ -121,25 +121,23 @@ describe('Flow & FlowDocument', () => {
   });
 
   test('flow with one entry + one outcome + one edge parses end-to-end', () => {
-    const r = FlowDocumentSchema.safeParse({
-      flow: {
-        id: 'f1',
-        name: 'Passkey signup',
-        theme: 'dark',
-        context: {},
-        nodes: [
-          { type: 'entry', id: 'e1' },
-          {
-            type: 'outcome',
-            id: 'o1',
-            name: 'Authenticated',
-            kind: 'authenticated',
-          },
-        ],
-        edges: [{ id: 'edge-1', source: 'e1', target: 'o1', trigger: { type: 'unconditional' } }],
-        annotations: [],
-        scenarios: [],
-      },
+    const r = FlowSchema.safeParse({
+      id: 'f1',
+      name: 'Passkey signup',
+      theme: 'dark',
+      context: {},
+      nodes: [
+        { type: 'entry', id: 'e1' },
+        {
+          type: 'outcome',
+          id: 'o1',
+          name: 'Authenticated',
+          kind: 'authenticated',
+        },
+      ],
+      edges: [{ id: 'edge-1', source: 'e1', target: 'o1', trigger: { type: 'unconditional' } }],
+      annotations: [],
+      scenarios: [],
     });
     expect(r.success).toBe(true);
   });

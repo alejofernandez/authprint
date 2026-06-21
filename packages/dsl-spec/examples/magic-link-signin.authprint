@@ -4,112 +4,111 @@
 # the link to authenticate. Simpler than passkey-enrollment — useful as a
 # minimal-realistic example.
 
-flow:
-  id: example-magic-link-signin
-  name: Magic-link sign-in
+id: example-magic-link-signin
+name: Magic-link sign-in
 
-  context:
-    email.deliverable:
-      type: boolean
+context:
+  email.deliverable:
+    type: boolean
 
-  nodes:
-    - type: entry
-      id: e1
+nodes:
+  - type: entry
+    id: e1
 
-    - type: screen
-      id: s-email
-      name: Enter your email
-      kind: email-collect
-      fields:
-        - name: email
-          type: email
-          required: true
+  - type: screen
+    id: s-email
+    name: Enter your email
+    kind: email-collect
+    fields:
+      - name: email
+        type: email
+        required: true
 
-    - type: action
-      id: a-send-link
-      name: Send magic link
-      kind: send-magic-link
+  - type: action
+    id: a-send-link
+    name: Send magic link
+    kind: send-magic-link
 
-    - type: screen
-      id: s-sent
-      name: Check your inbox
-      kind: magic-link-sent
+  - type: screen
+    id: s-sent
+    name: Check your inbox
+    kind: magic-link-sent
 
-    - type: outcome
-      id: o-authenticated
-      name: Authenticated
-      kind: authenticated
+  - type: outcome
+    id: o-authenticated
+    name: Authenticated
+    kind: authenticated
 
-    - type: outcome
-      id: o-undeliverable
-      name: Email undeliverable
-      kind: error
+  - type: outcome
+    id: o-undeliverable
+    name: Email undeliverable
+    kind: error
 
-  edges:
-    - id: edge-1
-      source: e1
-      target: s-email
-      trigger:
-        type: unconditional
+edges:
+  - id: edge-1
+    source: e1
+    target: s-email
+    trigger:
+      type: unconditional
 
-    - id: edge-2
-      source: s-email
-      target: a-send-link
-      trigger:
-        type: interaction
+  - id: edge-2
+    source: s-email
+    target: a-send-link
+    trigger:
+      type: interaction
+      action: submit
+
+  - id: edge-3
+    source: a-send-link
+    target: s-sent
+    trigger:
+      type: on-success
+
+  - id: edge-4
+    source: a-send-link
+    target: o-undeliverable
+    trigger:
+      type: on-error
+
+  # The s-sent screen has no explicit user action — the user clicks the
+  # link in the email, which authenticates them out-of-band. We model that
+  # as an `interaction` with a custom action label "link-clicked" to make
+  # the transition explicit in the graph.
+  - id: edge-5
+    source: s-sent
+    target: o-authenticated
+    trigger:
+      type: interaction
+      action: link-clicked
+
+scenarios:
+  - id: sc-happy
+    name: User clicks the magic link
+    initialContext:
+      email.deliverable: true
+    inputScript:
+      - type: screen
+        nodeId: s-email
         action: submit
-
-    - id: edge-3
-      source: a-send-link
-      target: s-sent
-      trigger:
-        type: on-success
-
-    - id: edge-4
-      source: a-send-link
-      target: o-undeliverable
-      trigger:
-        type: on-error
-
-    # The s-sent screen has no explicit user action — the user clicks the
-    # link in the email, which authenticates them out-of-band. We model that
-    # as an `interaction` with a custom action label "link-clicked" to make
-    # the transition explicit in the graph.
-    - id: edge-5
-      source: s-sent
-      target: o-authenticated
-      trigger:
-        type: interaction
+      - type: action
+        nodeId: a-send-link
+        result: success
+      - type: screen
+        nodeId: s-sent
         action: link-clicked
+    expectedOutcome:
+      outcomeId: o-authenticated
 
-  scenarios:
-    - id: sc-happy
-      name: User clicks the magic link
-      initialContext:
-        email.deliverable: true
-      inputScript:
-        - type: screen
-          nodeId: s-email
-          action: submit
-        - type: action
-          nodeId: a-send-link
-          result: success
-        - type: screen
-          nodeId: s-sent
-          action: link-clicked
-      expectedOutcome:
-        outcomeId: o-authenticated
-
-    - id: sc-undeliverable
-      name: Email bounces — surfaced as an error
-      initialContext:
-        email.deliverable: false
-      inputScript:
-        - type: screen
-          nodeId: s-email
-          action: submit
-        - type: action
-          nodeId: a-send-link
-          result: error
-      expectedOutcome:
-        outcomeId: o-undeliverable
+  - id: sc-undeliverable
+    name: Email bounces — surfaced as an error
+    initialContext:
+      email.deliverable: false
+    inputScript:
+      - type: screen
+        nodeId: s-email
+        action: submit
+      - type: action
+        nodeId: a-send-link
+        result: error
+    expectedOutcome:
+      outcomeId: o-undeliverable
