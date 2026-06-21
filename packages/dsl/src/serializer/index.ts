@@ -25,12 +25,10 @@ import type {
 import type { Context, Predicate } from '../schema/predicate.ts';
 import type { Scenario, ScriptStep } from '../schema/scenario.ts';
 
-export type SerializeOptions = {
-  // Reserved for future options (e.g., includeLayout when the layout layer
-  // is integrated). Empty in v1.
-};
+// `SerializeOptions` will be added when real options exist (e.g., `includeLayout`
+// once the layout layer integrates). Until then, no second argument is needed.
 
-export function serialize(flow: Flow, _options: SerializeOptions = {}): string {
+export function serialize(flow: Flow): string {
   const canonical = canonicalizeFlow(flow);
   return yamlStringify(canonical, {
     indent: 2,
