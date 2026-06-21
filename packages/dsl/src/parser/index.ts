@@ -9,48 +9,15 @@
 // for now diagnostics carry a JSONPath-style location string from zod.
 
 import { isAlias, isMap, isNode, isPair, isScalar, isSeq, parseDocument } from 'yaml';
-import { z } from 'zod';
+import type { Diagnostic } from '../diagnostic.ts';
 import type { Flow } from '../schema/flow.ts';
 import { FlowSchema } from '../schema/flow.ts';
-import {
-  isBuiltinActionKind,
-  isBuiltinDecisionKind,
-  isBuiltinExternalKind,
-  isBuiltinFieldType,
-  isBuiltinOutcomeKind,
-  isBuiltinScreenKind,
-} from '../vocabulary.ts';
-
-// ─── Diagnostic types ───────────────────────────────────────────────────────
-
-export type DiagnosticSeverity = 'error' | 'warning';
-
-export type DiagnosticCode =
-  | 'yaml-parse-error'
-  | 'yaml-anchor-rejected'
-  | 'yaml-alias-rejected'
-  | 'schema-violation'
-  | 'vocabulary-unknown-screen-kind'
-  | 'vocabulary-unknown-decision-kind'
-  | 'vocabulary-unknown-action-kind'
-  | 'vocabulary-unknown-external-kind'
-  | 'vocabulary-unknown-outcome-kind'
-  | 'vocabulary-unknown-field-type';
-
-export type Diagnostic = {
-  severity: DiagnosticSeverity;
-  code: DiagnosticCode;
-  message: string;
-  /** JSONPath-style location string. Position info (line/col) is v1.x. */
-  path?: string;
-};
+import { checkVocabulary } from '../validation/vocabulary.ts';
 
 export type ParseResult = {
   flow: Flow | null;
   diagnostics: Diagnostic[];
 };
-
-// ─── Parse ──────────────────────────────────────────────────────────────────
 
 export function parse(input: string): ParseResult {
   const diagnostics: Diagnostic[] = [];
@@ -105,7 +72,8 @@ export function parse(input: string): ParseResult {
     return { flow: null, diagnostics };
   }
 
-  // 5. Vocabulary check (warnings only — custom kinds are allowed).
+  // 5. Vocabulary check (warnings only — custom kinds are allowed). Shared
+  //    with the standalone validator (validation/vocabulary.ts).
   diagnostics.push(...checkVocabulary(parsed.data));
 
   return {
@@ -159,63 +127,6 @@ function collectAnchorAndAliasErrors(contents: unknown): Diagnostic[] {
   return errors;
 }
 
-// ─── Vocabulary check ───────────────────────────────────────────────────────
-
-function checkVocabulary(flow: Flow): Diagnostic[] {
-  const warnings: Diagnostic[] = [];
-
-  flow.nodes.forEach((node, i) => {
-    const path = `nodes[${i}].kind`;
-    switch (node.type) {
-      case 'screen':
-        if (!isBuiltinScreenKind(node.kind)) {
-          warnings.push(warnUnknownKind('vocabulary-unknown-screen-kind', node.kind, path));
-        }
-        node.fields.forEach((field, fi) => {
-          const fpath = `nodes[${i}].fields[${fi}].type`;
-          if (!isBuiltinFieldType(field.type)) {
-            warnings.push(warnUnknownKind('vocabulary-unknown-field-type', field.type, fpath));
-          }
-        });
-        break;
-      case 'decision':
-        if (!isBuiltinDecisionKind(node.kind)) {
-          warnings.push(warnUnknownKind('vocabulary-unknown-decision-kind', node.kind, path));
-        }
-        break;
-      case 'action':
-        if (!isBuiltinActionKind(node.kind)) {
-          warnings.push(warnUnknownKind('vocabulary-unknown-action-kind', node.kind, path));
-        }
-        break;
-      case 'external':
-        if (!isBuiltinExternalKind(node.kind)) {
-          warnings.push(warnUnknownKind('vocabulary-unknown-external-kind', node.kind, path));
-        }
-        break;
-      case 'outcome':
-        if (!isBuiltinOutcomeKind(node.kind)) {
-          warnings.push(warnUnknownKind('vocabulary-unknown-outcome-kind', node.kind, path));
-        }
-        break;
-      case 'entry':
-        // no kind to check
-        break;
-    }
-  });
-
-  return warnings;
-}
-
-function warnUnknownKind(code: DiagnosticCode, value: string, path: string): Diagnostic {
-  return {
-    severity: 'warning',
-    code,
-    message: `'${value}' is not in the built-in vocabulary (accepted as custom)`,
-    path,
-  };
-}
-
 // ─── Path formatting ────────────────────────────────────────────────────────
 
 function formatPath(path: ReadonlyArray<string | number | symbol>): string {
@@ -232,4 +143,3 @@ function formatPath(path: ReadonlyArray<string | number | symbol>): string {
 
 // Re-export the types for consumers.
 export type { Flow };
-export { z };
