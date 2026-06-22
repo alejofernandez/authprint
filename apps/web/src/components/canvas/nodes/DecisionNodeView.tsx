@@ -1,9 +1,9 @@
 // Decision node — predicate-evaluated branching. Visual: classic flowchart
-// diamond, violet tint. LR layout uses the diamond's four points
-// meaningfully: target on Left (incoming), sources on Top (true branch
-// going up-and-right) and Bottom (false branch going down-and-right).
-// The Right point stays unused for v0 — true/false routing via Top/Bottom
-// gives the classic decision-tree spreading visual.
+// diamond, violet tint. LR layout uses the diamond's points meaningfully:
+// target on Left (incoming), the `true` (yes) branch leaves the Right point so
+// the primary path continues straight ahead, and the `false` (no) branch leaves
+// the Bottom point so it drops away below — matching the elkjs port sides, so
+// edges never have to double back up across the flow.
 
 import type { DecisionNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
@@ -30,7 +30,7 @@ export function DecisionNodeView({ data }: DecisionNodeProps) {
         <div className="mt-0.5 text-[10px] text-zinc-500 font-mono">{node.id}</div>
       </div>
       <Handle type="target" position={Position.Left} />
-      <Handle type="source" position={Position.Top} id="true" />
+      <Handle type="source" position={Position.Right} id="true" />
       <Handle type="source" position={Position.Bottom} id="false" />
     </div>
   );

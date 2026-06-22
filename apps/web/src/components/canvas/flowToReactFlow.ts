@@ -18,7 +18,9 @@ const RETREAT_ACTIONS = new Set(['cancel', 'back', 'abandon', 'dismiss']);
 // on each node component, so branches (yes/no), action results (success/error),
 // and external failures each leave a distinct, semantically-placed point —
 // without this every edge stacks on one handle and you can't tell paths apart.
-function sourceHandleFor(trigger: Trigger): string | undefined {
+// Exported so the layout (elkjs ports) can place each edge on the same side the
+// handle actually renders on.
+export function sourceHandleFor(trigger: Trigger): string | undefined {
   switch (trigger.type) {
     case 'branch':
       return trigger.value ? 'true' : 'false';

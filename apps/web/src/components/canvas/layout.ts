@@ -9,9 +9,30 @@
 
 import type { Flow } from '@authprint/dsl';
 import ELK from 'elkjs/lib/elk.bundled.js';
-import { NODE_SIZE, type NodePositionsMap } from './flowToReactFlow.ts';
+import { NODE_SIZE, type NodePositionsMap, sourceHandleFor } from './flowToReactFlow.ts';
 
 const elk = new ELK();
+
+// Which side of the node an outgoing handle sits on — must match the handle
+// positions on the node components: forward / yes / success exit the right
+// (EAST), while no / error / cancel exit the bottom (SOUTH). Feeding these to
+// ELK as fixed-side ports makes the layout port-aware: branches separate
+// top/bottom and an edge leaving the bottom is never forced to route back up.
+function portSide(handle: string): 'EAST' | 'SOUTH' {
+  switch (handle) {
+    case 'false':
+    case 'alt':
+    case 'on-error':
+    case 'on-denied':
+    case 'on-cancelled':
+      return 'SOUTH';
+    default:
+      return 'EAST';
+  }
+}
+
+// Entry's unconditional edge has no handle id; give it a stable port name.
+const FALLBACK_HANDLE = 'out';
 
 const LAYOUT_OPTIONS = {
   'elk.algorithm': 'layered',
@@ -44,19 +65,43 @@ const ENTRY_LAYOUT_OPTIONS = { 'elk.layered.layering.layerConstraint': 'FIRST' }
 export async function layoutFlow(flow: Flow): Promise<NodePositionsMap> {
   if (flow.nodes.length === 0) return {};
 
+  // Each distinct outgoing handle on a node becomes one fixed-side port.
+  const sourcePorts = new Map<string, Map<string, 'EAST' | 'SOUTH'>>();
+  for (const edge of flow.edges) {
+    const handle = sourceHandleFor(edge.trigger) ?? FALLBACK_HANDLE;
+    const sides = sourcePorts.get(edge.source) ?? new Map<string, 'EAST' | 'SOUTH'>();
+    sides.set(handle, portSide(handle));
+    sourcePorts.set(edge.source, sides);
+  }
+
   const elkGraph = {
     id: 'root',
     layoutOptions: LAYOUT_OPTIONS,
-    children: flow.nodes.map((node) => ({
-      id: node.id,
-      width: NODE_SIZE[node.type].width,
-      height: NODE_SIZE[node.type].height,
-      ...(node.type === 'entry' ? { layoutOptions: ENTRY_LAYOUT_OPTIONS } : {}),
-    })),
+    children: flow.nodes.map((node) => {
+      const outgoing = sourcePorts.get(node.id);
+      return {
+        id: node.id,
+        width: NODE_SIZE[node.type].width,
+        height: NODE_SIZE[node.type].height,
+        ports: [
+          { id: `${node.id}::in`, layoutOptions: { 'elk.port.side': 'WEST' } },
+          ...(outgoing
+            ? [...outgoing].map(([handle, side]) => ({
+                id: `${node.id}::${handle}`,
+                layoutOptions: { 'elk.port.side': side },
+              }))
+            : []),
+        ],
+        layoutOptions: {
+          'elk.portConstraints': 'FIXED_SIDE',
+          ...(node.type === 'entry' ? ENTRY_LAYOUT_OPTIONS : {}),
+        },
+      };
+    }),
     edges: flow.edges.map((edge) => ({
       id: edge.id,
-      sources: [edge.source],
-      targets: [edge.target],
+      sources: [`${edge.source}::${sourceHandleFor(edge.trigger) ?? FALLBACK_HANDLE}`],
+      targets: [`${edge.target}::in`],
     })),
   };
 
