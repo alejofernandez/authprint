@@ -72,10 +72,12 @@ const sampleNodes: { id: string; type: keyof typeof nodeTypes; dslNode: DslNode 
   },
 ];
 
+// Arrange the six samples in a 3-column grid so each row's nodes are
+// closer to what users will see in LR layout (Left target / Right source).
 const rfNodes: RfNode[] = sampleNodes.map((n, i) => ({
   id: n.id,
   type: n.type,
-  position: { x: 40 + (i % 3) * 280, y: 40 + Math.floor(i / 3) * 200 },
+  position: { x: 60 + (i % 3) * 260, y: 60 + Math.floor(i / 3) * 200 },
   data: { node: n.dslNode },
   draggable: true,
 }));

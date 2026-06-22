@@ -1,5 +1,5 @@
 // Entry node — flow start. Visual: small circle, neutral cool gray.
-// Has a source handle on the bottom (one outgoing unconditional edge).
+// LR layout: single source handle on the right (one outgoing unconditional edge).
 
 import type { EntryNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
@@ -18,7 +18,7 @@ export function EntryNodeView({ data }: EntryNodeProps) {
       <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-mono text-zinc-500">
         {data.node.id}
       </div>
-      <Handle type="source" position={Position.Bottom} />
+      <Handle type="source" position={Position.Right} />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 // Action node — server-side step. Visual: rectangle with a sky-blue tint
-// (cool, distinct from Screen indigo). Two source handles for mandatory
-// on-success / on-error edges.
+// (cool, distinct from Screen indigo). LR layout: target on Left, on-success
+// continues to the Right (happy path), on-error branches down to the Bottom
+// (exception path). The visual separation reinforces "success continues the
+// flow; error diverts."
 
 import type { ActionNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
@@ -12,11 +14,11 @@ type ActionNodeProps = NodeProps & { data: CanvasNodeData<ActionNode> };
 export function ActionNodeView({ data }: ActionNodeProps) {
   const { node } = data;
   return (
-    <div className="rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 border-l-4 border-l-sky-500 dark:border-l-sky-400">
-      <Handle type="target" position={Position.Top} />
+    <div className="rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 border-t-4 border-t-sky-500 dark:border-t-sky-400">
+      <Handle type="target" position={Position.Left} />
       <NodeShellContent typeLabel="Action" name={node.name} id={node.id} kind={node.kind} />
-      <Handle type="source" position={Position.Bottom} id="on-success" />
-      <Handle type="source" position={Position.Right} id="on-error" />
+      <Handle type="source" position={Position.Right} id="on-success" />
+      <Handle type="source" position={Position.Bottom} id="on-error" />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 // Screen node — user-facing step. Visual: rounded rectangle with an indigo
-// tint and left accent bar. Handles: target on top, source on bottom and
-// right (latter for branching screens with multiple user actions, post-E26).
+// tint and a top accent bar (LR layout — left edge is reserved for target
+// handle, so the accent moved up). Handles: target on Left, source on Right
+// for the primary user action; secondary source on Bottom for alternative
+// actions (cancel, back, etc.) post-E26.
 
 import type { ScreenNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
@@ -12,11 +14,11 @@ type ScreenNodeProps = NodeProps & { data: CanvasNodeData<ScreenNode> };
 export function ScreenNodeView({ data }: ScreenNodeProps) {
   const { node } = data;
   return (
-    <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-300 dark:border-indigo-800 border-l-4 border-l-indigo-500 dark:border-l-indigo-400">
-      <Handle type="target" position={Position.Top} />
+    <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-300 dark:border-indigo-800 border-t-4 border-t-indigo-500 dark:border-t-indigo-400">
+      <Handle type="target" position={Position.Left} />
       <NodeShellContent typeLabel="Screen" name={node.name} id={node.id} kind={node.kind} />
-      <Handle type="source" position={Position.Bottom} id="default" />
-      <Handle type="source" position={Position.Right} id="alt" />
+      <Handle type="source" position={Position.Right} id="default" />
+      <Handle type="source" position={Position.Bottom} id="alt" />
     </div>
   );
 }
