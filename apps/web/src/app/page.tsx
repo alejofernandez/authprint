@@ -30,8 +30,9 @@ export default async function HomePage() {
             Couldn’t load the demo flow
           </h1>
           <ul className="space-y-1 font-mono text-red-600 text-sm dark:text-red-400">
-            {diagnostics.map((d) => (
-              <li key={`${d.code}:${d.path ?? ''}`}>
+            {diagnostics.map((d, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static, never-reordered diagnostics list
+              <li key={i}>
                 {d.path ? `${d.path} — ` : ''}
                 {d.message}
               </li>
@@ -42,5 +43,5 @@ export default async function HomePage() {
     );
   }
 
-  return <Editor flow={flow} />;
+  return <Editor initialFlow={flow} />;
 }
