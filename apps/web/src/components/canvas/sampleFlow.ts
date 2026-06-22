@@ -9,7 +9,6 @@
 // reaching its own terminal node, no crossings.
 
 import type { Flow } from '@authprint/dsl';
-import type { NodePositionsMap } from './flowToReactFlow.ts';
 
 export const sampleFlow: Flow = {
   id: 'sample',
@@ -137,19 +136,4 @@ export const sampleFlow: Flow = {
   ],
   annotations: [],
   scenarios: [],
-};
-
-// Hand-tuned LR positions until E17 wires elkjs auto-layout.
-// Flow reads left-to-right: entry → screen → (decision | external) → outcomes.
-export const samplePositions: NodePositionsMap = {
-  e1: { x: 0, y: 320 },
-  s1: { x: 160, y: 300 },
-  d1: { x: 420, y: 200 },
-  x1: { x: 420, y: 440 },
-  a1: { x: 720, y: 200 },
-  'o-abandoned-decline': { x: 720, y: 60 },
-  'o-authenticated-otp': { x: 980, y: 180 },
-  'o-abandoned-otp-error': { x: 980, y: 320 },
-  'o-authenticated-google': { x: 720, y: 440 },
-  'o-abandoned-google-error': { x: 720, y: 580 },
 };
