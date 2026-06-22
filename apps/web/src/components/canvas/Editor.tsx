@@ -55,6 +55,9 @@ export function Editor({ flow }: { flow: Flow }) {
           nodesConnectable={false}
           fitView
           fitViewOptions={FIT_VIEW_OPTIONS}
+          // Default minZoom (0.5) is too high to fit wide flows — a long
+          // sequence needs to zoom further out, else fitView clips the ends.
+          minZoom={0.1}
         >
           <Background gap={24} size={1} />
           <Controls position="bottom-left" showInteractive={false} />

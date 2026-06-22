@@ -19,10 +19,22 @@ const LAYOUT_OPTIONS = {
   'elk.spacing.nodeNode': '40',
   'elk.layered.spacing.nodeNodeBetweenLayers': '80',
   'elk.layered.spacing.edgeNodeBetweenLayers': '40',
+  // Auth flows have loops (OTP resend, wrong-code retry, "try another method",
+  // OAuth cancel → back). The default greedy cycle-breaker reverses arbitrary
+  // edges, which scatters the layering — the entry lands mid-graph and lines
+  // cross everywhere. DEPTH_FIRST follows the flow from its sources, so the
+  // genuine "go back" edges become the reversed ones: the sequence reads
+  // left-to-right and the loops draw as clean back-edges. (Measured on Demo
+  // Flow Zero: entry returns to the leftmost layer, ~20 → ~14 crossings.)
+  'elk.layered.cycleBreaking.strategy': 'DEPTH_FIRST',
   // Reduce crossings + give edges room.
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
   'elk.edgeRouting': 'ORTHOGONAL',
 } as const;
+
+// Pin the single Entry to the first layer so the flow always *starts* at the
+// left, regardless of how cycle-breaking shakes out for a given graph.
+const ENTRY_LAYOUT_OPTIONS = { 'elk.layered.layering.layerConstraint': 'FIRST' } as const;
 
 /**
  * Compute auto-layout positions for every node in `flow`.
@@ -39,6 +51,7 @@ export async function layoutFlow(flow: Flow): Promise<NodePositionsMap> {
       id: node.id,
       width: NODE_SIZE[node.type].width,
       height: NODE_SIZE[node.type].height,
+      ...(node.type === 'entry' ? { layoutOptions: ENTRY_LAYOUT_OPTIONS } : {}),
     })),
     edges: flow.edges.map((edge) => ({
       id: edge.id,
