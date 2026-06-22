@@ -1,6 +1,7 @@
-// Hand-built sample Flow exercising all six structural node types — used
-// to drive the v0 read-only render in `Editor.tsx`. Replaced in E18 by
-// real flows loaded from disk.
+// Hand-built sample Flow exercising all six structural node types. Drove the
+// v0 canvas render through E16/E17; since E18 the app loads Demo Flow Zero from
+// `.authprint` source instead, so this now lives only as a small, deterministic
+// fixture for `layout.test.ts`.
 //
 // Outcomes are deliberately DUPLICATED (3× abandoned, 2× authenticated)
 // rather than shared — see REQUIREMENTS.md §7 "Visual cleanliness —

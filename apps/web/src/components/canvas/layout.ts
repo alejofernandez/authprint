@@ -7,24 +7,11 @@
 // E17 ships only the auto-layout half of hybrid-C; the drag-flips-to-manual
 // + Re-tidy behavior arrives in Phase VI (E26+) once editing exists.
 
-import type { Node as DslNode, Flow } from '@authprint/dsl';
+import type { Flow } from '@authprint/dsl';
 import ELK from 'elkjs/lib/elk.bundled.js';
-import type { NodePositionsMap } from './flowToReactFlow.ts';
+import { NODE_SIZE, type NodePositionsMap } from './flowToReactFlow.ts';
 
 const elk = new ELK();
-
-// Per-structural-type intrinsic sizes — eyeballed from the current node
-// components. ELK uses these to pack the layout sensibly; they don't have
-// to be pixel-perfect (React Flow measures the real DOM after mount), but
-// closer = fewer post-layout shifts.
-const NODE_SIZE: Record<DslNode['type'], { width: number; height: number }> = {
-  entry: { width: 64, height: 64 },
-  screen: { width: 220, height: 84 },
-  decision: { width: 180, height: 112 },
-  action: { width: 220, height: 68 },
-  external: { width: 220, height: 68 },
-  outcome: { width: 180, height: 68 },
-};
 
 const LAYOUT_OPTIONS = {
   'elk.algorithm': 'layered',
