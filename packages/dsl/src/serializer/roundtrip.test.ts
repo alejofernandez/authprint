@@ -185,7 +185,11 @@ describe('round-trip — hand-built flows', () => {
 });
 
 describe('round-trip — example files', () => {
-  for (const filename of ['passkey-enrollment.authprint', 'magic-link-signin.authprint']) {
+  for (const filename of [
+    'passkey-enrollment.authprint',
+    'magic-link-signin.authprint',
+    'demo-flow-zero.authprint',
+  ]) {
     test(`${filename} round-trips`, () => {
       const text = readFileSync(`${here}/../../../dsl-spec/examples/${filename}`, 'utf8');
       const first = parse(text);

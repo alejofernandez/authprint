@@ -36,6 +36,20 @@ describe('validate — orchestrator', () => {
     expect(canExport(parsed.flow)).toBe(true);
   });
 
+  test('demo-flow-zero: zero errors, zero warnings, canExport true', () => {
+    const text = readFileSync(
+      `${here}/../../../dsl-spec/examples/demo-flow-zero.authprint`,
+      'utf8',
+    );
+    const parsed = parse(text);
+    expect(parsed.flow).not.toBeNull();
+    if (!parsed.flow) return;
+
+    const diagnostics = validate(parsed.flow);
+    expect(diagnostics).toEqual([]);
+    expect(canExport(parsed.flow)).toBe(true);
+  });
+
   test('warning-only flow: canExport true', () => {
     // Custom (unknown) kind triggers a vocabulary warning but no errors.
     const flow = FlowSchema.parse({

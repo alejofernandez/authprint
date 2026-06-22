@@ -12,7 +12,7 @@ This is the canonical authority for the DSL — the reference TypeScript impleme
 | [`grammar.md`](./grammar.md) | The strict YAML subset and document shape. Full reference at the bottom. |
 | [`semantics.md`](./semantics.md) | What each construct *means*. The authoritative reference for tool authors who want to consume Authprint flows. |
 | [`decisions/`](./decisions/) | Architecture Decision Records. Currently: [0001 — DSL on-disk format](./decisions/0001-dsl-format.md). |
-| [`examples/`](./examples/) | Annotated example flows: [passkey-enrollment](./examples/passkey-enrollment.authprint), [magic-link-signin](./examples/magic-link-signin.authprint). |
+| [`examples/`](./examples/) | Annotated example flows: **[demo-flow-zero](./examples/demo-flow-zero.authprint)** (canonical — Authprint's own auth flow; drives Phase III implementation), [passkey-enrollment](./examples/passkey-enrollment.authprint), [magic-link-signin](./examples/magic-link-signin.authprint). |
 
 ## On editor support
 

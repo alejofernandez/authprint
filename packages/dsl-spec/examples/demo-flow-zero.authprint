@@ -1,0 +1,643 @@
+# Demo Flow Zero — Authprint's own sign-in / sign-up flow.
+#
+# This is the canonical Authprint authentication flow, used as:
+#   1. The spec that drives the auth implementation in apps/web/ (per §11).
+#   2. The marketing artifact at launch ("here's our own flow, designed in
+#      our own tool").
+#   3. The largest example in packages/dsl-spec/examples/ — exercises every
+#      structural node type, conditional UI, OTP retry, both unified-flow
+#      branches, post-signup passkey promotion, and recovery.
+#
+# Designed against REQUIREMENTS.md §11: passkeys-primary via SimpleWebAuthn,
+# Google OAuth as social fallback, Email OTP as alternative + recovery,
+# Auth.js v5, Resend for transactional email, NO backup codes, NO email/
+# password, NO SMS in v1.
+
+id: authprint-demo-flow-zero
+name: Authprint sign-in & sign-up
+description: |
+  Unified identifier-first auth flow. Passkey-primary with conditional UI on
+  the identifier field; Google OAuth as social fallback; Email OTP as
+  alternative and universal recovery channel. Branches on whether the
+  account already exists, never showing a separate "sign-in vs sign-up"
+  toggle.
+theme: light
+
+# ─── Context ─────────────────────────────────────────────────────────────────
+# Slots are declarations only — populated by the implementation at runtime.
+context:
+  user.exists:
+    type: boolean
+  user.has_passkey:
+    type: boolean
+
+nodes:
+  # ─── Entry ──────────────────────────────────────────────────────────────
+  - type: entry
+    id: e1
+
+  # ─── Unified identifier-first entry ────────────────────────────────────
+  - type: screen
+    id: s-identifier
+    name: Welcome to Authprint
+    kind: identifier-collect
+    traits:
+      - social-login-buttons
+    fields:
+      - name: email
+        type: email
+        required: true
+
+  # ─── Google OAuth (used for both sign-in and sign-up) ─────────────────
+  - type: external
+    id: x-google
+    name: Continue with Google
+    kind: google
+
+  # ─── Does the account exist? (after email submitted) ──────────────────
+  - type: decision
+    id: d-user-exists-after-email
+    name: Account exists for this email?
+    kind: user-exists
+    predicate:
+      slot: user.exists
+      op: equals
+      value: true
+
+  # ─── Sign-in branch ────────────────────────────────────────────────────
+  - type: decision
+    id: d-has-passkey
+    name: Passkey available on this device?
+    kind: passkey-available
+    predicate:
+      slot: user.has_passkey
+      op: equals
+      value: true
+
+  - type: screen
+    id: s-passkey-auth
+    name: Sign in with passkey
+    kind: passkey-auth
+    traits:
+      - alternative-method-link
+
+  - type: screen
+    id: s-signin-method-select
+    name: How would you like to sign in?
+    kind: provider-select
+    traits:
+      - social-login-buttons
+
+  # ─── Email OTP (shared between sign-in and sign-up) ───────────────────
+  - type: action
+    id: a-send-otp
+    name: Send sign-in code
+    kind: send-otp
+
+  - type: screen
+    id: s-otp-entry
+    name: Enter the code we sent you
+    kind: mfa-challenge
+    fields:
+      - name: otp
+        type: otp
+        required: true
+
+  - type: action
+    id: a-verify-otp
+    name: Verify code
+    kind: verify-otp
+
+  # ─── After OTP / Google success: is this a returning user or a new one? ─
+  - type: decision
+    id: d-otp-context
+    name: Is this a returning user?
+    kind: user-exists
+    predicate:
+      slot: user.exists
+      op: equals
+      value: true
+
+  # ─── Sign-up branch ────────────────────────────────────────────────────
+  - type: screen
+    id: s-signup-method-select
+    name: How would you like to sign up?
+    kind: provider-select
+    traits:
+      - social-login-buttons
+      - terms-checkbox-required
+
+  - type: action
+    id: a-create-user
+    name: Create account
+    kind: create-user
+
+  # ─── Passkey enrollment prompt (post-signup) ──────────────────────────
+  - type: screen
+    id: s-passkey-enroll-prompt
+    name: Set up faster sign-in
+    kind: passkey-enroll
+    traits:
+      - passkey-promotion
+
+  - type: action
+    id: a-enroll-passkey
+    name: Enroll passkey
+    kind: enroll-factor
+
+  # ─── Outcomes ──────────────────────────────────────────────────────────
+  - type: outcome
+    id: o-authenticated
+    name: Signed in
+    kind: authenticated
+
+  - type: outcome
+    id: o-account-created
+    name: Account created
+    kind: account-created
+
+  - type: outcome
+    id: o-abandoned
+    name: User left
+    kind: abandoned
+
+  - type: outcome
+    id: o-error
+    name: Sign-in error
+    kind: error
+
+edges:
+  # ─── Entry → identifier screen ────────────────────────────────────────
+  - id: edge-entry-identifier
+    source: e1
+    target: s-identifier
+    trigger:
+      type: unconditional
+
+  # ─── From the identifier screen ───────────────────────────────────────
+  # Passkey conditional UI (browser autofill bubble tap): the passkey IS
+  # the credential, so this jumps straight to authenticated.
+  - id: edge-identifier-passkey-autofill
+    source: s-identifier
+    target: o-authenticated
+    label: passkey autofill (conditional UI)
+    trigger:
+      type: interaction
+      action: passkey
+
+  # Continue with Google.
+  - id: edge-identifier-google
+    source: s-identifier
+    target: x-google
+    trigger:
+      type: interaction
+      action: google
+
+  # Submit email — check if account exists.
+  - id: edge-identifier-submit
+    source: s-identifier
+    target: d-user-exists-after-email
+    trigger:
+      type: interaction
+      action: submit
+
+  # User abandoned (closed tab, hit back to marketing, etc.).
+  - id: edge-identifier-cancel
+    source: s-identifier
+    target: o-abandoned
+    trigger:
+      type: interaction
+      action: cancel
+
+  # ─── Google OAuth outcomes ────────────────────────────────────────────
+  - id: edge-google-success
+    source: x-google
+    target: d-otp-context
+    trigger:
+      type: on-success
+
+  - id: edge-google-error
+    source: x-google
+    target: o-error
+    trigger:
+      type: on-error
+
+  - id: edge-google-denied
+    source: x-google
+    target: s-identifier
+    trigger:
+      type: on-denied
+
+  - id: edge-google-cancelled
+    source: x-google
+    target: s-identifier
+    trigger:
+      type: on-cancelled
+
+  # ─── d-user-exists-after-email branching ──────────────────────────────
+  - id: edge-userexists-yes
+    source: d-user-exists-after-email
+    target: d-has-passkey
+    trigger:
+      type: branch
+      value: true
+
+  - id: edge-userexists-no
+    source: d-user-exists-after-email
+    target: s-signup-method-select
+    trigger:
+      type: branch
+      value: false
+
+  # ─── d-has-passkey branching (sign-in path) ───────────────────────────
+  - id: edge-haspasskey-yes
+    source: d-has-passkey
+    target: s-passkey-auth
+    trigger:
+      type: branch
+      value: true
+
+  - id: edge-haspasskey-no
+    source: d-has-passkey
+    target: s-signin-method-select
+    trigger:
+      type: branch
+      value: false
+
+  # ─── Passkey auth screen ──────────────────────────────────────────────
+  - id: edge-passkeyauth-submit
+    source: s-passkey-auth
+    target: o-authenticated
+    trigger:
+      type: interaction
+      action: submit
+
+  - id: edge-passkeyauth-tryanother
+    source: s-passkey-auth
+    target: s-signin-method-select
+    trigger:
+      type: interaction
+      action: try-another-method
+
+  # ─── Sign-in method select ────────────────────────────────────────────
+  - id: edge-signinselect-google
+    source: s-signin-method-select
+    target: x-google
+    trigger:
+      type: interaction
+      action: google
+
+  - id: edge-signinselect-otp
+    source: s-signin-method-select
+    target: a-send-otp
+    trigger:
+      type: interaction
+      action: sign-in
+
+  - id: edge-signinselect-cancel
+    source: s-signin-method-select
+    target: o-abandoned
+    trigger:
+      type: interaction
+      action: cancel
+
+  # ─── Send OTP ─────────────────────────────────────────────────────────
+  - id: edge-sendotp-success
+    source: a-send-otp
+    target: s-otp-entry
+    trigger:
+      type: on-success
+
+  - id: edge-sendotp-error
+    source: a-send-otp
+    target: o-error
+    trigger:
+      type: on-error
+
+  # ─── OTP entry screen ─────────────────────────────────────────────────
+  - id: edge-otpentry-submit
+    source: s-otp-entry
+    target: a-verify-otp
+    trigger:
+      type: interaction
+      action: submit
+
+  - id: edge-otpentry-resend
+    source: s-otp-entry
+    target: a-send-otp
+    trigger:
+      type: interaction
+      action: resend-code
+
+  - id: edge-otpentry-cancel
+    source: s-otp-entry
+    target: o-abandoned
+    trigger:
+      type: interaction
+      action: cancel
+
+  # ─── Verify OTP ───────────────────────────────────────────────────────
+  - id: edge-verifyotp-success
+    source: a-verify-otp
+    target: d-otp-context
+    trigger:
+      type: on-success
+
+  # Code invalid → back to OTP entry (retry). Rate limiting (§12) caps abuse.
+  - id: edge-verifyotp-error
+    source: a-verify-otp
+    target: s-otp-entry
+    trigger:
+      type: on-error
+
+  # ─── d-otp-context branching ──────────────────────────────────────────
+  # After Google or OTP success, this is where we route based on whether
+  # the verified identity already had an account.
+  - id: edge-otpcontext-existing
+    source: d-otp-context
+    target: o-authenticated
+    trigger:
+      type: branch
+      value: true
+
+  - id: edge-otpcontext-new
+    source: d-otp-context
+    target: a-create-user
+    trigger:
+      type: branch
+      value: false
+
+  # ─── Sign-up method select ────────────────────────────────────────────
+  - id: edge-signupselect-google
+    source: s-signup-method-select
+    target: x-google
+    trigger:
+      type: interaction
+      action: google
+
+  - id: edge-signupselect-otp
+    source: s-signup-method-select
+    target: a-send-otp
+    trigger:
+      type: interaction
+      action: sign-up
+
+  - id: edge-signupselect-cancel
+    source: s-signup-method-select
+    target: o-abandoned
+    trigger:
+      type: interaction
+      action: cancel
+
+  # ─── Create user ──────────────────────────────────────────────────────
+  - id: edge-createuser-success
+    source: a-create-user
+    target: s-passkey-enroll-prompt
+    trigger:
+      type: on-success
+
+  - id: edge-createuser-error
+    source: a-create-user
+    target: o-error
+    trigger:
+      type: on-error
+
+  # ─── Passkey enrollment prompt ────────────────────────────────────────
+  - id: edge-enrollprompt-enroll
+    source: s-passkey-enroll-prompt
+    target: a-enroll-passkey
+    trigger:
+      type: interaction
+      action: submit
+
+  - id: edge-enrollprompt-skip
+    source: s-passkey-enroll-prompt
+    target: o-account-created
+    trigger:
+      type: interaction
+      action: skip
+
+  # ─── Enroll passkey ───────────────────────────────────────────────────
+  # Both success and error land on account-created — the user has an account
+  # either way; the passkey is an optional upgrade.
+  - id: edge-enrollpasskey-success
+    source: a-enroll-passkey
+    target: o-account-created
+    trigger:
+      type: on-success
+
+  - id: edge-enrollpasskey-error
+    source: a-enroll-passkey
+    target: o-account-created
+    trigger:
+      type: on-error
+
+annotations:
+  - id: ann-conditional-ui
+    kind: rationale
+    text: |
+      The identifier screen uses passkey conditional UI: any passkey
+      registered for authprint.app surfaces in the browser's autofill
+      bubble. Tapping the bubble signs the user in with a single tap,
+      bypassing the entire flow. The 'passkey' interaction label models
+      this path. Returning users with a passkey on the device never see
+      the rest of the flow.
+    attachment:
+      type: node
+      nodeId: s-identifier
+
+  - id: ann-otp-recovery
+    kind: rationale
+    text: |
+      Email OTP serves two purposes: an alternative sign-in method, and
+      the universal recovery channel when a passkey-enabled device is
+      lost. We deliberately don't ship backup codes — nobody stores
+      them, and email already covers the case (REQUIREMENTS.md §11).
+    attachment:
+      type: node
+      nodeId: a-send-otp
+
+  - id: ann-passkey-promotion
+    kind: rationale
+    text: |
+      Post-signup passkey enrollment is gentle and skippable, but we
+      promote it actively here — first-time sign-up is the moment users
+      are most receptive to the friction of biometric setup. After this
+      one prompt, we don't nag during the session.
+    attachment:
+      type: node
+      nodeId: s-passkey-enroll-prompt
+
+  - id: ann-d-otp-context
+    kind: rationale
+    text: |
+      Both Google OAuth and Email OTP funnel through this decision: was
+      this verified identity already linked to an account? Yes → sign in.
+      No → create the account. The same Context slot 'user.exists' is
+      checked here as in d-user-exists-after-email — Authprint isn't a
+      runtime, so re-checking the slot just means the implementation
+      evaluates it again at this step.
+    attachment:
+      type: node
+      nodeId: d-otp-context
+
+scenarios:
+  - id: sc-returning-passkey-autofill
+    name: Returning user signs in with passkey conditional UI (single tap)
+    description: |
+      The fastest path — passkey autofill on the identifier screen sends the
+      user straight to authenticated without entering an email or selecting
+      a method.
+    initialContext:
+      user.exists: true
+      user.has_passkey: true
+    inputScript:
+      - type: screen
+        nodeId: s-identifier
+        action: passkey
+    expectedOutcome:
+      outcomeId: o-authenticated
+
+  - id: sc-returning-passkey-explicit
+    name: Returning user types email, signs in with passkey on next screen
+    initialContext:
+      user.exists: true
+      user.has_passkey: true
+    inputScript:
+      - type: screen
+        nodeId: s-identifier
+        action: submit
+      - type: screen
+        nodeId: s-passkey-auth
+        action: submit
+    expectedOutcome:
+      outcomeId: o-authenticated
+
+  - id: sc-returning-google
+    name: Returning user signs in via Google
+    initialContext:
+      user.exists: true
+      user.has_passkey: false
+    inputScript:
+      - type: screen
+        nodeId: s-identifier
+        action: google
+      - type: external
+        nodeId: x-google
+        result: success
+    expectedOutcome:
+      outcomeId: o-authenticated
+
+  - id: sc-returning-otp
+    name: Returning user signs in via Email OTP (recovery path)
+    description: |
+      Lost the passkey-enabled device. Email is the universal recovery
+      channel — no backup codes needed.
+    initialContext:
+      user.exists: true
+      user.has_passkey: false
+    inputScript:
+      - type: screen
+        nodeId: s-identifier
+        action: submit
+      - type: screen
+        nodeId: s-signin-method-select
+        action: sign-in
+      - type: action
+        nodeId: a-send-otp
+        result: success
+      - type: screen
+        nodeId: s-otp-entry
+        action: submit
+      - type: action
+        nodeId: a-verify-otp
+        result: success
+    expectedOutcome:
+      outcomeId: o-authenticated
+
+  - id: sc-new-user-google-enrolls-passkey
+    name: New user signs up via Google and enrolls a passkey
+    initialContext:
+      user.exists: false
+      user.has_passkey: false
+    inputScript:
+      - type: screen
+        nodeId: s-identifier
+        action: google
+      - type: external
+        nodeId: x-google
+        result: success
+      - type: action
+        nodeId: a-create-user
+        result: success
+      - type: screen
+        nodeId: s-passkey-enroll-prompt
+        action: submit
+      - type: action
+        nodeId: a-enroll-passkey
+        result: success
+    expectedOutcome:
+      outcomeId: o-account-created
+
+  - id: sc-new-user-otp-skips-passkey
+    name: New user signs up via Email OTP and skips passkey enrollment
+    initialContext:
+      user.exists: false
+      user.has_passkey: false
+    inputScript:
+      - type: screen
+        nodeId: s-identifier
+        action: submit
+      - type: screen
+        nodeId: s-signup-method-select
+        action: sign-up
+      - type: action
+        nodeId: a-send-otp
+        result: success
+      - type: screen
+        nodeId: s-otp-entry
+        action: submit
+      - type: action
+        nodeId: a-verify-otp
+        result: success
+      - type: action
+        nodeId: a-create-user
+        result: success
+      - type: screen
+        nodeId: s-passkey-enroll-prompt
+        action: skip
+    expectedOutcome:
+      outcomeId: o-account-created
+
+  - id: sc-otp-retry-then-success
+    name: User mistypes the OTP once, retries, succeeds
+    description: |
+      Tests the OTP retry loop. The verify-otp on-error edge routes back to
+      s-otp-entry; rate-limiting (§12) caps abuse.
+    initialContext:
+      user.exists: true
+      user.has_passkey: false
+    inputScript:
+      - type: screen
+        nodeId: s-identifier
+        action: submit
+      - type: screen
+        nodeId: s-signin-method-select
+        action: sign-in
+      - type: action
+        nodeId: a-send-otp
+        result: success
+      - type: screen
+        nodeId: s-otp-entry
+        action: submit
+      - type: action
+        nodeId: a-verify-otp
+        result: error
+      - type: screen
+        nodeId: s-otp-entry
+        action: submit
+      - type: action
+        nodeId: a-verify-otp
+        result: success
+    expectedOutcome:
+      outcomeId: o-authenticated
