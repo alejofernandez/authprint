@@ -8,7 +8,7 @@
 import '@xyflow/react/dist/style.css';
 
 import type { Flow } from '@authprint/dsl';
-import { Background, Controls, MiniMap, ReactFlow } from '@xyflow/react';
+import { Background, Controls, MarkerType, MiniMap, ReactFlow } from '@xyflow/react';
 import { useEffect, useMemo, useState } from 'react';
 import { flowToReactFlow, type NodePositionsMap } from './flowToReactFlow.ts';
 import { layoutFlow } from './layout.ts';
@@ -20,6 +20,14 @@ const edgeTypes = {};
 // the nodes (see flowToReactFlow) give the first fit correct-enough bounds;
 // React Flow re-fits against measured sizes once they mount.
 const FIT_VIEW_OPTIONS = { padding: 0.15 } as const;
+
+// `smoothstep` routes edges as clean orthogonal paths (vs the default bezier,
+// whose curves overlap and are hard to trace once edges cross). Arrowheads make
+// flow direction legible at a glance.
+const DEFAULT_EDGE_OPTIONS = {
+  type: 'smoothstep',
+  markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+} as const;
 
 export function Editor({ flow }: { flow: Flow }) {
   // Auto-layout runs whenever the flow changes. We keep the positions paired
@@ -53,6 +61,7 @@ export function Editor({ flow }: { flow: Flow }) {
           edgeTypes={edgeTypes}
           nodesDraggable={false}
           nodesConnectable={false}
+          defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
           fitView
           fitViewOptions={FIT_VIEW_OPTIONS}
           // Default minZoom (0.5) is too high to fit wide flows — a long

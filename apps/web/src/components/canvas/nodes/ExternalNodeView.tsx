@@ -22,7 +22,10 @@ export function ExternalNodeView({ data }: ExternalNodeProps) {
       </div>
       <NodeShellContent typeLabel="External" name={node.name} id={node.id} kind={node.kind} />
       <Handle type="source" position={Position.Right} id="on-success" />
-      <Handle type="source" position={Position.Bottom} id="on-error" />
+      {/* Failure paths fan out along the bottom, offset so they don't overlap. */}
+      <Handle type="source" position={Position.Bottom} id="on-error" style={{ left: '30%' }} />
+      <Handle type="source" position={Position.Bottom} id="on-denied" style={{ left: '50%' }} />
+      <Handle type="source" position={Position.Bottom} id="on-cancelled" style={{ left: '70%' }} />
     </div>
   );
 }

@@ -4,11 +4,56 @@
 // handle layout-layer integration. Positions are passed in from a caller —
 // elkjs auto-layout (E17) or, later, a layout sidecar.
 
-import type { Node as DslNode, Flow } from '@authprint/dsl';
+import type { Node as DslNode, Flow, Trigger } from '@authprint/dsl';
 import type { Edge as RfEdge, Node as RfNode } from '@xyflow/react';
 import type { CanvasNodeData } from './nodes/index.ts';
 
 export type NodePositionsMap = Record<string, { x: number; y: number }>;
+
+// Screen interactions that mean "leave / give up" exit the bottom `alt` handle
+// (toward the abandoned outcomes) rather than the forward `default` handle.
+const RETREAT_ACTIONS = new Set(['cancel', 'back', 'abandon', 'dismiss']);
+
+// Which source handle an edge leaves from. Handle ids match the ones declared
+// on each node component, so branches (yes/no), action results (success/error),
+// and external failures each leave a distinct, semantically-placed point —
+// without this every edge stacks on one handle and you can't tell paths apart.
+function sourceHandleFor(trigger: Trigger): string | undefined {
+  switch (trigger.type) {
+    case 'branch':
+      return trigger.value ? 'true' : 'false';
+    case 'interaction':
+      return RETREAT_ACTIONS.has(trigger.action) ? 'alt' : 'default';
+    case 'on-success':
+    case 'on-error':
+    case 'on-denied':
+    case 'on-cancelled':
+      return trigger.type;
+    default:
+      return undefined; // unconditional: entry has a single source handle
+  }
+}
+
+// Short edge label so the diagram is self-documenting: what action / result
+// takes you down each edge (submit, google, yes/no, success/error).
+function labelFor(trigger: Trigger): string | undefined {
+  switch (trigger.type) {
+    case 'interaction':
+      return trigger.action;
+    case 'branch':
+      return trigger.value ? 'yes' : 'no';
+    case 'on-success':
+      return 'success';
+    case 'on-error':
+      return 'error';
+    case 'on-denied':
+      return 'denied';
+    case 'on-cancelled':
+      return 'cancelled';
+    default:
+      return undefined;
+  }
+}
 
 // Per-structural-type intrinsic sizes — eyeballed from the current node
 // components. Two consumers share them: elkjs (as layout size hints) and React
@@ -43,7 +88,8 @@ export function flowToReactFlow(flow: Flow, positions: NodePositionsMap): FlowTo
     id: edge.id,
     source: edge.source,
     target: edge.target,
-    label: edge.label,
+    sourceHandle: sourceHandleFor(edge.trigger),
+    label: labelFor(edge.trigger),
   }));
 
   return { nodes, edges };
