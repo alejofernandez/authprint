@@ -146,24 +146,69 @@ nodes:
     kind: enroll-factor
 
   # ─── Outcomes ──────────────────────────────────────────────────────────
+  # Outcomes are DUPLICATED per reaching path rather than shared (REQUIREMENTS
+  # §7 "Visual cleanliness"). Multiple `authenticated` / `abandoned` / `error`
+  # terminals are semantically equivalent; giving each path its own keeps the
+  # diagram readable — every branch ends at a node next to it, no long edges
+  # crossing the whole flow back to one shared sink.
   - type: outcome
-    id: o-authenticated
+    id: o-authenticated-autofill
     name: Signed in
     kind: authenticated
 
   - type: outcome
-    id: o-account-created
+    id: o-authenticated-passkey
+    name: Signed in
+    kind: authenticated
+
+  - type: outcome
+    id: o-authenticated-otp
+    name: Signed in
+    kind: authenticated
+
+  - type: outcome
+    id: o-account-created-skip
     name: Account created
     kind: account-created
 
   - type: outcome
-    id: o-abandoned
+    id: o-account-created-enrolled
+    name: Account created
+    kind: account-created
+
+  - type: outcome
+    id: o-abandoned-identifier
     name: User left
     kind: abandoned
 
   - type: outcome
-    id: o-error
+    id: o-abandoned-signin
+    name: User left
+    kind: abandoned
+
+  - type: outcome
+    id: o-abandoned-otp
+    name: User left
+    kind: abandoned
+
+  - type: outcome
+    id: o-abandoned-signup
+    name: User left
+    kind: abandoned
+
+  - type: outcome
+    id: o-error-google
     name: Sign-in error
+    kind: error
+
+  - type: outcome
+    id: o-error-otp
+    name: Sign-in error
+    kind: error
+
+  - type: outcome
+    id: o-error-signup
+    name: Sign-up error
     kind: error
 
 edges:
@@ -179,7 +224,7 @@ edges:
   # the credential, so this jumps straight to authenticated.
   - id: edge-identifier-passkey-autofill
     source: s-identifier
-    target: o-authenticated
+    target: o-authenticated-autofill
     label: passkey autofill (conditional UI)
     trigger:
       type: interaction
@@ -204,7 +249,7 @@ edges:
   # User abandoned (closed tab, hit back to marketing, etc.).
   - id: edge-identifier-cancel
     source: s-identifier
-    target: o-abandoned
+    target: o-abandoned-identifier
     trigger:
       type: interaction
       action: cancel
@@ -218,7 +263,7 @@ edges:
 
   - id: edge-google-error
     source: x-google
-    target: o-error
+    target: o-error-google
     trigger:
       type: on-error
 
@@ -267,7 +312,7 @@ edges:
   # ─── Passkey auth screen ──────────────────────────────────────────────
   - id: edge-passkeyauth-submit
     source: s-passkey-auth
-    target: o-authenticated
+    target: o-authenticated-passkey
     trigger:
       type: interaction
       action: submit
@@ -296,7 +341,7 @@ edges:
 
   - id: edge-signinselect-cancel
     source: s-signin-method-select
-    target: o-abandoned
+    target: o-abandoned-signin
     trigger:
       type: interaction
       action: cancel
@@ -310,7 +355,7 @@ edges:
 
   - id: edge-sendotp-error
     source: a-send-otp
-    target: o-error
+    target: o-error-otp
     trigger:
       type: on-error
 
@@ -331,7 +376,7 @@ edges:
 
   - id: edge-otpentry-cancel
     source: s-otp-entry
-    target: o-abandoned
+    target: o-abandoned-otp
     trigger:
       type: interaction
       action: cancel
@@ -355,7 +400,7 @@ edges:
   # the verified identity already had an account.
   - id: edge-otpcontext-existing
     source: d-otp-context
-    target: o-authenticated
+    target: o-authenticated-otp
     trigger:
       type: branch
       value: true
@@ -384,7 +429,7 @@ edges:
 
   - id: edge-signupselect-cancel
     source: s-signup-method-select
-    target: o-abandoned
+    target: o-abandoned-signup
     trigger:
       type: interaction
       action: cancel
@@ -398,7 +443,7 @@ edges:
 
   - id: edge-createuser-error
     source: a-create-user
-    target: o-error
+    target: o-error-signup
     trigger:
       type: on-error
 
@@ -412,7 +457,7 @@ edges:
 
   - id: edge-enrollprompt-skip
     source: s-passkey-enroll-prompt
-    target: o-account-created
+    target: o-account-created-skip
     trigger:
       type: interaction
       action: skip
@@ -422,13 +467,13 @@ edges:
   # either way; the passkey is an optional upgrade.
   - id: edge-enrollpasskey-success
     source: a-enroll-passkey
-    target: o-account-created
+    target: o-account-created-enrolled
     trigger:
       type: on-success
 
   - id: edge-enrollpasskey-error
     source: a-enroll-passkey
-    target: o-account-created
+    target: o-account-created-enrolled
     trigger:
       type: on-error
 
@@ -496,7 +541,7 @@ scenarios:
         nodeId: s-identifier
         action: passkey
     expectedOutcome:
-      outcomeId: o-authenticated
+      outcomeId: o-authenticated-autofill
 
   - id: sc-returning-passkey-explicit
     name: Returning user types email, signs in with passkey on next screen
@@ -511,7 +556,7 @@ scenarios:
         nodeId: s-passkey-auth
         action: submit
     expectedOutcome:
-      outcomeId: o-authenticated
+      outcomeId: o-authenticated-passkey
 
   - id: sc-returning-google
     name: Returning user signs in via Google
@@ -526,7 +571,7 @@ scenarios:
         nodeId: x-google
         result: success
     expectedOutcome:
-      outcomeId: o-authenticated
+      outcomeId: o-authenticated-otp
 
   - id: sc-returning-otp
     name: Returning user signs in via Email OTP (recovery path)
@@ -553,7 +598,7 @@ scenarios:
         nodeId: a-verify-otp
         result: success
     expectedOutcome:
-      outcomeId: o-authenticated
+      outcomeId: o-authenticated-otp
 
   - id: sc-new-user-google-enrolls-passkey
     name: New user signs up via Google and enrolls a passkey
@@ -577,7 +622,7 @@ scenarios:
         nodeId: a-enroll-passkey
         result: success
     expectedOutcome:
-      outcomeId: o-account-created
+      outcomeId: o-account-created-enrolled
 
   - id: sc-new-user-otp-skips-passkey
     name: New user signs up via Email OTP and skips passkey enrollment
@@ -607,7 +652,7 @@ scenarios:
         nodeId: s-passkey-enroll-prompt
         action: skip
     expectedOutcome:
-      outcomeId: o-account-created
+      outcomeId: o-account-created-skip
 
   - id: sc-otp-retry-then-success
     name: User mistypes the OTP once, retries, succeeds
@@ -640,4 +685,4 @@ scenarios:
         nodeId: a-verify-otp
         result: success
     expectedOutcome:
-      outcomeId: o-authenticated
+      outcomeId: o-authenticated-otp
