@@ -39,6 +39,8 @@ const LAYOUT = 'layout';
 const META = 'meta';
 
 export type Position = { x: number; y: number };
+/** Node id → canvas position. The `layout` map's plain-object view (E25 artifact). */
+export type LayoutPositions = Record<string, Position>;
 
 // ─── Top-level accessors ─────────────────────────────────────────────────────
 

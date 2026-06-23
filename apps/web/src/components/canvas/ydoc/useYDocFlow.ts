@@ -16,9 +16,16 @@ import { useCallback, useRef, useSyncExternalStore } from 'react';
 import type * as Y from 'yjs';
 import { readFlow } from './hydrate.ts';
 import { moveNode, removeEdge, removeNode } from './ops.ts';
-import { contextMap, edgesMap, layoutMap, metaMap, nodesMap, type Position } from './schema.ts';
+import {
+  contextMap,
+  edgesMap,
+  type LayoutPositions,
+  layoutMap,
+  metaMap,
+  nodesMap,
+} from './schema.ts';
 
-export type LayoutPositions = Record<string, Position>;
+export type { LayoutPositions };
 
 export type YDocFlowSnapshot = { flow: Flow; layout: LayoutPositions };
 

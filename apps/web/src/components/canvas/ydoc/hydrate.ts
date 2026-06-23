@@ -1,9 +1,9 @@
 // Hydrate a parsed Flow into a Y.Doc (load direction) and read it back out
 // (render direction). E24's hydration source is the in-memory `Flow` object the
-// Editor already holds — NOT file/Firestore JSON; that boundary (and the layout
-// sidecar) is E25's. The `layout` map is left empty on hydrate: a "fresh"
-// canvas auto-places via elkjs and persists nothing; only a drag writes a
-// position (hybrid-C, §7).
+// Editor already holds. E25 adds the optional `layout` argument: a bundled
+// `.authprint` carries saved positions, which seed the `layout` map here. With
+// no layout (a fresh/semantic-only flow), the map stays empty and elkjs
+// auto-places everything (hybrid-C, §7).
 
 import type { Annotation, Flow, Scenario } from '@authprint/dsl';
 import type * as Y from 'yjs';
@@ -14,7 +14,9 @@ import {
   contextMap,
   createDoc,
   edgesMap,
+  type LayoutPositions,
   LOCAL_ORIGIN,
+  layoutMap,
   metaMap,
   nodesMap,
   readContext,
@@ -22,7 +24,7 @@ import {
   readNodeMap,
 } from './schema.ts';
 
-export function hydrate(flow: Flow): Y.Doc {
+export function hydrate(flow: Flow, layout?: LayoutPositions): Y.Doc {
   const doc = createDoc();
   doc.transact(() => {
     const meta = metaMap(doc);
@@ -44,6 +46,17 @@ export function hydrate(flow: Flow): Y.Doc {
     const context = contextMap(doc);
     for (const [name, slot] of Object.entries(flow.context)) {
       context.set(name, buildContextSlotMap(slot));
+    }
+
+    if (layout) {
+      // Seed only positions whose node exists — a stale entry (e.g. from a
+      // layout block that drifted from the flow) is dropped, keeping the map
+      // consistent with the node set.
+      const nodeIds = new Set(flow.nodes.map((n) => n.id));
+      const positions = layoutMap(doc);
+      for (const [id, position] of Object.entries(layout)) {
+        if (nodeIds.has(id)) positions.set(id, position);
+      }
     }
   }, LOCAL_ORIGIN);
   return doc;
