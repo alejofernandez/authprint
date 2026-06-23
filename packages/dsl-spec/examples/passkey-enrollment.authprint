@@ -1,8 +1,10 @@
 # Passkey enrollment — example Authprint flow.
 #
-# A returning user signs in (passkey if available, else email OTP), and if
-# they don't already have a passkey enrolled we offer enrollment as the last
-# step before reaching the authenticated outcome.
+# A returning user signs in with a passkey; a new user verifies via email OTP
+# and is offered passkey enrollment. Authored as a spine with branches
+# (REQUIREMENTS.md §7 "Visual cleanliness"): each path runs straight to its own
+# outcome — no edges merge back into a shared node, so the diagram reads as a
+# clean line that bifurcates rather than a web.
 
 id: example-passkey-enrollment
 name: Passkey enrollment
@@ -34,6 +36,7 @@ nodes:
       op: equals
       value: true
 
+  # ─── Returning-user branch: passkey ────────────────────────────────────
   - type: screen
     id: s-passkey
     name: Sign in with passkey
@@ -45,6 +48,12 @@ nodes:
         type: passkey
         required: true
 
+  # ─── New-user branch: email OTP, then optional enrollment ──────────────
+  - type: action
+    id: a-send-otp
+    name: Send sign-in code
+    kind: send-otp
+
   - type: screen
     id: s-otp
     name: Enter the code we sent you
@@ -53,11 +62,6 @@ nodes:
       - name: otp
         type: otp
         required: true
-
-  - type: action
-    id: a-send-otp
-    name: Send sign-in code
-    kind: send-otp
 
   - type: decision
     id: d-has-passkey
@@ -78,8 +82,19 @@ nodes:
         type: passkey
         required: true
 
+  # ─── Outcomes — duplicated per path (§7) so each branch ends on its own ─
   - type: outcome
-    id: o-authenticated
+    id: o-authenticated-passkey
+    name: Authenticated
+    kind: authenticated
+
+  - type: outcome
+    id: o-authenticated-otp
+    name: Authenticated
+    kind: authenticated
+
+  - type: outcome
+    id: o-authenticated-enrolled
     name: Authenticated
     kind: authenticated
 
@@ -102,13 +117,22 @@ edges:
       type: interaction
       action: submit
 
-  # Returning user with credentials → try passkey first.
+  # Returning user → sign in with a passkey. Signing in with a passkey already
+  # proves they have one, so this branch goes straight to authenticated — the
+  # has-passkey check below only belongs on the OTP path.
   - id: edge-userexists-passkey
     source: d-user-exists
     target: s-passkey
     trigger:
       type: branch
       value: true
+
+  - id: edge-passkey-authenticated
+    source: s-passkey
+    target: o-authenticated-passkey
+    trigger:
+      type: interaction
+      action: submit
 
   # New user → send OTP to verify ownership of the email.
   - id: edge-userexists-sendotp
@@ -137,17 +161,10 @@ edges:
       type: interaction
       action: submit
 
-  - id: edge-passkey-haspasskey
-    source: s-passkey
-    target: d-has-passkey
-    trigger:
-      type: interaction
-      action: submit
-
   # Already has a passkey → straight to authenticated.
   - id: edge-haspasskey-authenticated
     source: d-has-passkey
-    target: o-authenticated
+    target: o-authenticated-otp
     trigger:
       type: branch
       value: true
@@ -162,7 +179,7 @@ edges:
 
   - id: edge-enroll-authenticated
     source: s-passkey-enroll
-    target: o-authenticated
+    target: o-authenticated-enrolled
     trigger:
       type: interaction
       action: submit
@@ -170,7 +187,7 @@ edges:
   # User skips enrollment — still authenticated.
   - id: edge-enroll-skip
     source: s-passkey-enroll
-    target: o-authenticated
+    target: o-authenticated-enrolled
     trigger:
       type: interaction
       action: skip
@@ -200,7 +217,7 @@ scenarios:
         nodeId: s-passkey
         action: submit
     expectedOutcome:
-      outcomeId: o-authenticated
+      outcomeId: o-authenticated-passkey
 
   - id: sc-new-user-enrolls-passkey
     name: New user signs up via OTP and enrolls a passkey
@@ -221,4 +238,4 @@ scenarios:
         nodeId: s-passkey-enroll
         action: submit
     expectedOutcome:
-      outcomeId: o-authenticated
+      outcomeId: o-authenticated-enrolled
