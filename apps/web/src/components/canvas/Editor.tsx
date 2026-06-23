@@ -1,10 +1,12 @@
 'use client';
 
-// The Editor: a shell over the read-only React Flow canvas. It owns the current
-// Flow (Demo Flow Zero by default, then whatever the user opens), file loading
+// The Editor: a shell over the React Flow canvas. It owns the current flow as a
+// Y.Doc (Demo Flow Zero by default, then whatever the user opens), file loading
 // (drag-and-drop or the command palette), and the Cmd+K palette that is the
-// product's primary navigation surface (§7). E17 computes positions with elkjs
-// auto-layout (LR); E24+ adds editing via Y.Doc — until then it's read-only.
+// product's primary navigation surface (§7). elkjs computes auto-layout (LR,
+// E17); E24 binds the canvas to the Y.Doc so node moves (→ layout map) and
+// deletes (→ cascade) flow into the document. Richer authoring (drag-from-handle
+// creation, inline editing) is E26; persistence/serialization is E25.
 
 import '@xyflow/react/dist/style.css';
 
@@ -14,17 +16,25 @@ import {
   Controls,
   MarkerType,
   MiniMap,
+  type OnEdgesChange,
+  type OnNodesChange,
   ReactFlow,
   ReactFlowProvider,
+  type Node as RfNode,
+  useEdgesState,
+  useNodesState,
   useReactFlow,
 } from '@xyflow/react';
-import { type DragEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type * as Y from 'yjs';
 import { type Theme, useTheme } from '@/components/theme';
 import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { flowFromSource } from './flowFromSource.ts';
 import { flowToReactFlow, type NodePositionsMap } from './flowToReactFlow.ts';
 import { layoutFlow } from './layout.ts';
-import { nodeTypes } from './nodes/index.ts';
+import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
+import { hydrate } from './ydoc/hydrate.ts';
+import { useYDocFlow } from './ydoc/useYDocFlow.ts';
 
 export type ExampleFlow = { id: string; name: string; source: string };
 
@@ -60,7 +70,10 @@ export function Editor({ initialFlow, examples }: { initialFlow: Flow; examples:
 }
 
 function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: ExampleFlow[] }) {
-  const [flow, setFlow] = useState(initialFlow);
+  // The Y.Doc is the editable runtime model (§7). It's built from the parsed
+  // Flow and rebuilt wholesale on each load — a fresh document per flow is
+  // simpler than diffing one doc into another, and load is a deliberate reset.
+  const [doc, setDoc] = useState(() => hydrate(initialFlow));
   // Bumped on every successful load so the canvas remounts and re-runs `fitView`
   // for the new flow (the `fitView` prop only fires on mount).
   const [revision, setRevision] = useState(0);
@@ -78,7 +91,7 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
       setNotice({ kind: 'error', title: `Couldn’t parse ${label}`, diagnostics });
       return;
     }
-    setFlow(parsed);
+    setDoc(hydrate(parsed));
     setRevision((r) => r + 1);
     setNotice(
       diagnostics.length
@@ -188,7 +201,7 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
       }}
       onDrop={onDrop}
     >
-      <FlowCanvas key={revision} flow={flow} />
+      <FlowCanvas key={revision} doc={doc} />
 
       <button
         type="button"
@@ -258,38 +271,119 @@ function NoticeToast({ notice, onDismiss }: { notice: Notice; onDismiss: () => v
   );
 }
 
-function FlowCanvas({ flow }: { flow: Flow }) {
-  // Auto-layout runs whenever the flow changes. We keep the positions paired
-  // with the flow they were computed for, so a flow swap yields an empty canvas
-  // until its own layout resolves — we never paint a new graph against stale
-  // coordinates, and there's no spinner (flows are small, layout is sub-frame).
-  const [layout, setLayout] = useState<{ flow: Flow; positions: NodePositionsMap } | null>(null);
+// A structural fingerprint of a flow — node identities/types and edge wiring.
+// elkjs only needs to re-run when this changes; a drag (which mutates only the
+// layout map, not structure) must NOT trigger a re-layout, or the dragged node
+// would snap back to its auto-placed spot.
+function structureSignature(flow: Flow): string {
+  const nodes = flow.nodes
+    .map((n) => `${n.id}:${n.type}`)
+    .sort()
+    .join(',');
+  const edges = flow.edges
+    .map((e) => `${e.source}>${e.target}`)
+    .sort()
+    .join(',');
+  return `${nodes}|${edges}`;
+}
+
+// elkjs auto-layout, recomputed only on structural change. Returns null while a
+// (re)layout is in flight so the caller can hold the canvas until coordinates
+// are ready — we never paint a graph against stale or empty positions.
+function useElkLayout(flow: Flow): NodePositionsMap | null {
+  // Layout depends on structure only; a drag changes flow identity but not the
+  // signature, so elkjs must not re-run (it would yank the dragged node back to
+  // its auto spot). Read the latest flow off a ref so the effect body stays
+  // dependency-free beyond the signature.
+  const signature = structureSignature(flow);
+  const flowRef = useRef(flow);
+  // Keep the ref current without touching it during render. The layout effect
+  // reads it (not a dep) so it sees the latest flow when the signature changes.
+  useEffect(() => {
+    flowRef.current = flow;
+  }, [flow]);
+  const [computed, setComputed] = useState<{
+    signature: string;
+    positions: NodePositionsMap;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    layoutFlow(flow).then((positions) => {
-      if (!cancelled) setLayout({ flow, positions });
+    layoutFlow(flowRef.current).then((positions) => {
+      if (!cancelled) setComputed({ signature, positions });
     });
     return () => {
       cancelled = true;
     };
-  }, [flow]);
+  }, [signature]);
 
+  // Null while a (re)layout for the current structure is in flight, so the
+  // caller holds the canvas rather than painting against stale coordinates.
+  return computed?.signature === signature ? computed.positions : null;
+}
+
+function FlowCanvas({ doc }: { doc: Y.Doc }) {
+  const { flow, layout, onNodesChange: nodesToDoc, onEdgesChange: edgesToDoc } = useYDocFlow(doc);
+  const autoPositions = useElkLayout(flow);
+
+  // Dragged nodes (in the layout map) win over auto-placed coordinates.
   const graph = useMemo(
-    () => (layout?.flow === flow ? flowToReactFlow(flow, layout.positions) : null),
-    [flow, layout],
+    () => (autoPositions ? flowToReactFlow(flow, { ...autoPositions, ...layout }) : null),
+    [flow, layout, autoPositions],
   );
 
   if (!graph) return null;
 
+  return <BoundCanvas graph={graph} nodesToDoc={nodesToDoc} edgesToDoc={edgesToDoc} />;
+}
+
+// Mounted only once coordinates are ready, so its local node/edge state seeds
+// with the full graph and `fitView` fits real bounds on the first frame. Holds
+// React Flow's interactive state locally (smooth drag) while mirroring every
+// change into the Y.Doc; external Y.Doc changes flow back via the `graph` prop.
+function BoundCanvas({
+  graph,
+  nodesToDoc,
+  edgesToDoc,
+}: {
+  graph: ReturnType<typeof flowToReactFlow>;
+  nodesToDoc: OnNodesChange<RfNode<CanvasNodeData>>;
+  edgesToDoc: OnEdgesChange;
+}) {
+  const [nodes, setNodes, onNodesChangeLocal] = useNodesState(graph.nodes);
+  const [edges, setEdges, onEdgesChangeLocal] = useEdgesState(graph.edges);
+
+  // Reconcile when the Y.Doc-derived graph changes (a committed drag, a delete,
+  // a remote edit). Steady state is stable refs, so this doesn't loop.
+  useEffect(() => setNodes(graph.nodes), [graph.nodes, setNodes]);
+  useEffect(() => setEdges(graph.edges), [graph.edges, setEdges]);
+
+  const onNodesChange = useCallback<OnNodesChange<RfNode<CanvasNodeData>>>(
+    (changes) => {
+      onNodesChangeLocal(changes); // local echo: smooth drag + selection
+      nodesToDoc(changes); // commit move-on-end / delete to the doc
+    },
+    [onNodesChangeLocal, nodesToDoc],
+  );
+  const onEdgesChange = useCallback<OnEdgesChange>(
+    (changes) => {
+      onEdgesChangeLocal(changes);
+      edgesToDoc(changes);
+    },
+    [onEdgesChangeLocal, edgesToDoc],
+  );
+
   return (
     <ReactFlow
-      nodes={graph.nodes}
-      edges={graph.edges}
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
-      nodesDraggable={false}
+      // Edge *creation* UX is E26; E24 binds move + delete only.
       nodesConnectable={false}
+      deleteKeyCode={['Delete', 'Backspace']}
       defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
       fitView
       fitViewOptions={FIT_VIEW_OPTIONS}
