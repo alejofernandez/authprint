@@ -271,55 +271,48 @@ function NoticeToast({ notice, onDismiss }: { notice: Notice; onDismiss: () => v
   );
 }
 
-// A structural fingerprint of a flow — node identities/types and edge wiring.
-// elkjs only needs to re-run when this changes; a drag (which mutates only the
-// layout map, not structure) must NOT trigger a re-layout, or the dragged node
-// would snap back to its auto-placed spot.
-function structureSignature(flow: Flow): string {
-  const nodes = flow.nodes
-    .map((n) => `${n.id}:${n.type}`)
-    .sort()
-    .join(',');
-  const edges = flow.edges
-    .map((e) => `${e.source}>${e.target}`)
-    .sort()
-    .join(',');
-  return `${nodes}|${edges}`;
-}
-
-// elkjs auto-layout, recomputed only on structural change. Returns null while a
-// (re)layout is in flight so the caller can hold the canvas until coordinates
-// are ready — we never paint a graph against stale or empty positions.
+// elkjs auto-layout, preserved across edits. We run elk only for nodes that have
+// no coordinates yet — everything on first load, and any freshly-added node
+// later (E26). A delete or a move never leaves a node unplaced, so layout is NOT
+// recomputed for them: the surviving nodes keep their positions, the graph
+// doesn't reflow, and — because the hook stops returning null after the first
+// layout — `FlowCanvas` never unmounts, so the mount-only `fitView` doesn't
+// re-fire. (Previously any structural change re-ran elk and briefly returned
+// null, which remounted the canvas and reset the zoom on every delete.)
+//
+// Returns null only until the very first layout resolves, so the caller holds
+// the canvas off rather than painting against empty coordinates.
 function useElkLayout(flow: Flow): NodePositionsMap | null {
-  // Layout depends on structure only; a drag changes flow identity but not the
-  // signature, so elkjs must not re-run (it would yank the dragged node back to
-  // its auto spot). Read the latest flow off a ref so the effect body stays
-  // dependency-free beyond the signature.
-  const signature = structureSignature(flow);
+  // The effect reads the latest flow off a ref so it isn't a dependency — only
+  // the set of unplaced nodes should trigger a (re)layout.
   const flowRef = useRef(flow);
-  // Keep the ref current without touching it during render. The layout effect
-  // reads it (not a dep) so it sees the latest flow when the signature changes.
   useEffect(() => {
     flowRef.current = flow;
   }, [flow]);
-  const [computed, setComputed] = useState<{
-    signature: string;
-    positions: NodePositionsMap;
-  } | null>(null);
+
+  const [positions, setPositions] = useState<NodePositionsMap | null>(null);
+
+  // Sorted ids of nodes still missing coordinates. Empty once everything is
+  // placed; gains an id only when a node is added (never on delete/move), so it
+  // is the precise trigger for when elk actually needs to run again.
+  const unplaced = flow.nodes
+    .filter((node) => !positions || positions[node.id] === undefined)
+    .map((node) => node.id)
+    .sort()
+    .join(',');
 
   useEffect(() => {
+    if (unplaced === '') return;
     let cancelled = false;
-    layoutFlow(flowRef.current).then((positions) => {
-      if (!cancelled) setComputed({ signature, positions });
+    layoutFlow(flowRef.current).then((next) => {
+      if (!cancelled) setPositions(next);
     });
     return () => {
       cancelled = true;
     };
-  }, [signature]);
+  }, [unplaced]);
 
-  // Null while a (re)layout for the current structure is in flight, so the
-  // caller holds the canvas rather than painting against stale coordinates.
-  return computed?.signature === signature ? computed.positions : null;
+  return positions;
 }
 
 function FlowCanvas({ doc }: { doc: Y.Doc }) {
