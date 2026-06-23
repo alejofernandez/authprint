@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { InlineScript } from '@/components/inline-script';
 import { ThemeProvider } from '@/components/theme';
 import './globals.css';
 
@@ -35,8 +36,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: tiny first-paint theme bootstrap, must run before React. */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <InlineScript html={THEME_INIT_SCRIPT} />
       </head>
       <body className="flex min-h-full flex-col">
         <ThemeProvider>{children}</ThemeProvider>
