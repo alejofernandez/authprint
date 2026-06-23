@@ -365,12 +365,13 @@ type CreateMenu = {
 // Gap (flow units) between a source node and the node its `+` creates.
 const NEW_NODE_GAP = 80;
 
-// Place a `+`-created node aligned to its source so the connecting edge runs
-// straight into the new node's left (target) handle:
-//   - right child: to the right, vertical centers level → horizontal arrow.
-//   - bottom child: below, with its left edge under the source's bottom-center
-//     handle (NOT centered), so the arrow drops straight from that handle into
-//     the new node's left edge.
+// Place a `+`-created node aligned to its source so the connecting edge reads
+// cleanly into the new node's left (target) handle:
+//   - right child: to the right, vertical centers level → straight horizontal.
+//   - bottom child: below, with its left edge aligned to the source's RIGHT edge
+//     so there's room for a clean down-then-right "L" (a smoothstep edge always
+//     enters the target from its left handle, so a node directly below would
+//     force the arrow to bend back on itself).
 // The new node isn't measured yet, so its intrinsic NODE_SIZE seeds the offset.
 function alignedNodePosition(
   source: RfNode | undefined,
@@ -387,7 +388,7 @@ function alignedNodePosition(
   const { x, y } = source.position;
   return side === 'right'
     ? { x: x + sw + NEW_NODE_GAP, y: y + sh / 2 - height / 2 }
-    : { x: x + sw / 2, y: y + sh + NEW_NODE_GAP };
+    : { x: x + sw, y: y + sh + NEW_NODE_GAP };
 }
 
 function FlowCanvas({ doc }: { doc: Y.Doc }) {
