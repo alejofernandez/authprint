@@ -98,11 +98,20 @@ export async function layoutFlow(flow: Flow): Promise<NodePositionsMap> {
         },
       };
     }),
-    edges: flow.edges.map((edge) => ({
-      id: edge.id,
-      sources: [`${edge.source}::${sourceHandleFor(edge.trigger) ?? FALLBACK_HANDLE}`],
-      targets: [`${edge.target}::in`],
-    })),
+    edges: flow.edges.map((edge) => {
+      const handle = sourceHandleFor(edge.trigger) ?? FALLBACK_HANDLE;
+      return {
+        id: edge.id,
+        sources: [`${edge.source}::${handle}`],
+        targets: [`${edge.target}::in`],
+        // Auth flows are a spine (entry → … → success) with branches dropping
+        // off it. Prioritising the straightness of the forward (EAST) edges
+        // keeps that spine horizontal; the SOUTH branches are free to bend down.
+        ...(portSide(handle) === 'EAST'
+          ? { layoutOptions: { 'elk.layered.priority.straightness': '10' } }
+          : {}),
+      };
+    }),
   };
 
   const laid = await elk.layout(elkGraph);
