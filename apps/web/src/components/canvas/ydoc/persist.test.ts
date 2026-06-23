@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import type { Flow } from '@authprint/dsl';
+import { parse as yamlParse } from 'yaml';
 import { hydrate } from './hydrate.ts';
-import { docToArtifact } from './persist.ts';
+import { docToArtifact, parseLayout, serializeLayout } from './persist.ts';
 import { type LayoutPositions, layoutMap } from './schema.ts';
 
 const flow: Flow = {
@@ -71,5 +72,45 @@ describe('round-trip', () => {
       new Set(flow.nodes.map((n) => n.id)),
     );
     expect(artifact.layout).toEqual(layout);
+  });
+});
+
+describe('serializeLayout / parseLayout', () => {
+  test('round-trips a positions map through YAML', () => {
+    const layout: LayoutPositions = { entry: { x: 5, y: 6 }, s1: { x: 100, y: 200 } };
+    expect(parseLayout(yamlParse(serializeLayout(layout)))).toEqual(layout);
+  });
+
+  test('rounds to integer pixels', () => {
+    const out = parseLayout(yamlParse(serializeLayout({ s1: { x: 12.7, y: -3.2 } })));
+    expect(out).toEqual({ s1: { x: 13, y: -3 } });
+  });
+
+  test('empty map round-trips to empty', () => {
+    expect(parseLayout(yamlParse(serializeLayout({})))).toEqual({});
+  });
+
+  test('deterministic + sorted: same map → same string regardless of insertion order', () => {
+    const a = serializeLayout({ b: { x: 1, y: 1 }, a: { x: 2, y: 2 } });
+    const b = serializeLayout({ a: { x: 2, y: 2 }, b: { x: 1, y: 1 } });
+    expect(a).toBe(b);
+    expect(a.indexOf('a:')).toBeLessThan(a.indexOf('b:'));
+  });
+
+  test('drops malformed entries, never throws', () => {
+    const value = {
+      good: { x: 1, y: 2 },
+      missingY: { x: 5 },
+      nonNumeric: { x: 'nope', y: 3 },
+      notAnObject: 42,
+      nullish: null,
+    };
+    expect(parseLayout(value)).toEqual({ good: { x: 1, y: 2 } });
+  });
+
+  test('non-object input → empty map', () => {
+    expect(parseLayout(null)).toEqual({});
+    expect(parseLayout('garbage')).toEqual({});
+    expect(parseLayout(undefined)).toEqual({});
   });
 });
