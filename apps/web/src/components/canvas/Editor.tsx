@@ -374,14 +374,15 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
     [flow, layout, autoPositions],
   );
 
-  // A `+` was clicked: anchor the picker by the button and remember where (in
-  // flow space) the new node should land — just past the `+`.
+  // A `+` was clicked: anchor the picker at the button's center (≈ the cursor,
+  // and robust for keyboard activation where pointer coords are 0,0) and
+  // remember where (in flow space) the new node should land — just past the `+`.
   const openCreateMenu = useCallback<OpenCreateMenu>(
     (sourceId, sourceHandle, anchor) => {
       setMenu({
         sourceId,
         sourceHandle,
-        at: { x: anchor.right, y: anchor.bottom },
+        at: { x: (anchor.left + anchor.right) / 2, y: (anchor.top + anchor.bottom) / 2 },
         drop: screenToFlowPosition({ x: anchor.right + 24, y: anchor.top }),
       });
     },
