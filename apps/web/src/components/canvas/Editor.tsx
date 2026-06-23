@@ -19,6 +19,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import { type DragEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { type Theme, useTheme } from '@/components/theme';
 import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { flowFromSource } from './flowFromSource.ts';
 import { flowToReactFlow, type NodePositionsMap } from './flowToReactFlow.ts';
@@ -44,6 +45,8 @@ const DEFAULT_EDGE_OPTIONS = {
 const FILE_EXT = '.authprint';
 const MAX_BYTES = 2_000_000; // generous guard; real flows are a few KB
 
+const THEME_LABELS: Record<Theme, string> = { light: 'Light', dark: 'Dark', system: 'System' };
+
 type Notice = { kind: 'error' | 'info'; title: string; diagnostics: Diagnostic[] };
 
 export function Editor({ initialFlow, examples }: { initialFlow: Flow; examples: ExampleFlow[] }) {
@@ -65,6 +68,7 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
   const [dragging, setDragging] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { fitView } = useReactFlow();
+  const { theme, setTheme } = useTheme();
 
   // Parse a source string and swap the flow on success; on a parse failure the
   // current flow stays on screen and the errors surface in the toast.
@@ -152,8 +156,15 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
         keywords: 'zoom center reset',
         run: () => fitView(FIT_VIEW_OPTIONS),
       },
+      ...(['light', 'dark', 'system'] as const).map((option) => ({
+        id: `theme-${option}`,
+        group: 'Appearance',
+        label: `Theme: ${THEME_LABELS[option]}${theme === option ? '  ✓' : ''}`,
+        keywords: `dark light system appearance ${option}`,
+        run: () => setTheme(option),
+      })),
     ],
-    [examples, openFilePicker, applySource, fitView],
+    [examples, openFilePicker, applySource, fitView, theme, setTheme],
   );
 
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
