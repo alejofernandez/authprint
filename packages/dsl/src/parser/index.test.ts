@@ -30,6 +30,28 @@ name: Minimal flow
     expect(r.flow?.nodes.length).toBeGreaterThan(0);
     expect(r.flow?.scenarios.length).toBeGreaterThan(0);
   });
+
+  test('reserved top-level `layout` key is ignored, not an error (bundled .authprint)', () => {
+    // A bundled file carries node positions alongside the flow. `layout` is not
+    // part of the data model (Principle 2) — the semantic parser ignores it and
+    // emits no diagnostic. Editors read it separately. See grammar.md.
+    const input = `
+id: f1
+name: Bundled flow
+nodes:
+  - type: entry
+    id: entry
+layout:
+  entry:
+    x: 10
+    y: 20
+`;
+    const r = parse(input);
+    expect(r.diagnostics).toEqual([]);
+    expect(r.flow).not.toBeNull();
+    expect(r.flow?.nodes).toHaveLength(1);
+    expect('layout' in (r.flow ?? {})).toBe(false);
+  });
 });
 
 describe('parse — error paths', () => {

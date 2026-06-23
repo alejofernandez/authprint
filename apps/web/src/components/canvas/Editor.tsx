@@ -34,6 +34,7 @@ import { flowToReactFlow, type NodePositionsMap } from './flowToReactFlow.ts';
 import { layoutFlow } from './layout.ts';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
 import { hydrate } from './ydoc/hydrate.ts';
+import { docToArtifact, extractLayout, serializeBundle } from './ydoc/persist.ts';
 import { useYDocFlow } from './ydoc/useYDocFlow.ts';
 
 export type ExampleFlow = { id: string; name: string; source: string };
@@ -53,9 +54,28 @@ const DEFAULT_EDGE_OPTIONS = {
 } as const;
 
 const FILE_EXT = '.authprint';
+const MIME = 'application/vnd.authprint+yaml';
 const MAX_BYTES = 2_000_000; // generous guard; real flows are a few KB
 
 const THEME_LABELS: Record<Theme, string> = { light: 'Light', dark: 'Dark', system: 'System' };
+
+// Flow name → safe file stem; never empty.
+function slugify(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug || 'flow';
+}
+
+function downloadText(filename: string, content: string, mime: string): void {
+  const url = URL.createObjectURL(new Blob([content], { type: mime }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 type Notice = { kind: 'error' | 'info'; title: string; diagnostics: Diagnostic[] };
 
@@ -91,7 +111,10 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
       setNotice({ kind: 'error', title: `Couldn’t parse ${label}`, diagnostics });
       return;
     }
-    setDoc(hydrate(parsed));
+    // A bundled `.authprint` carries saved positions in a top-level `layout:`
+    // block; seed them so a reopened flow keeps its arrangement. A plain
+    // semantic file has none → empty map → elkjs auto-layout.
+    setDoc(hydrate(parsed, extractLayout(source)));
     setRevision((r) => r + 1);
     setNotice(
       diagnostics.length
@@ -155,6 +178,16 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
         keywords: 'load import',
         run: openFilePicker,
       },
+      {
+        id: 'save-file',
+        group: 'File',
+        label: 'Save flow',
+        keywords: 'export download write',
+        run: () => {
+          const { flow, layout } = docToArtifact(doc);
+          downloadText(`${slugify(flow.name)}${FILE_EXT}`, serializeBundle({ flow, layout }), MIME);
+        },
+      },
       ...examples.map((example) => ({
         id: `example-${example.id}`,
         group: 'Examples',
@@ -177,7 +210,7 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
         run: () => setTheme(option),
       })),
     ],
-    [examples, openFilePicker, applySource, fitView, theme, setTheme],
+    [doc, examples, openFilePicker, applySource, fitView, theme, setTheme],
   );
 
   const onDrop = (event: DragEvent<HTMLDivElement>) => {

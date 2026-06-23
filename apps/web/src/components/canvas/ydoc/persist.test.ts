@@ -1,9 +1,27 @@
 import { describe, expect, test } from 'bun:test';
-import type { Flow } from '@authprint/dsl';
+import { join } from 'node:path';
+import { type Flow, parse, serialize } from '@authprint/dsl';
 import { parse as yamlParse } from 'yaml';
 import { hydrate } from './hydrate.ts';
-import { docToArtifact, parseLayout, serializeLayout } from './persist.ts';
+import { moveNode } from './ops.ts';
+import {
+  docToArtifact,
+  extractLayout,
+  parseLayout,
+  serializeBundle,
+  serializeLayout,
+} from './persist.ts';
 import { type LayoutPositions, layoutMap } from './schema.ts';
+
+const DEMO_PATH = join(
+  import.meta.dir,
+  '../../../../../../packages/dsl-spec/examples/demo-flow-zero.authprint',
+);
+async function loadDemoFlowZero(): Promise<Flow> {
+  const { flow } = parse(await Bun.file(DEMO_PATH).text());
+  if (!flow) throw new Error('Demo Flow Zero failed to parse');
+  return flow;
+}
 
 const flow: Flow = {
   id: 'f',
@@ -112,5 +130,55 @@ describe('serializeLayout / parseLayout', () => {
     expect(parseLayout(null)).toEqual({});
     expect(parseLayout('garbage')).toEqual({});
     expect(parseLayout(undefined)).toEqual({});
+  });
+});
+
+// US-047 — the "edit → save → reload → identical" guarantee, in memory.
+// reload(bundle) mirrors the loader: parse the flow (layout key ignored) +
+// extract the layout, then hydrate both.
+function reload(bundle: string): ReturnType<typeof docToArtifact> {
+  const { flow: parsed } = parse(bundle);
+  if (!parsed) throw new Error('bundle did not parse');
+  return docToArtifact(hydrate(parsed, extractLayout(bundle)));
+}
+
+describe('bundle round-trip', () => {
+  test('flow + manual positions survive save → reload', () => {
+    const layout: LayoutPositions = { entry: { x: 5, y: 6 }, o1: { x: 300, y: 40 } };
+    const out = reload(serializeBundle({ flow, layout }));
+    expect(new Set(out.flow.nodes.map((n) => n.id))).toEqual(new Set(flow.nodes.map((n) => n.id)));
+    expect(new Set(out.flow.edges.map((e) => e.id))).toEqual(new Set(flow.edges.map((e) => e.id)));
+    expect(out.layout).toEqual(layout);
+  });
+
+  test('no manual positions → bundle is the plain semantic file (no layout: key)', () => {
+    const bundle = serializeBundle({ flow, layout: {} });
+    expect(bundle).toBe(serialize(flow));
+    expect(bundle.includes('layout:')).toBe(false);
+    expect(reload(bundle).layout).toEqual({});
+  });
+
+  test('deterministic: same artifact → byte-identical bundle', () => {
+    const layout: LayoutPositions = { o1: { x: 1, y: 2 }, entry: { x: 3, y: 4 } };
+    expect(serializeBundle({ flow, layout })).toBe(serializeBundle({ flow, layout }));
+  });
+
+  test('Demo Flow Zero: move some nodes → save → reload keeps moves, rest auto-layout', async () => {
+    const demo = await loadDemoFlowZero();
+    const doc = hydrate(demo);
+    const movedA = demo.nodes[0]?.id ?? '';
+    const movedB = demo.nodes[5]?.id ?? '';
+    moveNode(doc, movedA, { x: 1234, y: 567 });
+    moveNode(doc, movedB, { x: 88, y: 99 });
+
+    const out = reload(serializeBundle(docToArtifact(doc)));
+
+    // Only the moved nodes carry positions; everything else falls to elkjs.
+    expect(out.layout).toEqual({ [movedA]: { x: 1234, y: 567 }, [movedB]: { x: 88, y: 99 } });
+    // Flow intact across the round-trip.
+    expect(out.flow.nodes).toHaveLength(demo.nodes.length);
+    expect(out.flow.edges).toHaveLength(demo.edges.length);
+    expect(out.flow.annotations).toHaveLength(demo.annotations.length);
+    expect(out.flow.scenarios).toHaveLength(demo.scenarios.length);
   });
 });

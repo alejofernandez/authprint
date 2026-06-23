@@ -20,6 +20,8 @@ scenarios: [ ... ]          # default: []
 
 The file extension `.authprint` is the indicator that the document is a flow; a wrapper key would be redundant.
 
+**Reserved top-level key — `layout`.** A *bundled* `.authprint` (the editor's default single-file save) carries node positions in a top-level `layout:` mapping (`nodeId: { x, y }`) alongside the flow. `layout` is **reserved and ignored by the semantic parser**: it is not part of the data model (Principle 2 — layout is view, not data; `FlowSchema` has no `layout` field), so `parse()` strips it and emits no diagnostic. Editors read `layout` separately to restore positions; a clean *semantic-only* export omits it entirely. See REQUIREMENTS.md §10 (Export packaging).
+
 **Forward-compat for schema-format versioning** (if/when needed): adopt the Kubernetes-style top-level `apiVersion: authprint/vN` field, not a nested wrapper. Not in v1.
 
 ## Strict YAML subset
