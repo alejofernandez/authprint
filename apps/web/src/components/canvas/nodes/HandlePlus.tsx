@@ -17,6 +17,8 @@ export type OpenCreateMenu = (
   sourceId: string,
   sourceHandle: string | null,
   anchor: DOMRect,
+  /** Which side the handle is on — the new node aligns along this axis. */
+  side: 'right' | 'bottom',
 ) => void;
 
 const NodeCreateContext = createContext<OpenCreateMenu | null>(null);
@@ -54,7 +56,7 @@ export function HandlePlus({
       aria-label="Add connected node"
       onClick={(e) => {
         e.stopPropagation();
-        open(sourceId, handleId, e.currentTarget.getBoundingClientRect());
+        open(sourceId, handleId, e.currentTarget.getBoundingClientRect(), position);
       }}
     >
       +

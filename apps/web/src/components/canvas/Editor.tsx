@@ -30,7 +30,7 @@ import type * as Y from 'yjs';
 import { type Theme, useTheme } from '@/components/theme';
 import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { flowFromSource } from './flowFromSource.ts';
-import { flowToReactFlow, type NodePositionsMap } from './flowToReactFlow.ts';
+import { flowToReactFlow, NODE_SIZE, type NodePositionsMap } from './flowToReactFlow.ts';
 import { layoutFlow } from './layout.ts';
 import { NodeTypePicker } from './NodeTypePicker.tsx';
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
@@ -358,14 +358,39 @@ function useElkLayout(flow: Flow, layout: NodePositionsMap): NodePositionsMap | 
 type CreateMenu = {
   sourceId: string;
   sourceHandle: string | null;
+  side: 'right' | 'bottom'; // which handle side → the new node's alignment axis
   at: { x: number; y: number }; // screen coords to anchor the picker
-  drop: { x: number; y: number }; // flow coords for the new node
 };
+
+// Gap (flow units) between a source node and the node its `+` creates.
+const NEW_NODE_GAP = 80;
+
+// Place a `+`-created node aligned to its source: a right-handle child sits to
+// the right with matching vertical centers (same horizontal line); a bottom-
+// handle child sits below with matching horizontal centers (same vertical line).
+// The new node isn't measured yet, so its intrinsic NODE_SIZE seeds the centering.
+function alignedNodePosition(
+  source: RfNode | undefined,
+  side: 'right' | 'bottom',
+  type: CreatableType,
+): { x: number; y: number } {
+  const { width, height } = NODE_SIZE[type];
+  if (!source) return { x: 0, y: 0 };
+  const src = source.type
+    ? NODE_SIZE[source.type as keyof typeof NODE_SIZE]
+    : { width: 0, height: 0 };
+  const sw = source.measured?.width ?? src.width;
+  const sh = source.measured?.height ?? src.height;
+  const { x, y } = source.position;
+  return side === 'right'
+    ? { x: x + sw + NEW_NODE_GAP, y: y + sh / 2 - height / 2 }
+    : { x: x + sw / 2 - width / 2, y: y + sh + NEW_NODE_GAP };
+}
 
 function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const { flow, layout, onNodesChange: nodesToDoc, onEdgesChange: edgesToDoc } = useYDocFlow(doc);
   const autoPositions = useElkLayout(flow, layout);
-  const { screenToFlowPosition } = useReactFlow();
+  const { getNode } = useReactFlow();
   const [menu, setMenu] = useState<CreateMenu | null>(null);
 
   // Dragged + freshly-created nodes (in the layout map) win over auto-placed.
@@ -375,19 +400,18 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   );
 
   // A `+` was clicked: anchor the picker at the button's center (≈ the cursor,
-  // and robust for keyboard activation where pointer coords are 0,0) and
-  // remember where (in flow space) the new node should land — just past the `+`.
-  const openCreateMenu = useCallback<OpenCreateMenu>(
-    (sourceId, sourceHandle, anchor) => {
-      setMenu({
-        sourceId,
-        sourceHandle,
-        at: { x: (anchor.left + anchor.right) / 2, y: (anchor.top + anchor.bottom) / 2 },
-        drop: screenToFlowPosition({ x: anchor.right + 24, y: anchor.top }),
-      });
-    },
-    [screenToFlowPosition],
-  );
+  // and robust for keyboard activation where pointer coords are 0,0) and record
+  // the handle side, so the new node aligns to the source along that axis. The
+  // actual drop is computed at pick time, once the new node's type (hence size)
+  // is known.
+  const openCreateMenu = useCallback<OpenCreateMenu>((sourceId, sourceHandle, anchor, side) => {
+    setMenu({
+      sourceId,
+      sourceHandle,
+      side,
+      at: { x: (anchor.left + anchor.right) / 2, y: (anchor.top + anchor.bottom) / 2 },
+    });
+  }, []);
 
   const pickType = useCallback(
     (type: CreatableType) => {
@@ -396,11 +420,11 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
         sourceId: menu.sourceId,
         sourceHandle: menu.sourceHandle,
         type,
-        position: menu.drop,
+        position: alignedNodePosition(getNode(menu.sourceId), menu.side, type),
       });
       setMenu(null);
     },
-    [doc, menu],
+    [doc, menu, getNode],
   );
 
   if (!graph) return null;
