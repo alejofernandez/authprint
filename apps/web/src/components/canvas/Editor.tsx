@@ -1,34 +1,36 @@
 'use client';
 
-// The Editor: thin shell wrapping React Flow. Renders a Flow — initially the
-// one the route loaded (Demo Flow Zero), then whatever `.authprint` file the
-// user drops or opens (US-032, the seed of file-based v0 persistence). E17
-// computes positions with elkjs auto-layout (LR); E24+ adds editing via Y.Doc —
-// until then the canvas is read-only (no node dragging or edge creation).
+// The Editor: a shell over the read-only React Flow canvas. It owns the current
+// Flow (Demo Flow Zero by default, then whatever the user opens), file loading
+// (drag-and-drop or the command palette), and the Cmd+K palette that is the
+// product's primary navigation surface (§7). E17 computes positions with elkjs
+// auto-layout (LR); E24+ adds editing via Y.Doc — until then it's read-only.
 
 import '@xyflow/react/dist/style.css';
 
 import type { Diagnostic, Flow } from '@authprint/dsl';
-import { Background, Controls, MarkerType, MiniMap, ReactFlow } from '@xyflow/react';
 import {
-  type ChangeEvent,
-  type DragEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+  Background,
+  Controls,
+  MarkerType,
+  MiniMap,
+  ReactFlow,
+  ReactFlowProvider,
+  useReactFlow,
+} from '@xyflow/react';
+import { type DragEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { flowFromSource } from './flowFromSource.ts';
 import { flowToReactFlow, type NodePositionsMap } from './flowToReactFlow.ts';
 import { layoutFlow } from './layout.ts';
 import { nodeTypes } from './nodes/index.ts';
 
+export type ExampleFlow = { id: string; name: string; source: string };
+
 const edgeTypes = {};
 
 // Leave margin around the fitted graph. `initialWidth`/`initialHeight` hints on
-// the nodes (see flowToReactFlow) give the first fit correct-enough bounds;
-// React Flow re-fits against measured sizes once they mount.
+// the nodes (see flowToReactFlow) give the first fit correct-enough bounds.
 const FIT_VIEW_OPTIONS = { padding: 0.15 } as const;
 
 // `smoothstep` routes edges as clean orthogonal paths (vs the default bezier,
@@ -44,43 +46,115 @@ const MAX_BYTES = 2_000_000; // generous guard; real flows are a few KB
 
 type Notice = { kind: 'error' | 'info'; title: string; diagnostics: Diagnostic[] };
 
-export function Editor({ initialFlow }: { initialFlow: Flow }) {
+export function Editor({ initialFlow, examples }: { initialFlow: Flow; examples: ExampleFlow[] }) {
+  // ReactFlowProvider hoists the store above the canvas so the palette (a
+  // sibling of the canvas) can drive it — e.g. the "Fit view" command.
+  return (
+    <ReactFlowProvider>
+      <EditorShell initialFlow={initialFlow} examples={examples} />
+    </ReactFlowProvider>
+  );
+}
+
+function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: ExampleFlow[] }) {
   const [flow, setFlow] = useState(initialFlow);
   // Bumped on every successful load so the canvas remounts and re-runs `fitView`
   // for the new flow (the `fitView` prop only fires on mount).
   const [revision, setRevision] = useState(0);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [dragging, setDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const { fitView } = useReactFlow();
 
-  const loadFile = useCallback(async (file: File) => {
-    if (!file.name.endsWith(FILE_EXT)) {
-      setNotice({ kind: 'error', title: `${file.name} isn’t a ${FILE_EXT} file`, diagnostics: [] });
-      return;
-    }
-    if (file.size > MAX_BYTES) {
-      setNotice({ kind: 'error', title: `${file.name} is too large to load`, diagnostics: [] });
-      return;
-    }
-    const { flow: parsed, diagnostics } = flowFromSource(await file.text());
+  // Parse a source string and swap the flow on success; on a parse failure the
+  // current flow stays on screen and the errors surface in the toast.
+  const applySource = useCallback((source: string, label: string) => {
+    const { flow: parsed, diagnostics } = flowFromSource(source);
     if (!parsed) {
-      // Unparseable — keep the current flow on screen, surface the errors.
-      setNotice({ kind: 'error', title: `Couldn’t parse ${file.name}`, diagnostics });
+      setNotice({ kind: 'error', title: `Couldn’t parse ${label}`, diagnostics });
       return;
     }
     setFlow(parsed);
     setRevision((r) => r + 1);
-    // A flow can render with validation issues; show them without blocking.
     setNotice(
       diagnostics.length
         ? {
             kind: 'info',
-            title: `Loaded ${file.name} with ${diagnostics.length} issue(s)`,
+            title: `Loaded ${label} with ${diagnostics.length} issue(s)`,
             diagnostics,
           }
         : null,
     );
   }, []);
+
+  const loadFile = useCallback(
+    async (file: File) => {
+      if (!file.name.endsWith(FILE_EXT)) {
+        setNotice({
+          kind: 'error',
+          title: `${file.name} isn’t a ${FILE_EXT} file`,
+          diagnostics: [],
+        });
+        return;
+      }
+      if (file.size > MAX_BYTES) {
+        setNotice({ kind: 'error', title: `${file.name} is too large to load`, diagnostics: [] });
+        return;
+      }
+      applySource(await file.text(), file.name);
+    },
+    [applySource],
+  );
+
+  const openFilePicker = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = FILE_EXT;
+    input.addEventListener('change', () => {
+      const file = input.files?.[0];
+      if (file) loadFile(file);
+    });
+    input.click();
+  }, [loadFile]);
+
+  // Cmd/Ctrl+K toggles the palette from anywhere.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  const commands = useMemo<PaletteCommand[]>(
+    () => [
+      {
+        id: 'open-file',
+        group: 'File',
+        label: 'Open .authprint file…',
+        keywords: 'load import',
+        run: openFilePicker,
+      },
+      ...examples.map((example) => ({
+        id: `example-${example.id}`,
+        group: 'Examples',
+        label: `Open example: ${example.name}`,
+        keywords: example.id,
+        run: () => applySource(example.source, example.name),
+      })),
+      {
+        id: 'fit-view',
+        group: 'View',
+        label: 'Fit flow to screen',
+        keywords: 'zoom center reset',
+        run: () => fitView(FIT_VIEW_OPTIONS),
+      },
+    ],
+    [examples, openFilePicker, applySource, fitView],
+  );
 
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -90,14 +164,8 @@ export function Editor({ initialFlow }: { initialFlow: Flow }) {
     if (file) loadFile(file);
   };
 
-  const onInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) loadFile(file);
-    event.target.value = ''; // allow re-selecting the same file
-  };
-
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: a file drop zone has no semantic role; the "Open" button is the keyboard-accessible equivalent.
+    // biome-ignore lint/a11y/noStaticElementInteractions: a file drop zone has no semantic role; the palette's "Open file" command is the keyboard-accessible equivalent.
     <div
       className="relative h-dvh w-full bg-zinc-50 dark:bg-zinc-950"
       onDragOver={(e) => {
@@ -113,12 +181,15 @@ export function Editor({ initialFlow }: { initialFlow: Flow }) {
 
       <button
         type="button"
-        onClick={() => inputRef.current?.click()}
-        className="absolute top-4 left-4 z-10 rounded-md border border-zinc-300 bg-white/80 px-3 py-1.5 font-medium text-sm text-zinc-700 shadow-sm backdrop-blur transition-colors hover:bg-white dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-200 dark:hover:bg-zinc-900"
+        onClick={() => setPaletteOpen(true)}
+        aria-label="Open command palette"
+        className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-md border border-zinc-300 bg-white/80 py-1.5 pr-2 pl-3 text-sm text-zinc-600 shadow-sm backdrop-blur transition-colors hover:bg-white dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-900"
       >
-        Open {FILE_EXT}
+        Search & commands
+        <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+          ⌘K
+        </kbd>
       </button>
-      <input ref={inputRef} type="file" accept={FILE_EXT} hidden onChange={onInputChange} />
 
       {dragging && (
         <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-indigo-500/10 backdrop-blur-sm">
@@ -129,6 +200,8 @@ export function Editor({ initialFlow }: { initialFlow: Flow }) {
       )}
 
       {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
+
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
     </div>
   );
 }
@@ -154,7 +227,7 @@ function NoticeToast({ notice, onDismiss }: { notice: Notice; onDismiss: () => v
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss"
-          className="text-zinc-400 text-sm leading-none hover:text-zinc-600 dark:hover:text-zinc-200"
+          className="text-sm text-zinc-400 leading-none hover:text-zinc-600 dark:hover:text-zinc-200"
         >
           ✕
         </button>
@@ -162,9 +235,6 @@ function NoticeToast({ notice, onDismiss }: { notice: Notice; onDismiss: () => v
       {notice.diagnostics.length > 0 && (
         <ul className="mt-2 max-h-40 space-y-1 overflow-auto font-mono text-xs text-zinc-600 dark:text-zinc-400">
           {notice.diagnostics.map((d, i) => (
-            // The parser can emit genuinely identical diagnostics (same
-            // code/path/message), and this list is rendered once and never
-            // reordered, so the index is the correct stable key.
             // biome-ignore lint/suspicious/noArrayIndexKey: static, never-reordered diagnostics list
             <li key={i}>
               {d.path ? `${d.path} — ` : ''}

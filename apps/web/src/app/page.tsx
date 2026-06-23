@@ -1,26 +1,40 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { Editor } from '@/components/canvas/Editor';
+import { Editor, type ExampleFlow } from '@/components/canvas/Editor';
 import { flowFromSource } from '@/components/canvas/flowFromSource';
 
-// Demo Flow Zero is the canonical example shipped in @authprint/dsl-spec. We
-// read it from the sibling package and parse it at build time — the parsed Flow
-// is baked into the statically rendered route, so there's no filesystem access
-// at request time. `process.cwd()` is the app root under Next (dev, build, and
-// start), and the monorepo layout (`apps/web` + `packages/*`) is fixed; we
-// can't use `require.resolve`/`import.meta.url` here because Turbopack
-// virtualizes those to non-filesystem `[project]/…` paths.
-const DEMO_FLOW_PATH = join(
-  process.cwd(),
-  '../../packages/dsl-spec/examples/demo-flow-zero.authprint',
-);
+// The bundled examples shipped in @authprint/dsl-spec. We read them from the
+// sibling package and parse at build time — the sources are baked into the
+// statically rendered route, so there's no filesystem access at request time.
+// `process.cwd()` is the app root under Next (dev, build, and start), and the
+// monorepo layout (`apps/web` + `packages/*`) is fixed; we can't use
+// `require.resolve`/`import.meta.url` here because Turbopack virtualizes those
+// to non-filesystem `[project]/…` paths.
+const EXAMPLES_DIR = join(process.cwd(), '../../packages/dsl-spec/examples');
 
-async function loadDemoFlow() {
-  return flowFromSource(await readFile(DEMO_FLOW_PATH, 'utf8'));
+// Demo Flow Zero is the default; the rest are loadable from the command palette.
+const EXAMPLE_FILES = [
+  'demo-flow-zero.authprint',
+  'passkey-enrollment.authprint',
+  'magic-link-signin.authprint',
+];
+
+async function loadExamples(): Promise<ExampleFlow[]> {
+  return Promise.all(
+    EXAMPLE_FILES.map(async (file) => {
+      const source = await readFile(join(EXAMPLES_DIR, file), 'utf8');
+      const { flow } = flowFromSource(source);
+      return { id: file.replace('.authprint', ''), name: flow?.name ?? file, source };
+    }),
+  );
 }
 
 export default async function HomePage() {
-  const { flow, diagnostics } = await loadDemoFlow();
+  const examples = await loadExamples();
+  const demo = examples[0];
+  const { flow, diagnostics } = demo
+    ? flowFromSource(demo.source)
+    : { flow: null, diagnostics: [] };
 
   if (!flow) {
     return (
@@ -43,5 +57,5 @@ export default async function HomePage() {
     );
   }
 
-  return <Editor initialFlow={flow} />;
+  return <Editor initialFlow={flow} examples={examples} />;
 }
