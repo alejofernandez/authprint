@@ -17,6 +17,9 @@
     "format:check": "biome format .",
     "typecheck": "bun --filter '*' typecheck",
     "test": "bun test",
+    "storybook": "bun --filter '@authprint/web' storybook",
+    "test:visual": "bun --filter '@authprint/web' test-storybook:ci",
+    "test:visual:update": "bun --filter '@authprint/web' test-storybook:update",
     "prepare": "lefthook install"
   },
   "devDependencies": {

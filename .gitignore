@@ -43,3 +43,9 @@ next-env.d.ts
 
 # claude code — local-only settings (skills + launch.json are committed)
 .claude/settings.local.json
+
+*storybook.log
+storybook-static
+
+# visual regression: commit baselines, ignore transient failure diffs/actuals
+**/__snapshots__/**/__diff_output__/

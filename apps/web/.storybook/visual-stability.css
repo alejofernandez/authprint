@@ -1,0 +1,11 @@
+/* Visual-test determinism: kill animations/transitions and caret blink so a
+   screenshot taken at any instant is identical to the committed baseline. */
+*,
+*::before,
+*::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  caret-color: transparent !important;
+}

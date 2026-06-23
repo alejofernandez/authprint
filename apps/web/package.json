@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint:next": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "test-storybook": "test-storybook",
+    "test-storybook:update": "test-storybook -u",
+    "test-storybook:ci": "storybook build --quiet && concurrently -k -s first -n SB,TEST \"http-server storybook-static --port 6006 --silent\" \"wait-on tcp:127.0.0.1:6006 && test-storybook --url http://127.0.0.1:6006\""
   },
   "dependencies": {
     "@authprint/dsl": "workspace:*",
@@ -20,14 +25,27 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@storybook/addon-a11y": "^10.4.6",
+    "@storybook/addon-docs": "^10.4.6",
+    "@storybook/nextjs-vite": "^10.4.6",
+    "@storybook/test-runner": "^0.24.4",
     "@tailwindcss/postcss": "^4",
+    "@types/jest-image-snapshot": "^6.4.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "concurrently": "^10.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "eslint-plugin-storybook": "^10.4.6",
+    "http-server": "^14.1.1",
+    "jest-image-snapshot": "^6.5.2",
+    "playwright": "^1.61.0",
+    "storybook": "^10.4.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.1.0",
+    "wait-on": "^9.0.10"
   }
 }
