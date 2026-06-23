@@ -23,8 +23,6 @@ function portSide(handle: string): 'EAST' | 'SOUTH' {
     case 'false':
     case 'alt':
     case 'on-error':
-    case 'on-denied':
-    case 'on-cancelled':
       return 'SOUTH';
     default:
       return 'EAST';

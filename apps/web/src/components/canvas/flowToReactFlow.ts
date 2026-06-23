@@ -27,10 +27,14 @@ export function sourceHandleFor(trigger: Trigger): string | undefined {
     case 'interaction':
       return RETREAT_ACTIONS.has(trigger.action) ? 'alt' : 'default';
     case 'on-success':
+      return 'on-success';
     case 'on-error':
     case 'on-denied':
     case 'on-cancelled':
-      return trigger.type;
+      // External renders a single bottom failure handle. on-error owns it;
+      // denied/cancelled edges share it (they keep their own labels) until they
+      // get first-class handles via drag-from-handle (US-050).
+      return 'on-error';
     default:
       return undefined; // unconditional: entry has a single source handle
   }

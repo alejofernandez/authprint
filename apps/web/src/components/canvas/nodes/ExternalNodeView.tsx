@@ -2,8 +2,7 @@
 // etc.). Visual: rectangle with a teal tint (cool, distinct from Action
 // sky) + a small outbound arrow indicator to communicate "you leave the
 // flow and come back." LR layout: target Left, on-success Right (happy
-// path), all error/denied/cancelled outcomes on Bottom (distinguished by
-// handle id) so failure paths fan out below.
+// path), failure on Bottom (single handle, like Action).
 
 import type { ExternalNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
@@ -16,9 +15,9 @@ type ExternalNodeProps = NodeProps & { data: CanvasNodeData<ExternalNode> };
 export function ExternalNodeView({ data, selected }: ExternalNodeProps) {
   const { node } = data;
   const connected = data.connectedHandles;
-  // `+` covers the mandatory success/error paths; the optional denied/cancelled
-  // handles (also on the bottom) are created via drag-from-handle (US-050) to
-  // avoid stacking `+`s on the three fanned-out bottom handles.
+  // `+` covers the mandatory success/error paths. denied/cancelled stay in the
+  // model but share the single bottom handle (routed there by sourceHandleFor);
+  // they get first-class handles later via drag-from-handle (US-050).
   return (
     <div className="group relative rounded-md bg-teal-50 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-800 border-t-4 border-t-teal-500 dark:border-t-teal-400">
       <Handle type="target" position={Position.Left} />
@@ -27,10 +26,7 @@ export function ExternalNodeView({ data, selected }: ExternalNodeProps) {
       </div>
       <NodeShellContent typeLabel="External" name={node.name} id={node.id} kind={node.kind} />
       <Handle type="source" position={Position.Right} id="on-success" />
-      {/* Failure paths fan out along the bottom, offset so they don't overlap. */}
-      <Handle type="source" position={Position.Bottom} id="on-error" style={{ left: '30%' }} />
-      <Handle type="source" position={Position.Bottom} id="on-denied" style={{ left: '50%' }} />
-      <Handle type="source" position={Position.Bottom} id="on-cancelled" style={{ left: '70%' }} />
+      <Handle type="source" position={Position.Bottom} id="on-error" />
       {!connected?.has('on-success') && (
         <HandlePlus handleId="on-success" position="right" force={selected} />
       )}
