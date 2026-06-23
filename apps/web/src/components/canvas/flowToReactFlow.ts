@@ -77,13 +77,26 @@ export type FlowToReactFlowResult = {
 };
 
 export function flowToReactFlow(flow: Flow, positions: NodePositionsMap): FlowToReactFlowResult {
+  // Which source handles already carry an edge, per node — drives the per-handle
+  // `+` (E26). The unconditional/entry handle has no id, keyed by ''.
+  const connectedHandles = new Map<string, Set<string>>();
+  for (const edge of flow.edges) {
+    const handle = sourceHandleFor(edge.trigger) ?? '';
+    let set = connectedHandles.get(edge.source);
+    if (!set) {
+      set = new Set();
+      connectedHandles.set(edge.source, set);
+    }
+    set.add(handle);
+  }
+
   const nodes: RfNode<CanvasNodeData>[] = flow.nodes.map((node) => ({
     id: node.id,
     type: node.type,
     position: positions[node.id] ?? { x: 0, y: 0 },
     initialWidth: NODE_SIZE[node.type].width,
     initialHeight: NODE_SIZE[node.type].height,
-    data: { node },
+    data: { node, connectedHandles: connectedHandles.get(node.id) },
   }));
 
   const edges: RfEdge[] = flow.edges.map((edge) => ({

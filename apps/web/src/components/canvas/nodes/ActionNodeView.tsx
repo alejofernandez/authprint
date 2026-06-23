@@ -6,19 +6,27 @@
 
 import type { ActionNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
+import { HandlePlus } from './HandlePlus.tsx';
 import { NodeShellContent } from './NodeShell.tsx';
 import type { CanvasNodeData } from './shared.ts';
 
 type ActionNodeProps = NodeProps & { data: CanvasNodeData<ActionNode> };
 
-export function ActionNodeView({ data }: ActionNodeProps) {
+export function ActionNodeView({ data, selected }: ActionNodeProps) {
   const { node } = data;
+  const connected = data.connectedHandles;
   return (
-    <div className="rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 border-t-4 border-t-sky-500 dark:border-t-sky-400">
+    <div className="group relative rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 border-t-4 border-t-sky-500 dark:border-t-sky-400">
       <Handle type="target" position={Position.Left} />
       <NodeShellContent typeLabel="Action" name={node.name} id={node.id} kind={node.kind} />
       <Handle type="source" position={Position.Right} id="on-success" />
       <Handle type="source" position={Position.Bottom} id="on-error" />
+      {!connected?.has('on-success') && (
+        <HandlePlus handleId="on-success" position="right" force={selected} />
+      )}
+      {!connected?.has('on-error') && (
+        <HandlePlus handleId="on-error" position="bottom" force={selected} />
+      )}
     </div>
   );
 }

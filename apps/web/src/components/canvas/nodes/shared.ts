@@ -6,4 +6,11 @@ import type { Node } from '@authprint/dsl';
 export type CanvasNodeData<TNode extends Node = Node> = {
   /** The original DSL node — single source of truth for rendering. */
   node: TNode;
+  /**
+   * Source-handle ids that already have an outgoing edge (E26). Drives the
+   * per-handle `+` affordance: a single-use handle in this set hides its `+`.
+   * The unconditional (entry) handle is keyed by `''`. Absent in contexts that
+   * don't compute it (e.g. Storybook) → treat as none connected.
+   */
+  connectedHandles?: ReadonlySet<string>;
 };

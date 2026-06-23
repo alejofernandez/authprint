@@ -32,7 +32,10 @@ import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { flowFromSource } from './flowFromSource.ts';
 import { flowToReactFlow, type NodePositionsMap } from './flowToReactFlow.ts';
 import { layoutFlow } from './layout.ts';
+import { NodeTypePicker } from './NodeTypePicker.tsx';
+import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
+import { type CreatableType, createConnectedNode } from './ydoc/create.ts';
 import { hydrate } from './ydoc/hydrate.ts';
 import { docToArtifact, extractLayout, serializeBundle } from './ydoc/persist.ts';
 import { useYDocFlow } from './ydoc/useYDocFlow.ts';
@@ -315,7 +318,7 @@ function NoticeToast({ notice, onDismiss }: { notice: Notice; onDismiss: () => v
 //
 // Returns null only until the very first layout resolves, so the caller holds
 // the canvas off rather than painting against empty coordinates.
-function useElkLayout(flow: Flow): NodePositionsMap | null {
+function useElkLayout(flow: Flow, layout: NodePositionsMap): NodePositionsMap | null {
   // The effect reads the latest flow off a ref so it isn't a dependency — only
   // the set of unplaced nodes should trigger a (re)layout.
   const flowRef = useRef(flow);
@@ -325,11 +328,15 @@ function useElkLayout(flow: Flow): NodePositionsMap | null {
 
   const [positions, setPositions] = useState<NodePositionsMap | null>(null);
 
-  // Sorted ids of nodes still missing coordinates. Empty once everything is
-  // placed; gains an id only when a node is added (never on delete/move), so it
-  // is the precise trigger for when elk actually needs to run again.
+  // Sorted ids of nodes still missing coordinates — not yet laid out by elk AND
+  // not manually placed (the layout map). A node created via the `+` / drag
+  // already has a layout position, so it counts as placed and does NOT trigger a
+  // full re-layout: the rest of the graph stays put and only the new node
+  // appears where it was dropped. (Empty once everything is placed.)
   const unplaced = flow.nodes
-    .filter((node) => !positions || positions[node.id] === undefined)
+    .filter(
+      (node) => (!positions || positions[node.id] === undefined) && layout[node.id] === undefined,
+    )
     .map((node) => node.id)
     .sort()
     .join(',');
@@ -348,19 +355,61 @@ function useElkLayout(flow: Flow): NodePositionsMap | null {
   return positions;
 }
 
+type CreateMenu = {
+  sourceId: string;
+  sourceHandle: string | null;
+  at: { x: number; y: number }; // screen coords to anchor the picker
+  drop: { x: number; y: number }; // flow coords for the new node
+};
+
 function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const { flow, layout, onNodesChange: nodesToDoc, onEdgesChange: edgesToDoc } = useYDocFlow(doc);
-  const autoPositions = useElkLayout(flow);
+  const autoPositions = useElkLayout(flow, layout);
+  const { screenToFlowPosition } = useReactFlow();
+  const [menu, setMenu] = useState<CreateMenu | null>(null);
 
-  // Dragged nodes (in the layout map) win over auto-placed coordinates.
+  // Dragged + freshly-created nodes (in the layout map) win over auto-placed.
   const graph = useMemo(
     () => (autoPositions ? flowToReactFlow(flow, { ...autoPositions, ...layout }) : null),
     [flow, layout, autoPositions],
   );
 
+  // A `+` was clicked: anchor the picker by the button and remember where (in
+  // flow space) the new node should land — just past the `+`.
+  const openCreateMenu = useCallback<OpenCreateMenu>(
+    (sourceId, sourceHandle, anchor) => {
+      setMenu({
+        sourceId,
+        sourceHandle,
+        at: { x: anchor.right, y: anchor.bottom },
+        drop: screenToFlowPosition({ x: anchor.right + 24, y: anchor.top }),
+      });
+    },
+    [screenToFlowPosition],
+  );
+
+  const pickType = useCallback(
+    (type: CreatableType) => {
+      if (!menu) return;
+      createConnectedNode(doc, {
+        sourceId: menu.sourceId,
+        sourceHandle: menu.sourceHandle,
+        type,
+        position: menu.drop,
+      });
+      setMenu(null);
+    },
+    [doc, menu],
+  );
+
   if (!graph) return null;
 
-  return <BoundCanvas graph={graph} nodesToDoc={nodesToDoc} edgesToDoc={edgesToDoc} />;
+  return (
+    <NodeCreateProvider value={openCreateMenu}>
+      <BoundCanvas graph={graph} nodesToDoc={nodesToDoc} edgesToDoc={edgesToDoc} />
+      {menu && <NodeTypePicker anchor={menu.at} onPick={pickType} onClose={() => setMenu(null)} />}
+    </NodeCreateProvider>
+  );
 }
 
 // Mounted only once coordinates are ready, so its local node/edge state seeds

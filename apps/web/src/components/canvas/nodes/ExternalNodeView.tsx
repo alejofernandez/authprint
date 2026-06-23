@@ -7,15 +7,20 @@
 
 import type { ExternalNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
+import { HandlePlus } from './HandlePlus.tsx';
 import { NodeShellContent } from './NodeShell.tsx';
 import type { CanvasNodeData } from './shared.ts';
 
 type ExternalNodeProps = NodeProps & { data: CanvasNodeData<ExternalNode> };
 
-export function ExternalNodeView({ data }: ExternalNodeProps) {
+export function ExternalNodeView({ data, selected }: ExternalNodeProps) {
   const { node } = data;
+  const connected = data.connectedHandles;
+  // `+` covers the mandatory success/error paths; the optional denied/cancelled
+  // handles (also on the bottom) are created via drag-from-handle (US-050) to
+  // avoid stacking `+`s on the three fanned-out bottom handles.
   return (
-    <div className="relative rounded-md bg-teal-50 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-800 border-t-4 border-t-teal-500 dark:border-t-teal-400">
+    <div className="group relative rounded-md bg-teal-50 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-800 border-t-4 border-t-teal-500 dark:border-t-teal-400">
       <Handle type="target" position={Position.Left} />
       <div className="absolute top-1.5 right-2 text-teal-600 dark:text-teal-400" aria-hidden>
         ↗
@@ -26,6 +31,12 @@ export function ExternalNodeView({ data }: ExternalNodeProps) {
       <Handle type="source" position={Position.Bottom} id="on-error" style={{ left: '30%' }} />
       <Handle type="source" position={Position.Bottom} id="on-denied" style={{ left: '50%' }} />
       <Handle type="source" position={Position.Bottom} id="on-cancelled" style={{ left: '70%' }} />
+      {!connected?.has('on-success') && (
+        <HandlePlus handleId="on-success" position="right" force={selected} />
+      )}
+      {!connected?.has('on-error') && (
+        <HandlePlus handleId="on-error" position="bottom" force={selected} />
+      )}
     </div>
   );
 }

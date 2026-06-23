@@ -7,14 +7,16 @@
 
 import type { DecisionNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
+import { HandlePlus } from './HandlePlus.tsx';
 import type { CanvasNodeData } from './shared.ts';
 
 type DecisionNodeProps = NodeProps & { data: CanvasNodeData<DecisionNode> };
 
-export function DecisionNodeView({ data }: DecisionNodeProps) {
+export function DecisionNodeView({ data, selected }: DecisionNodeProps) {
   const { node } = data;
+  const connected = data.connectedHandles;
   return (
-    <div className="relative w-44 h-28 flex items-center justify-center">
+    <div className="group relative w-44 h-28 flex items-center justify-center">
       {/* Diamond background via clip-path on a rotated square. */}
       <div
         className="absolute inset-0 bg-violet-50 dark:bg-violet-950/40 border border-violet-400 dark:border-violet-700"
@@ -32,6 +34,10 @@ export function DecisionNodeView({ data }: DecisionNodeProps) {
       <Handle type="target" position={Position.Left} />
       <Handle type="source" position={Position.Right} id="true" />
       <Handle type="source" position={Position.Bottom} id="false" />
+      {!connected?.has('true') && <HandlePlus handleId="true" position="right" force={selected} />}
+      {!connected?.has('false') && (
+        <HandlePlus handleId="false" position="bottom" force={selected} />
+      )}
     </div>
   );
 }
