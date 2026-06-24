@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# @authprint/web
 
-## Getting Started
+The Authprint **canvas editor** — Next.js app at [`apps/web`](.).
 
-First, run the development server:
+Open [`http://localhost:3000`](http://localhost:3000) after `bun run dev` from the **repo root**.
+
+## What ships today
+
+- **Blank canvas** on load (entry node only); examples via **⌘K** → *Open example*
+- **Direct manipulation:** per-handle **+**, drag-from-handle connect, double-click inline editor
+- **Undo/redo:** Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Ctrl+Y; palette *Edit* group
+- **File persistence:** palette *Save flow* / drag-drop `.authprint` (bundled semantic + layout)
+- **Live validation:** Problems badge, click-to-focus diagnostics; optional error rings (eye toggle)
+- **Themes:** Light / Dark / System (palette *Appearance*)
+- **Dev:** `/dev/nodes` node gallery; **⌘0** build overlay (branch / worktree / commit)
+
+## Key directories
+
+| Path | Purpose |
+|---|---|
+| `src/components/canvas/` | Editor shell, React Flow binding, palette, validation UI |
+| `src/components/canvas/ydoc/` | Y.Doc schema, hydrate, ops, undo, persist |
+| `src/components/canvas/nodes/` | Six structural node views + `HandlePlus` |
+| `src/stories/` | Storybook stories (node components, light/dark) |
+| `__snapshots__/visual/` | Committed visual-regression baselines |
+
+## Commands (from repo root)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun run dev              # this app
+bun run storybook        # component workbench
+bun run test:visual      # pixel-diff stories vs baselines
+bun run test:visual:update
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Workspace `bun test` includes headless tests under `src/components/canvas/`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Agent note
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This Next.js version may differ from AI training data. Read `node_modules/next/dist/docs/` before writing Next code. See root [`AGENTS.md`](../../AGENTS.md).
 
-## Learn More
+## License
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT — see [`packages/dsl/LICENSE`](../../packages/dsl/LICENSE).
