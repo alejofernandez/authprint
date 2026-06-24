@@ -140,7 +140,7 @@ function readFieldMap(map: Y.Map<unknown>): Field {
   };
 }
 
-function buildPredicateMap(predicate: Predicate): Y.Map<unknown> {
+export function buildPredicateMap(predicate: Predicate): Y.Map<unknown> {
   const map = new Y.Map<unknown>();
   map.set('slot', predicate.slot);
   map.set('op', predicate.op);

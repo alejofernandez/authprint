@@ -50,6 +50,8 @@ import {
 } from './ydoc/create.ts';
 import { hydrate } from './ydoc/hydrate.ts';
 import {
+  declareContextSlot,
+  setDecisionPredicate,
   setNodeKind,
   setNodeName,
   setScreenFidelity,
@@ -506,6 +508,8 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
       setFidelity: (id, v) => setScreenFidelity(doc, id, v),
       setTraits: (id, v) => setScreenTraits(doc, id, v),
       setFields: (id, v) => setScreenFields(doc, id, v),
+      setPredicate: (id, p) => setDecisionPredicate(doc, id, p),
+      declareSlot: (name, slot) => declareContextSlot(doc, name, slot),
     }),
     [doc],
   );
@@ -529,6 +533,7 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
       {editing && editingNode && (
         <NodeInlineEditor
           node={editingNode}
+          context={flow.context}
           at={editing.at}
           actions={editActions}
           onClose={() => setEditing(null)}

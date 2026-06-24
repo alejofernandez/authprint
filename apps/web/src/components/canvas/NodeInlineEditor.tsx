@@ -1,14 +1,27 @@
-// Inline node editor (E26 / §7 surface #1, US-051): edit a node's properties in
-// a card anchored to it on the canvas — name + kind for every type, plus a
-// Screen's fidelity / traits / fields. Opened by double-clicking a node; writes
-// through to the Y.Doc via the attribute ops. Decisions edit their predicate in
-// a separate floating overlay (US-052), not here.
+// Inline node editor (E26 / §7, US-051 + US-052): edit a node's properties in a
+// card anchored to it on the canvas — name + kind for every type, a Screen's
+// fidelity / traits / fields, and a Decision's predicate (slot · op · value,
+// with inline Context-slot declaration). Opened by double-clicking a node;
+// writes through to the Y.Doc via the attribute ops.
+//
+// Note on §7 surfaces: the spec splits inline-card editing (surface #1) from a
+// floating predicate overlay (surface #2). For v1's single predicate we fold it
+// into this one anchored card for cohesion; a dedicated draggable overlay is
+// worth revisiting if/when predicates gain AND/OR/NOT composition (post-v1).
 
 'use client';
 
-import type { Node as DslNode, Field } from '@authprint/dsl';
-import { FIDELITIES, TRAIT_IDS } from '@authprint/dsl';
-import { useEffect, useRef } from 'react';
+import type {
+  Context,
+  ContextSlot,
+  Node as DslNode,
+  Field,
+  Predicate,
+  PredicateOp,
+  SlotType,
+} from '@authprint/dsl';
+import { FIDELITIES, PREDICATE_OPS, SLOT_TYPES, TRAIT_IDS } from '@authprint/dsl';
+import { useEffect, useRef, useState } from 'react';
 
 export type NodeEditActions = {
   setName: (id: string, name: string) => void;
@@ -16,7 +29,31 @@ export type NodeEditActions = {
   setFidelity: (id: string, fidelity: 'lo-fi' | 'wireframe' | 'mockup') => void;
   setTraits: (id: string, traits: string[]) => void;
   setFields: (id: string, fields: Field[]) => void;
+  setPredicate: (id: string, predicate: Predicate) => void;
+  declareSlot: (name: string, slot: ContextSlot) => void;
 };
+
+// Which predicate ops make sense per slot type. Numbers get the full set;
+// everything else is equality/membership only (mirrors §6 predicate rules).
+const OPS_FOR_TYPE: Record<SlotType, readonly PredicateOp[]> = {
+  boolean: ['equals', 'not-equals'],
+  string: ['equals', 'not-equals', 'in', 'not-in'],
+  enum: ['equals', 'not-equals', 'in', 'not-in'],
+  number: PREDICATE_OPS,
+};
+
+function defaultValueFor(slot: ContextSlot | undefined): unknown {
+  switch (slot?.type) {
+    case 'boolean':
+      return true;
+    case 'number':
+      return 0;
+    case 'enum':
+      return slot.values?.[0] ?? '';
+    default:
+      return '';
+  }
+}
 
 const labelCls = 'text-[10px] font-medium uppercase tracking-wider text-zinc-400';
 const inputCls =
@@ -24,11 +61,13 @@ const inputCls =
 
 export function NodeInlineEditor({
   node,
+  context,
   at,
   actions,
   onClose,
 }: {
   node: DslNode;
+  context: Context;
   at: { x: number; y: number }; // screen coords (top-left) to anchor the card
   actions: NodeEditActions;
   onClose: () => void;
@@ -54,6 +93,7 @@ export function NodeInlineEditor({
   const left = Math.min(at.x, window.innerWidth - 280);
   const top = Math.min(at.y, window.innerHeight - 320);
   const screen = node.type === 'screen' ? node : null;
+  const decision = node.type === 'decision' ? node : null;
 
   return (
     <div
@@ -144,6 +184,202 @@ export function NodeInlineEditor({
           />
         </>
       )}
+
+      {decision && (
+        <PredicateEditor
+          predicate={decision.predicate}
+          context={context}
+          onChange={(p) => actions.setPredicate(node.id, p)}
+          onDeclareSlot={actions.declareSlot}
+        />
+      )}
+    </div>
+  );
+}
+
+// The single-predicate editor (§6 v1: slot · op · value). A slot can be picked
+// from the declared Context or declared inline, so a fresh flow's Decision is
+// immediately usable without a separate Context editor (US-052).
+function PredicateEditor({
+  predicate,
+  context,
+  onChange,
+  onDeclareSlot,
+}: {
+  predicate: Predicate;
+  context: Context;
+  onChange: (p: Predicate) => void;
+  onDeclareSlot: (name: string, slot: ContextSlot) => void;
+}) {
+  const [addingSlot, setAddingSlot] = useState(false);
+  const slotNames = Object.keys(context);
+  const slot = context[predicate.slot];
+  const declared = predicate.slot in context;
+  const update = (patch: Partial<Predicate>) => onChange({ ...predicate, ...patch });
+
+  return (
+    <div className="space-y-1 border-zinc-200 border-t pt-2 dark:border-zinc-700">
+      <span className={labelCls}>Predicate</span>
+
+      <select
+        className={inputCls}
+        value={predicate.slot}
+        onChange={(e) => {
+          if (e.target.value === '__new__') {
+            setAddingSlot(true);
+            return;
+          }
+          const next = context[e.target.value];
+          update({ slot: e.target.value, op: 'equals', value: defaultValueFor(next) });
+        }}
+      >
+        {!declared && <option value={predicate.slot}>{predicate.slot} (undeclared)</option>}
+        {slotNames.map((n) => (
+          <option key={n} value={n}>
+            {n}
+          </option>
+        ))}
+        <option value="__new__">+ New slot…</option>
+      </select>
+
+      {addingSlot && (
+        <NewSlotForm
+          onAdd={(name, newSlot) => {
+            onDeclareSlot(name, newSlot);
+            update({ slot: name, op: 'equals', value: defaultValueFor(newSlot) });
+            setAddingSlot(false);
+          }}
+          onCancel={() => setAddingSlot(false)}
+        />
+      )}
+
+      <select
+        className={inputCls}
+        value={predicate.op}
+        onChange={(e) => update({ op: e.target.value as PredicateOp })}
+      >
+        {(slot ? OPS_FOR_TYPE[slot.type] : PREDICATE_OPS).map((op) => (
+          <option key={op} value={op}>
+            {op}
+          </option>
+        ))}
+      </select>
+
+      <ValueInput slot={slot} value={predicate.value} onChange={(value) => update({ value })} />
+    </div>
+  );
+}
+
+function ValueInput({
+  slot,
+  value,
+  onChange,
+}: {
+  slot: ContextSlot | undefined;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}) {
+  if (slot?.type === 'boolean') {
+    return (
+      <select
+        className={inputCls}
+        value={String(value)}
+        onChange={(e) => onChange(e.target.value === 'true')}
+      >
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select>
+    );
+  }
+  if (slot?.type === 'number') {
+    return (
+      <input
+        type="number"
+        className={inputCls}
+        defaultValue={typeof value === 'number' ? value : 0}
+        onBlur={(e) => onChange(e.target.valueAsNumber)}
+      />
+    );
+  }
+  if (slot?.type === 'enum') {
+    return (
+      <select className={inputCls} value={String(value)} onChange={(e) => onChange(e.target.value)}>
+        {(slot.values ?? []).map((v) => (
+          <option key={v} value={v}>
+            {v}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  // string slot or undeclared: free text.
+  return (
+    <input
+      className={inputCls}
+      placeholder="value"
+      defaultValue={typeof value === 'string' ? value : String(value ?? '')}
+      onBlur={(e) => onChange(e.target.value)}
+    />
+  );
+}
+
+function NewSlotForm({
+  onAdd,
+  onCancel,
+}: {
+  onAdd: (name: string, slot: ContextSlot) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [type, setType] = useState<SlotType>('boolean');
+  const [values, setValues] = useState('');
+
+  return (
+    <div className="space-y-1 rounded border border-zinc-200 p-2 dark:border-zinc-700">
+      <input
+        className={inputCls}
+        placeholder="slot name (e.g. risk.level)"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <select
+        className={inputCls}
+        value={type}
+        onChange={(e) => setType(e.target.value as SlotType)}
+      >
+        {SLOT_TYPES.map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </select>
+      {type === 'enum' && (
+        <input
+          className={inputCls}
+          placeholder="values, comma-separated"
+          value={values}
+          onChange={(e) => setValues(e.target.value)}
+        />
+      )}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={name.trim().length === 0}
+          className="rounded bg-indigo-600 px-2 py-1 text-white text-xs disabled:opacity-50"
+          onClick={() => {
+            const enumValues = values
+              .split(',')
+              .map((v) => v.trim())
+              .filter(Boolean);
+            onAdd(name.trim(), type === 'enum' ? { type, values: enumValues } : { type });
+          }}
+        >
+          Add slot
+        </button>
+        <button type="button" className="px-2 py-1 text-xs text-zinc-500" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }

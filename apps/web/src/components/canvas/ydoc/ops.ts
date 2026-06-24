@@ -9,12 +9,15 @@
 // internally consistent (no duplicate ids, no edges to nonexistent nodes, no
 // dangling edges after a node delete).
 
-import type { Node as DslNode, Edge, Field } from '@authprint/dsl';
+import type { ContextSlot, Node as DslNode, Edge, Field, Predicate } from '@authprint/dsl';
 import * as Y from 'yjs';
 import {
+  buildContextSlotMap,
   buildEdgeMap,
   buildFieldMap,
   buildNodeMap,
+  buildPredicateMap,
+  contextMap,
   edgesMap,
   LOCAL_ORIGIN,
   layoutMap,
@@ -115,4 +118,17 @@ export function setScreenFields(doc: Y.Doc, id: string, fields: Field[]): OpResu
     arr.push(fields.map(buildFieldMap));
     node.set('fields', arr);
   });
+}
+
+export function setDecisionPredicate(doc: Y.Doc, id: string, predicate: Predicate): OpResult {
+  return withNode(doc, id, (node) => node.set('predicate', buildPredicateMap(predicate)));
+}
+
+/** Declare (or replace) a Context slot — used by the predicate editor's inline
+ *  "new slot" so a Decision is usable on a fresh flow without a separate Context
+ *  editor (US-052). */
+export function declareContextSlot(doc: Y.Doc, name: string, slot: ContextSlot): OpResult {
+  if (name.length === 0) return fail('slot name is required');
+  doc.transact(() => contextMap(doc).set(name, buildContextSlotMap(slot)), LOCAL_ORIGIN);
+  return ok;
 }

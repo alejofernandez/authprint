@@ -4,10 +4,12 @@ import { hydrate, readFlow } from './hydrate.ts';
 import {
   addEdge,
   addNode,
+  declareContextSlot,
   incidentEdgeIds,
   moveNode,
   removeEdge,
   removeNode,
+  setDecisionPredicate,
   setNodeKind,
   setNodeName,
   setScreenFidelity,
@@ -175,6 +177,23 @@ describe('attribute edits', () => {
 
   test('rejects an unknown node', () => {
     expect(setNodeName(base(), 'ghost', 'x').ok).toBe(false);
+  });
+
+  test('setDecisionPredicate writes through and round-trips', () => {
+    const doc = base();
+    setDecisionPredicate(doc, 'd1', { slot: 'risk.level', op: 'greater-than', value: 50 });
+    const d = readFlow(doc).nodes.find((n) => n.id === 'd1') as Extract<
+      DslNode,
+      { type: 'decision' }
+    >;
+    expect(d.predicate).toEqual({ slot: 'risk.level', op: 'greater-than', value: 50 });
+  });
+
+  test('declareContextSlot adds a slot; rejects an empty name', () => {
+    const doc = base();
+    expect(declareContextSlot(doc, 'risk.level', { type: 'number' })).toEqual({ ok: true });
+    expect(readFlow(doc).context['risk.level']).toEqual({ type: 'number' });
+    expect(declareContextSlot(doc, '', { type: 'boolean' }).ok).toBe(false);
   });
 });
 
