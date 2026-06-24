@@ -60,6 +60,7 @@ import {
   setScreenTraits,
 } from './ydoc/ops.ts';
 import { docToArtifact, extractLayout, serializeBundle } from './ydoc/persist.ts';
+import { shouldDeferUndoToField, useUndoManager } from './ydoc/useUndoManager.ts';
 import { useYDocFlow } from './ydoc/useYDocFlow.ts';
 
 export type ExampleFlow = { id: string; name: string; source: string };
@@ -129,6 +130,7 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { fitView } = useReactFlow();
   const { theme, setTheme } = useTheme();
+  const { undo, redo, canUndo, canRedo } = useUndoManager(doc);
 
   // Parse a source string and swap the flow on success; on a parse failure the
   // current flow stays on screen and the errors surface in the toast.
@@ -196,8 +198,43 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  // Canvas undo/redo — defer to native field undo when a text control is focused.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      if (shouldDeferUndoToField(event.target)) return;
+
+      const key = event.key.toLowerCase();
+      if (key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        undo();
+      } else if ((key === 'z' && event.shiftKey) || key === 'y') {
+        event.preventDefault();
+        redo();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [undo, redo]);
+
   const commands = useMemo<PaletteCommand[]>(
     () => [
+      {
+        id: 'undo',
+        group: 'Edit',
+        label: 'Undo',
+        keywords: 'revert back cmd z ctrl',
+        disabled: !canUndo,
+        run: undo,
+      },
+      {
+        id: 'redo',
+        group: 'Edit',
+        label: 'Redo',
+        keywords: 'restore forward cmd shift z ctrl y',
+        disabled: !canRedo,
+        run: redo,
+      },
       {
         id: 'open-file',
         group: 'File',
@@ -237,7 +274,19 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
         run: () => setTheme(option),
       })),
     ],
-    [doc, examples, openFilePicker, applySource, fitView, theme, setTheme],
+    [
+      doc,
+      examples,
+      openFilePicker,
+      applySource,
+      fitView,
+      theme,
+      setTheme,
+      undo,
+      redo,
+      canUndo,
+      canRedo,
+    ],
   );
 
   const onDrop = (event: DragEvent<HTMLDivElement>) => {

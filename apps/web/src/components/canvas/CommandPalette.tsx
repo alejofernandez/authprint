@@ -14,6 +14,8 @@ export type PaletteCommand = {
   group: string;
   /** Extra terms folded into fuzzy search (synonyms, the thing it acts on). */
   keywords?: string;
+  /** Grayed out and non-selectable — e.g. undo when the stack is empty. */
+  disabled?: boolean;
   run: () => void;
 };
 
@@ -60,11 +62,17 @@ export function CommandPalette({
               <Command.Item
                 key={command.id}
                 value={`${command.label} ${command.keywords ?? ''}`}
+                disabled={command.disabled}
                 onSelect={() => {
+                  if (command.disabled) return;
                   onOpenChange(false);
                   command.run();
                 }}
-                className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm text-zinc-700 data-[selected=true]:bg-indigo-50 data-[selected=true]:text-indigo-900 dark:text-zinc-200 dark:data-[selected=true]:bg-indigo-950/60 dark:data-[selected=true]:text-indigo-100"
+                className={`flex items-center rounded-md px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 ${
+                  command.disabled
+                    ? 'cursor-not-allowed opacity-40'
+                    : 'cursor-pointer data-[selected=true]:bg-indigo-50 data-[selected=true]:text-indigo-900 dark:data-[selected=true]:bg-indigo-950/60 dark:data-[selected=true]:text-indigo-100'
+                }`}
               >
                 {command.label}
               </Command.Item>

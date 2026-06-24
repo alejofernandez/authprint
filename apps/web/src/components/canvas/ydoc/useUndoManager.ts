@@ -9,6 +9,19 @@ import { contextMap, edgesMap, LOCAL_ORIGIN, layoutMap, nodesMap } from './schem
 
 export type UndoStackSnapshot = { canUndo: boolean; canRedo: boolean };
 
+/** True when canvas undo should defer to native field undo (US-054). */
+export function shouldDeferUndoToField(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
+  ) {
+    return true;
+  }
+  return target.isContentEditable;
+}
+
 /** Headless-friendly factory — also used by the React hook. */
 export function createUndoManager(doc: Y.Doc): UndoManager {
   return new UndoManager([nodesMap(doc), edgesMap(doc), contextMap(doc), layoutMap(doc)], {
