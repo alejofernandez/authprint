@@ -1,13 +1,6 @@
-// Inline node editor (E26 / §7, US-051 + US-052): edit a node's properties in a
-// card anchored to it on the canvas — name + kind for every type, a Screen's
-// fidelity / traits / fields, and a Decision's predicate (slot · op · value,
-// with inline Context-slot declaration). Opened by double-clicking a node;
-// writes through to the Y.Doc via the attribute ops.
-//
-// Note on §7 surfaces: the spec splits inline-card editing (surface #1) from a
-// floating predicate overlay (surface #2). For v1's single predicate we fold it
-// into this one anchored card for cohesion; a dedicated draggable overlay is
-// worth revisiting if/when predicates gain AND/OR/NOT composition (post-v1).
+// Node inspector form body (E26 / §7, US-051 + US-052): property fields rendered
+// inside NodeInspector's scrollable shell. Writes through to the Y.Doc via
+// attribute ops.
 
 'use client';
 
@@ -21,7 +14,7 @@ import type {
   SlotType,
 } from '@authprint/dsl';
 import { FIDELITIES, PREDICATE_OPS, SLOT_TYPES, TRAIT_IDS } from '@authprint/dsl';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 export type NodeEditActions = {
   setName: (id: string, name: string) => void;
@@ -33,8 +26,6 @@ export type NodeEditActions = {
   declareSlot: (name: string, slot: ContextSlot) => void;
 };
 
-// Which predicate ops make sense per slot type. Numbers get the full set;
-// everything else is equality/membership only (mirrors §6 predicate rules).
 const OPS_FOR_TYPE: Record<SlotType, readonly PredicateOp[]> = {
   boolean: ['equals', 'not-equals'],
   string: ['equals', 'not-equals', 'in', 'not-in'],
@@ -59,82 +50,63 @@ const labelCls = 'text-[10px] font-medium uppercase tracking-wider text-zinc-400
 const inputCls =
   'w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 outline-none focus:border-indigo-400 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100';
 
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-2">
+      <h3 className={labelCls}>{title}</h3>
+      <div className="space-y-2">{children}</div>
+    </section>
+  );
+}
+
 export function NodeInlineEditor({
   node,
   context,
-  at,
   actions,
-  onClose,
 }: {
   node: DslNode;
   context: Context;
-  at: { x: number; y: number }; // screen coords (top-left) to anchor the card
   actions: NodeEditActions;
-  onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Esc closes; click outside closes (commit-on-change means nothing is lost).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('mousedown', onDown);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('mousedown', onDown);
-    };
-  }, [onClose]);
-
-  const left = Math.min(at.x, window.innerWidth - 280);
-  const top = Math.min(at.y, window.innerHeight - 320);
   const screen = node.type === 'screen' ? node : null;
   const decision = node.type === 'decision' ? node : null;
 
   return (
-    <div
-      ref={ref}
-      className="fixed z-50 w-64 space-y-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
-      style={{ left, top }}
-    >
-      {'name' in node && (
-        <label className="block space-y-1">
-          <span className={labelCls}>Name</span>
-          <input
-            className={inputCls}
-            defaultValue={node.name ?? ''}
-            // biome-ignore lint/a11y/noAutofocus: focusing the name on open is the point of double-click-to-edit
-            autoFocus
-            onBlur={(e) => actions.setName(node.id, e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') e.currentTarget.blur();
-            }}
-          />
-        </label>
-      )}
-
-      {'kind' in node && (
-        <label className="block space-y-1">
-          <span className={labelCls}>Kind</span>
-          <input
-            className={inputCls}
-            defaultValue={node.kind}
-            onBlur={(e) => actions.setKind(node.id, e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') e.currentTarget.blur();
-            }}
-          />
-        </label>
-      )}
-
-      {screen && (
-        <>
+    <div className="space-y-4">
+      <Section title="General">
+        {'name' in node && (
           <label className="block space-y-1">
-            <span className={labelCls}>Fidelity</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">Name</span>
+            <input
+              className={inputCls}
+              defaultValue={node.name ?? ''}
+              // biome-ignore lint/a11y/noAutofocus: focusing the name on open is the point of double-click-to-edit
+              autoFocus
+              onBlur={(e) => actions.setName(node.id, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur();
+              }}
+            />
+          </label>
+        )}
+
+        {'kind' in node && (
+          <label className="block space-y-1">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">Kind</span>
+            <input
+              className={inputCls}
+              defaultValue={node.kind}
+              onBlur={(e) => actions.setKind(node.id, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur();
+              }}
+            />
+          </label>
+        )}
+
+        {screen && (
+          <label className="block space-y-1">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">Fidelity</span>
             <select
               className={inputCls}
               defaultValue={screen.fidelity}
@@ -149,57 +121,61 @@ export function NodeInlineEditor({
               ))}
             </select>
           </label>
+        )}
+      </Section>
 
-          <div className="space-y-1">
-            <span className={labelCls}>Traits</span>
-            <div className="flex flex-wrap gap-1">
-              {TRAIT_IDS.map((trait) => {
-                const on = screen.traits.includes(trait);
-                return (
-                  <button
-                    key={trait}
-                    type="button"
-                    onClick={() =>
-                      actions.setTraits(
-                        node.id,
-                        on ? screen.traits.filter((t) => t !== trait) : [...screen.traits, trait],
-                      )
-                    }
-                    className={`rounded-full border px-2 py-0.5 text-[11px] ${
-                      on
-                        ? 'border-indigo-400 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-200'
-                        : 'border-zinc-300 text-zinc-500 dark:border-zinc-600 dark:text-zinc-400'
-                    }`}
-                  >
-                    {trait}
-                  </button>
-                );
-              })}
-            </div>
+      {screen && (
+        <Section title="Traits">
+          <div className="flex flex-wrap gap-1">
+            {TRAIT_IDS.map((trait) => {
+              const on = screen.traits.includes(trait);
+              return (
+                <button
+                  key={trait}
+                  type="button"
+                  onClick={() =>
+                    actions.setTraits(
+                      node.id,
+                      on ? screen.traits.filter((t) => t !== trait) : [...screen.traits, trait],
+                    )
+                  }
+                  className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                    on
+                      ? 'border-indigo-400 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-200'
+                      : 'border-zinc-300 text-zinc-500 dark:border-zinc-600 dark:text-zinc-400'
+                  }`}
+                >
+                  {trait}
+                </button>
+              );
+            })}
           </div>
+        </Section>
+      )}
 
+      {screen && (
+        <Section title="Fields">
           <FieldsEditor
             fields={screen.fields}
             onChange={(fields) => actions.setFields(node.id, fields)}
           />
-        </>
+        </Section>
       )}
 
       {decision && (
-        <PredicateEditor
-          predicate={decision.predicate}
-          context={context}
-          onChange={(p) => actions.setPredicate(node.id, p)}
-          onDeclareSlot={actions.declareSlot}
-        />
+        <Section title="Predicate">
+          <PredicateEditor
+            predicate={decision.predicate}
+            context={context}
+            onChange={(p) => actions.setPredicate(node.id, p)}
+            onDeclareSlot={actions.declareSlot}
+          />
+        </Section>
       )}
     </div>
   );
 }
 
-// The single-predicate editor (§6 v1: slot · op · value). A slot can be picked
-// from the declared Context or declared inline, so a fresh flow's Decision is
-// immediately usable without a separate Context editor (US-052).
 function PredicateEditor({
   predicate,
   context,
@@ -218,9 +194,7 @@ function PredicateEditor({
   const update = (patch: Partial<Predicate>) => onChange({ ...predicate, ...patch });
 
   return (
-    <div className="space-y-1 border-zinc-200 border-t pt-2 dark:border-zinc-700">
-      <span className={labelCls}>Predicate</span>
-
+    <div className="space-y-2">
       <select
         className={inputCls}
         value={predicate.slot}
@@ -312,7 +286,6 @@ function ValueInput({
       </select>
     );
   }
-  // string slot or undeclared: free text.
   return (
     <input
       className={inputCls}
@@ -396,7 +369,6 @@ function FieldsEditor({
 
   return (
     <div className="space-y-1">
-      <span className={labelCls}>Fields</span>
       {fields.map((field, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: field rows are positional and edited in place
         <div key={i} className="flex items-center gap-1">

@@ -39,6 +39,7 @@ import { flowFromSource } from './flowFromSource.ts';
 import { flowToReactFlow, NODE_SIZE, type NodePositionsMap } from './flowToReactFlow.ts';
 import { layoutFlow } from './layout.ts';
 import { type NodeEditActions, NodeInlineEditor } from './NodeInlineEditor.tsx';
+import { NodeInspector } from './NodeInspector.tsx';
 import { NodeTypePicker } from './NodeTypePicker.tsx';
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
@@ -492,13 +493,11 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
     [flow],
   );
 
-  // Double-click a node → inline editor anchored at the cursor (Entry has
-  // nothing to edit). The editor reads the live node from `flow`, so its values
-  // stay in sync as edits commit.
-  const [editing, setEditing] = useState<{ id: string; at: { x: number; y: number } } | null>(null);
-  const onNodeDoubleClick = useCallback<NodeMouseHandler>((event, node) => {
+  // Double-click a node → node-anchored inspector (Entry has nothing to edit).
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const onNodeDoubleClick = useCallback<NodeMouseHandler>((_event, node) => {
     if (node.type === 'entry') return;
-    setEditing({ id: node.id, at: { x: event.clientX, y: event.clientY } });
+    setEditingId(node.id);
   }, []);
 
   const editActions = useMemo<NodeEditActions>(
@@ -514,7 +513,7 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
     [doc],
   );
 
-  const editingNode = editing ? flow.nodes.find((n) => n.id === editing.id) : undefined;
+  const editingNode = editingId ? flow.nodes.find((n) => n.id === editingId) : undefined;
 
   if (!graph) return null;
 
@@ -530,14 +529,15 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
         onNodeDoubleClick={onNodeDoubleClick}
       />
       {menu && <NodeTypePicker anchor={menu.at} onPick={pickType} onClose={() => setMenu(null)} />}
-      {editing && editingNode && (
-        <NodeInlineEditor
+      {editingId && editingNode && (
+        <NodeInspector
+          key={editingId}
+          nodeId={editingId}
           node={editingNode}
-          context={flow.context}
-          at={editing.at}
-          actions={editActions}
-          onClose={() => setEditing(null)}
-        />
+          onClose={() => setEditingId(null)}
+        >
+          <NodeInlineEditor node={editingNode} context={flow.context} actions={editActions} />
+        </NodeInspector>
       )}
     </NodeCreateProvider>
   );
