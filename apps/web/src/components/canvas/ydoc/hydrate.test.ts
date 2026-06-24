@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 import { type Flow, parse } from '@authprint/dsl';
+import { emptyFlow } from '../emptyFlow.ts';
 import { hydrate, readFlow } from './hydrate.ts';
 import { layoutMap } from './schema.ts';
 
@@ -75,6 +76,11 @@ describe('hydrate → readFlow', () => {
 
   test('layout map is empty after hydrate (fresh canvas persists no positions)', () => {
     expect(layoutMap(hydrate(sampleFlow)).size).toBe(0);
+  });
+
+  test('emptyFlow (entry only) hydrates and reads back', () => {
+    const out = readFlow(hydrate(emptyFlow));
+    expect(out).toEqual(emptyFlow);
   });
 
   test('description key absent when the flow has none', () => {

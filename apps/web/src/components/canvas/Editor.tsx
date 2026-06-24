@@ -1,7 +1,7 @@
 'use client';
 
 // The Editor: a shell over the React Flow canvas. It owns the current flow as a
-// Y.Doc (Demo Flow Zero by default, then whatever the user opens), file loading
+// Y.Doc (blank entry-only flow by default, then whatever the user opens), file loading
 // (drag-and-drop or the command palette), and the Cmd+K palette that is the
 // product's primary navigation surface (§7). elkjs computes auto-layout (LR,
 // E17); E24 binds the canvas to the Y.Doc so node moves (→ layout map) and
@@ -66,9 +66,11 @@ export type ExampleFlow = { id: string; name: string; source: string };
 
 const edgeTypes = {};
 
-// Leave margin around the fitted graph. `initialWidth`/`initialHeight` hints on
-// the nodes (see flowToReactFlow) give the first fit correct-enough bounds.
-const FIT_VIEW_OPTIONS = { padding: 0.15 } as const;
+// Leave margin around the fitted graph. `maxZoom` caps magnification so a lone
+// entry node doesn't blow up to fill the viewport; wide flows still zoom out to
+// fit because their ideal zoom is below 1. `initialWidth`/`initialHeight` hints
+// on the nodes (see flowToReactFlow) give the first fit correct-enough bounds.
+const FIT_VIEW_OPTIONS = { padding: 0.15, maxZoom: 1 } as const;
 
 // `smoothstep` routes edges as clean orthogonal paths (vs the default bezier,
 // whose curves overlap and are hard to trace once edges cross). Arrowheads make
