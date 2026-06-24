@@ -4,11 +4,24 @@
 // handle layout-layer integration. Positions are passed in from a caller —
 // elkjs auto-layout (E17) or, later, a layout sidecar.
 
-import type { Node as DslNode, Flow, Trigger } from '@authprint/dsl';
-import type { Edge as RfEdge, Node as RfNode } from '@xyflow/react';
+import type { Diagnostic, Node as DslNode, Flow, Trigger } from '@authprint/dsl';
+import { MarkerType, type Edge as RfEdge, type Node as RfNode } from '@xyflow/react';
 import type { CanvasNodeData } from './nodes/index.ts';
 
 export type NodePositionsMap = Record<string, { x: number; y: number }>;
+
+/** Per-element validation diagnostics (E33), keyed by node / edge id. */
+export type ValidationMaps = {
+  byNode: Map<string, Diagnostic[]>;
+  byEdge: Map<string, Diagnostic[]>;
+};
+
+// Stroke color for an edge with diagnostics (red error / amber warning).
+const EDGE_STROKE = { error: '#ef4444', warning: '#f59e0b' } as const;
+function edgeStroke(diagnostics: Diagnostic[] | undefined): string | null {
+  if (!diagnostics || diagnostics.length === 0) return null;
+  return diagnostics.some((d) => d.severity === 'error') ? EDGE_STROKE.error : EDGE_STROKE.warning;
+}
 
 // Screen interactions that mean "leave / give up" exit the bottom `alt` handle
 // (toward the abandoned outcomes) rather than the forward `default` handle.
@@ -80,7 +93,11 @@ export type FlowToReactFlowResult = {
   edges: RfEdge[];
 };
 
-export function flowToReactFlow(flow: Flow, positions: NodePositionsMap): FlowToReactFlowResult {
+export function flowToReactFlow(
+  flow: Flow,
+  positions: NodePositionsMap,
+  validation?: ValidationMaps,
+): FlowToReactFlowResult {
   // Which source handles already carry an edge, per node — drives the per-handle
   // `+` (E26). The unconditional/entry handle has no id, keyed by ''.
   const connectedHandles = new Map<string, Set<string>>();
@@ -100,16 +117,27 @@ export function flowToReactFlow(flow: Flow, positions: NodePositionsMap): FlowTo
     position: positions[node.id] ?? { x: 0, y: 0 },
     initialWidth: NODE_SIZE[node.type].width,
     initialHeight: NODE_SIZE[node.type].height,
-    data: { node, connectedHandles: connectedHandles.get(node.id) },
+    data: {
+      node,
+      connectedHandles: connectedHandles.get(node.id),
+      diagnostics: validation?.byNode.get(node.id),
+    },
   }));
 
-  const edges: RfEdge[] = flow.edges.map((edge) => ({
-    id: edge.id,
-    source: edge.source,
-    target: edge.target,
-    sourceHandle: sourceHandleFor(edge.trigger),
-    label: labelFor(edge.trigger),
-  }));
+  const edges: RfEdge[] = flow.edges.map((edge) => {
+    const stroke = edgeStroke(validation?.byEdge.get(edge.id));
+    return {
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: sourceHandleFor(edge.trigger),
+      label: labelFor(edge.trigger),
+      ...(stroke && {
+        style: { stroke, strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: stroke },
+      }),
+    };
+  });
 
   return { nodes, edges };
 }

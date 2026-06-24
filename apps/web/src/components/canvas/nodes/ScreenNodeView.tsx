@@ -8,6 +8,7 @@ import type { ScreenNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { HandlePlus } from './HandlePlus.tsx';
 import { NodeShellContent } from './NodeShell.tsx';
+import { validationRing, validationTitle } from './nodeValidation.ts';
 import type { CanvasNodeData } from './shared.ts';
 
 type ScreenNodeProps = NodeProps & { data: CanvasNodeData<ScreenNode> };
@@ -19,7 +20,10 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
   // A second interaction off an already-wired handle is added via drag-from-
   // handle (US-050), not by stacking another `+` on a connected handle.
   return (
-    <div className="group relative rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-300 dark:border-indigo-800 border-t-4 border-t-indigo-500 dark:border-t-indigo-400">
+    <div
+      className={`group relative rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-300 dark:border-indigo-800 border-t-4 border-t-indigo-500 dark:border-t-indigo-400 ${validationRing(data.diagnostics)}`}
+      title={validationTitle(data.diagnostics)}
+    >
       <Handle type="target" position={Position.Left} />
       <NodeShellContent typeLabel="Screen" name={node.name} id={node.id} kind={node.kind} />
       <Handle type="source" position={Position.Right} id="default" />

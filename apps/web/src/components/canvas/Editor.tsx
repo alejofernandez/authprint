@@ -43,6 +43,7 @@ import { NodeInspector } from './NodeInspector.tsx';
 import { NodeTypePicker, type NodeTypePickerPlacement } from './NodeTypePicker.tsx';
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
+import { useValidation } from './useValidation.ts';
 import {
   type CreatableType,
   connectNodes,
@@ -470,13 +471,14 @@ function alignedNodePosition(
 function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const { flow, layout, onNodesChange: nodesToDoc, onEdgesChange: edgesToDoc } = useYDocFlow(doc);
   const autoPositions = useElkLayout(flow, layout);
+  const validation = useValidation(flow);
   const { getNode, screenToFlowPosition } = useReactFlow();
   const [menu, setMenu] = useState<CreateMenu | null>(null);
 
   // Dragged + freshly-created nodes (in the layout map) win over auto-placed.
   const graph = useMemo(() => {
     if (!autoPositions) return null;
-    const base = flowToReactFlow(flow, { ...autoPositions, ...layout });
+    const base = flowToReactFlow(flow, { ...autoPositions, ...layout }, validation);
     if (menu?.placement.kind !== 'aligned') return base;
     // Patch picker anchor into node data so React Flow re-renders the `+`.
     return {
@@ -487,7 +489,7 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
           : n,
       ),
     };
-  }, [flow, layout, autoPositions, menu]);
+  }, [flow, layout, autoPositions, menu, validation]);
 
   // A `+` was clicked: record the source handle side so the picker anchors to the
   // node (same placement as the inspector) and the new node aligns on pick.

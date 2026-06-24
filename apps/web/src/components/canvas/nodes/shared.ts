@@ -1,11 +1,13 @@
 // Shared type for the `data` payload our canvas attaches to React Flow
 // nodes. Each per-structural-type view receives this wrapped in `NodeProps`.
 
-import type { Node } from '@authprint/dsl';
+import type { Diagnostic, Node } from '@authprint/dsl';
 
 export type CanvasNodeData<TNode extends Node = Node> = {
   /** The original DSL node — single source of truth for rendering. */
   node: TNode;
+  /** Live validation diagnostics targeting this node (E33). Absent = clean. */
+  diagnostics?: Diagnostic[];
   /**
    * Source-handle ids that already have an outgoing edge (E26). Drives the
    * per-handle `+` affordance: a single-use handle in this set hides its `+`.
