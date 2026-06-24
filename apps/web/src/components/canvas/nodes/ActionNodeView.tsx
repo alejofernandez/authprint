@@ -22,10 +22,20 @@ export function ActionNodeView({ data, selected }: ActionNodeProps) {
       <Handle type="source" position={Position.Right} id="on-success" />
       <Handle type="source" position={Position.Bottom} id="on-error" />
       {!connected?.has('on-success') && (
-        <HandlePlus handleId="on-success" position="right" force={selected} />
+        <HandlePlus
+          handleId="on-success"
+          position="right"
+          force={selected}
+          anchored={data.pickerAnchorHandle === 'on-success'}
+        />
       )}
       {!connected?.has('on-error') && (
-        <HandlePlus handleId="on-error" position="bottom" force={selected} />
+        <HandlePlus
+          handleId="on-error"
+          position="bottom"
+          force={selected}
+          anchored={data.pickerAnchorHandle === 'on-error'}
+        />
       )}
     </div>
   );

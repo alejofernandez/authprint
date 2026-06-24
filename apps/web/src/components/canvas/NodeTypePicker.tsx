@@ -1,11 +1,20 @@
 // Floating node-type quick-pick (E26 / §7): the structural-type menu shared by
 // the per-handle `+` (US-049) and drag-from-handle (US-050). Five creatable
-// types — never Entry (one per flow). Keyboard-navigable (↑/↓/Enter/Esc),
-// anchored at the cursor/handle, dismissed on outside-click or Esc.
+// types — never Entry (one per flow). Keyboard-navigable (↑/↓/Enter/Esc).
+// `+` opens node-anchored (same placement as the inspector); drag-drop uses
+// the release point.
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useReactFlow, useStore } from '@xyflow/react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  nodeScreenRect,
+  PLUS_AFFORDANCE_GAP,
+  placeFloatingPanel,
+  placeFloatingPanelAtPoint,
+  placeFloatingPanelBelow,
+} from './floatingPanelPlacement.ts';
 import { CREATABLE_TYPES, type CreatableType } from './ydoc/create.ts';
 
 const TYPE_META: Record<CreatableType, { label: string; dot: string }> = {
@@ -16,22 +25,55 @@ const TYPE_META: Record<CreatableType, { label: string; dot: string }> = {
   outcome: { label: 'Outcome', dot: 'bg-emerald-500' },
 };
 
+const PANEL_WIDTH = 160;
+
+export type NodeTypePickerPlacement =
+  | { kind: 'node'; sourceId: string; side: 'right' | 'bottom' }
+  | { kind: 'point'; at: { x: number; y: number } };
+
 export function NodeTypePicker({
-  anchor,
+  placement,
   onPick,
   onClose,
 }: {
-  /** Screen coordinates to anchor the menu's top-left near. */
-  anchor: { x: number; y: number };
+  placement: NodeTypePickerPlacement;
   onPick: (type: CreatableType) => void;
   onClose: () => void;
 }) {
   const [active, setActive] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
+  const { getNode, flowToScreenPosition } = useReactFlow();
+  const transform = useStore((s) => s.transform);
+  const [panelHeight, setPanelHeight] = useState(220);
 
   useEffect(() => {
     ref.current?.focus();
   }, []);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const h = entry?.contentRect.height;
+      if (h) setPanelHeight(h);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const position = useMemo(() => {
+    void transform;
+    const panel = { width: PANEL_WIDTH, height: panelHeight };
+    if (placement.kind === 'point') {
+      return placeFloatingPanelAtPoint(placement.at, panel);
+    }
+    const anchor = nodeScreenRect(getNode(placement.sourceId), flowToScreenPosition);
+    if (!anchor) return { left: 24, top: 24 };
+    const pickerGap = { affordanceGap: PLUS_AFFORDANCE_GAP };
+    return placement.side === 'right'
+      ? placeFloatingPanel(anchor, panel, pickerGap)
+      : placeFloatingPanelBelow(anchor, panel, pickerGap);
+  }, [placement, getNode, flowToScreenPosition, transform, panelHeight]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -54,13 +96,8 @@ export function NodeTypePicker({
     return () => document.removeEventListener('keydown', onKey);
   }, [active, onPick, onClose]);
 
-  // Keep the menu on screen: a fixed-width card, nudged left/up near edges.
-  const left = Math.min(anchor.x, window.innerWidth - 180);
-  const top = Math.min(anchor.y, window.innerHeight - 220);
-
   return (
     <>
-      {/* Outside-click catcher. */}
       <button
         type="button"
         aria-label="Close menu"
@@ -73,7 +110,7 @@ export function NodeTypePicker({
         role="listbox"
         aria-label="Node type"
         className="fixed z-50 w-40 overflow-hidden rounded-lg border border-zinc-200 bg-white p-1 shadow-xl outline-none dark:border-zinc-700 dark:bg-zinc-900"
-        style={{ left, top }}
+        style={{ left: position.left, top: position.top }}
       >
         <div className="px-2 py-1 text-[10px] font-medium text-zinc-400 uppercase tracking-wider">
           Add node

@@ -34,9 +34,21 @@ export function DecisionNodeView({ data, selected }: DecisionNodeProps) {
       <Handle type="target" position={Position.Left} />
       <Handle type="source" position={Position.Right} id="true" />
       <Handle type="source" position={Position.Bottom} id="false" />
-      {!connected?.has('true') && <HandlePlus handleId="true" position="right" force={selected} />}
+      {!connected?.has('true') && (
+        <HandlePlus
+          handleId="true"
+          position="right"
+          force={selected}
+          anchored={data.pickerAnchorHandle === 'true'}
+        />
+      )}
       {!connected?.has('false') && (
-        <HandlePlus handleId="false" position="bottom" force={selected} />
+        <HandlePlus
+          handleId="false"
+          position="bottom"
+          force={selected}
+          anchored={data.pickerAnchorHandle === 'false'}
+        />
       )}
     </div>
   );

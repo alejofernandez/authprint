@@ -13,4 +13,6 @@ export type CanvasNodeData<TNode extends Node = Node> = {
    * don't compute it (e.g. Storybook) → treat as none connected.
    */
   connectedHandles?: ReadonlySet<string>;
+  /** Handle whose `+` opened the type picker — keeps that button visible (UF-002). */
+  pickerAnchorHandle?: string | null;
 };

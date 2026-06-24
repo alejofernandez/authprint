@@ -26,7 +26,8 @@ export const NodeCreateProvider = NodeCreateContext.Provider;
 export const useNodeCreate = (): OpenCreateMenu | null => useContext(NodeCreateContext);
 
 // Sits just outside the handle on its side. `force` keeps it visible while the
-// node is selected; otherwise it fades in on group-hover of the node card.
+// node is selected; `anchored` while its picker is open (via node data — React
+// Flow won't re-render nodes on context alone).
 const SIDE: Record<'right' | 'bottom', string> = {
   right: 'top-1/2 -right-3 -translate-y-1/2 translate-x-full',
   bottom: 'left-1/2 -bottom-3 -translate-x-1/2 translate-y-full',
@@ -36,6 +37,7 @@ export function HandlePlus({
   handleId,
   position,
   force,
+  anchored,
 }: {
   /** Source handle id this `+` creates from (null = the node's sole handle). */
   handleId: string | null;
@@ -43,16 +45,20 @@ export function HandlePlus({
   position: 'right' | 'bottom';
   /** Force-visible (node selected). Otherwise hover-reveal. */
   force?: boolean;
+  /** Picker is open from this handle — stay visible as a visual anchor. */
+  anchored?: boolean;
 }) {
   const open = useNodeCreate();
   const sourceId = useNodeId();
   if (!open || !sourceId) return null;
 
+  const visible = force || anchored;
+
   return (
     <button
       type="button"
       // `nodrag`/`nopan` keep React Flow from treating the click as a node drag.
-      className={`nodrag nopan absolute z-10 grid h-5 w-5 place-items-center rounded-full border border-zinc-300 bg-white text-zinc-500 text-xs leading-none shadow-sm transition-opacity hover:border-indigo-400 hover:text-indigo-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-indigo-400 ${SIDE[position]} ${force ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+      className={`nodrag nopan absolute grid h-5 w-5 place-items-center rounded-full border border-zinc-300 bg-white text-zinc-500 text-xs leading-none shadow-sm transition-opacity hover:border-indigo-400 hover:text-indigo-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-indigo-400 ${SIDE[position]} ${anchored ? 'z-[60]' : 'z-10'} ${visible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
       aria-label="Add connected node"
       onClick={(e) => {
         e.stopPropagation();

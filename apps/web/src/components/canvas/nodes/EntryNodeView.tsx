@@ -22,7 +22,14 @@ export function EntryNodeView({ data, selected }: EntryNodeProps) {
         {data.node.id}
       </div>
       <Handle type="source" position={Position.Right} />
-      {free && <HandlePlus handleId={null} position="right" force={selected} />}
+      {free && (
+        <HandlePlus
+          handleId={null}
+          position="right"
+          force={selected}
+          anchored={data.pickerAnchorHandle === null}
+        />
+      )}
     </div>
   );
 }

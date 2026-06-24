@@ -40,7 +40,7 @@ import { flowToReactFlow, NODE_SIZE, type NodePositionsMap } from './flowToReact
 import { layoutFlow } from './layout.ts';
 import { type NodeEditActions, NodeInlineEditor } from './NodeInlineEditor.tsx';
 import { NodeInspector } from './NodeInspector.tsx';
-import { NodeTypePicker } from './NodeTypePicker.tsx';
+import { NodeTypePicker, type NodeTypePickerPlacement } from './NodeTypePicker.tsx';
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
 import {
@@ -380,7 +380,6 @@ function useElkLayout(flow: Flow, layout: NodePositionsMap): NodePositionsMap | 
 type CreateMenu = {
   sourceId: string;
   sourceHandle: string | null;
-  at: { x: number; y: number }; // screen coords to anchor the picker
   // How to place the new node: a `+` aligns it to the source along the handle's
   // axis; a drag drops it where the user released.
   placement:
@@ -424,21 +423,27 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const [menu, setMenu] = useState<CreateMenu | null>(null);
 
   // Dragged + freshly-created nodes (in the layout map) win over auto-placed.
-  const graph = useMemo(
-    () => (autoPositions ? flowToReactFlow(flow, { ...autoPositions, ...layout }) : null),
-    [flow, layout, autoPositions],
-  );
+  const graph = useMemo(() => {
+    if (!autoPositions) return null;
+    const base = flowToReactFlow(flow, { ...autoPositions, ...layout });
+    if (menu?.placement.kind !== 'aligned') return base;
+    // Patch picker anchor into node data so React Flow re-renders the `+`.
+    return {
+      ...base,
+      nodes: base.nodes.map((n) =>
+        n.id === menu.sourceId
+          ? { ...n, data: { ...n.data, pickerAnchorHandle: menu.sourceHandle } }
+          : n,
+      ),
+    };
+  }, [flow, layout, autoPositions, menu]);
 
-  // A `+` was clicked: anchor the picker at the button's center (≈ the cursor,
-  // and robust for keyboard activation where pointer coords are 0,0) and record
-  // the handle side, so the new node aligns to the source along that axis. The
-  // actual drop is computed at pick time, once the new node's type (hence size)
-  // is known.
-  const openCreateMenu = useCallback<OpenCreateMenu>((sourceId, sourceHandle, anchor, side) => {
+  // A `+` was clicked: record the source handle side so the picker anchors to the
+  // node (same placement as the inspector) and the new node aligns on pick.
+  const openCreateMenu = useCallback<OpenCreateMenu>((sourceId, sourceHandle, _anchor, side) => {
     setMenu({
       sourceId,
       sourceHandle,
-      at: { x: (anchor.left + anchor.right) / 2, y: (anchor.top + anchor.bottom) / 2 },
       placement: { kind: 'aligned', side },
     });
   }, []);
@@ -483,7 +488,6 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
     setMenu({
       sourceId: state.fromNode.id,
       sourceHandle: state.fromHandle?.id ?? null,
-      at: point,
       placement: { kind: 'drop', at: point },
     });
   }, []);
@@ -515,6 +519,13 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
 
   const editingNode = editingId ? flow.nodes.find((n) => n.id === editingId) : undefined;
 
+  const pickerPlacement = useMemo((): NodeTypePickerPlacement | null => {
+    if (!menu) return null;
+    return menu.placement.kind === 'aligned'
+      ? { kind: 'node', sourceId: menu.sourceId, side: menu.placement.side }
+      : { kind: 'point', at: menu.placement.at };
+  }, [menu]);
+
   if (!graph) return null;
 
   return (
@@ -528,7 +539,13 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
         isValidConnection={isValidConnection}
         onNodeDoubleClick={onNodeDoubleClick}
       />
-      {menu && <NodeTypePicker anchor={menu.at} onPick={pickType} onClose={() => setMenu(null)} />}
+      {pickerPlacement && (
+        <NodeTypePicker
+          placement={pickerPlacement}
+          onPick={pickType}
+          onClose={() => setMenu(null)}
+        />
+      )}
       {editingId && editingNode && (
         <NodeInspector
           key={editingId}

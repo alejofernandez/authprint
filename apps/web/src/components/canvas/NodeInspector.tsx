@@ -7,8 +7,7 @@
 import type { Node as DslNode } from '@authprint/dsl';
 import { useReactFlow, useStore } from '@xyflow/react';
 import { type ReactNode, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { PANEL_MAX_HEIGHT, placeFloatingPanel, type ScreenRect } from './floatingPanelPlacement.ts';
-import { NODE_SIZE } from './flowToReactFlow.ts';
+import { nodeScreenRect, PANEL_MAX_HEIGHT, placeFloatingPanel } from './floatingPanelPlacement.ts';
 
 const TYPE_META: Record<Exclude<DslNode['type'], 'entry'>, { label: string; dot: string }> = {
   screen: { label: 'Screen', dot: 'bg-indigo-500' },
@@ -19,33 +18,6 @@ const TYPE_META: Record<Exclude<DslNode['type'], 'entry'>, { label: string; dot:
 };
 
 const PANEL_WIDTH = 288;
-
-function nodeScreenRect(
-  nodeId: string,
-  getNode: ReturnType<typeof useReactFlow>['getNode'],
-  flowToScreenPosition: ReturnType<typeof useReactFlow>['flowToScreenPosition'],
-  _viewport: [number, number, number],
-): ScreenRect | null {
-  void _viewport;
-  const node = getNode(nodeId);
-  if (!node) return null;
-  const intrinsic = node.type ? NODE_SIZE[node.type as keyof typeof NODE_SIZE] : null;
-  const w = node.measured?.width ?? node.width ?? intrinsic?.width ?? 180;
-  const h = node.measured?.height ?? node.height ?? intrinsic?.height ?? 64;
-  // Transform both corners — width/height are flow units; adding them to a screen
-  // point ignores zoom and makes the gap shrink when zoomed in and grow when out.
-  const topLeft = flowToScreenPosition({ x: node.position.x, y: node.position.y });
-  const bottomRight = flowToScreenPosition({
-    x: node.position.x + w,
-    y: node.position.y + h,
-  });
-  return {
-    left: topLeft.x,
-    top: topLeft.y,
-    right: bottomRight.x,
-    bottom: bottomRight.y,
-  };
-}
 
 export function NodeInspector({
   nodeId,
@@ -72,8 +44,10 @@ export function NodeInspector({
     origTop: number;
   } | null>(null);
 
-  // `transform` is read only to recompute screen position after pan/zoom.
-  const anchor = nodeScreenRect(nodeId, getNode, flowToScreenPosition, transform);
+  const anchor = useMemo(() => {
+    void transform;
+    return nodeScreenRect(getNode(nodeId), flowToScreenPosition);
+  }, [nodeId, getNode, flowToScreenPosition, transform]);
 
   const autoPos = useMemo(() => {
     if (!anchor) return { left: 24, top: 24 };

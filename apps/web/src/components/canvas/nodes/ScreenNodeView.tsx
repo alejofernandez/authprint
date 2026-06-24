@@ -25,9 +25,21 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
       <Handle type="source" position={Position.Right} id="default" />
       <Handle type="source" position={Position.Bottom} id="alt" />
       {!connected?.has('default') && (
-        <HandlePlus handleId="default" position="right" force={selected} />
+        <HandlePlus
+          handleId="default"
+          position="right"
+          force={selected}
+          anchored={data.pickerAnchorHandle === 'default'}
+        />
       )}
-      {!connected?.has('alt') && <HandlePlus handleId="alt" position="bottom" force={selected} />}
+      {!connected?.has('alt') && (
+        <HandlePlus
+          handleId="alt"
+          position="bottom"
+          force={selected}
+          anchored={data.pickerAnchorHandle === 'alt'}
+        />
+      )}
     </div>
   );
 }
