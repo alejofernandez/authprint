@@ -53,6 +53,14 @@ export type DiagnosticCode =
   | 'validation-scenario-context-slot-undeclared'
   | 'validation-scenario-context-value-type-mismatch';
 
+/**
+ * The structural element a diagnostic is about, by id. Lets id-keyed consumers
+ * (the canvas validation overlay, codegen, a future LSP) point at the offending
+ * node/edge without reconstructing it from the array-index `path`. Absent for
+ * flow-level diagnostics (e.g. entry-missing) and parser diagnostics.
+ */
+export type DiagnosticTarget = { kind: 'node' | 'edge'; id: string };
+
 export type Diagnostic = {
   severity: DiagnosticSeverity;
   code: DiagnosticCode;
@@ -66,6 +74,8 @@ export type Diagnostic = {
    * diagnostics.
    */
   path?: string;
+  /** The node/edge this diagnostic is about (when one applies). */
+  target?: DiagnosticTarget;
 };
 
 /**

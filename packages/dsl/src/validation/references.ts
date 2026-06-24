@@ -28,6 +28,7 @@ function checkEdgeReferences(flow: Flow, nodeById: Map<string, Node>): Diagnosti
         code: 'validation-edge-source-not-found',
         message: `edge '${edge.id}' source '${edge.source}' does not resolve to any node`,
         path: `edges[${idx}].source`,
+        target: { kind: 'edge', id: edge.id },
       });
     }
     if (!nodeById.has(edge.target)) {
@@ -36,6 +37,7 @@ function checkEdgeReferences(flow: Flow, nodeById: Map<string, Node>): Diagnosti
         code: 'validation-edge-target-not-found',
         message: `edge '${edge.id}' target '${edge.target}' does not resolve to any node`,
         path: `edges[${idx}].target`,
+        target: { kind: 'edge', id: edge.id },
       });
     }
   }

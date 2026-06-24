@@ -25,12 +25,16 @@ function checkEntryPresence(flow: Flow): Diagnostic[] {
 
   if (entryIndices.length > 1) {
     // Flag every entry beyond the first as the offender (first is the "canonical" one).
-    return entryIndices.slice(1).map((idx) => ({
-      severity: 'error' as const,
-      code: 'validation-entry-multiple' as const,
-      message: `flow has ${entryIndices.length} entry nodes; exactly one is required`,
-      path: `nodes[${idx}]`,
-    }));
+    return entryIndices.slice(1).map((idx) => {
+      const node = flow.nodes[idx];
+      return {
+        severity: 'error' as const,
+        code: 'validation-entry-multiple' as const,
+        message: `flow has ${entryIndices.length} entry nodes; exactly one is required`,
+        path: `nodes[${idx}]`,
+        ...(node && { target: { kind: 'node' as const, id: node.id } }),
+      };
+    });
   }
 
   return [];
@@ -57,6 +61,7 @@ function checkReachability(flow: Flow): Diagnostic[] {
             code: 'validation-unreachable-node' as const,
             message: `node '${n.id}' is not reachable from entry`,
             path: `nodes[${idx}]`,
+            target: { kind: 'node' as const, id: n.id },
           },
         ],
   );
@@ -90,6 +95,7 @@ function checkTerminability(flow: Flow): Diagnostic[] {
             code: 'validation-non-terminable-node' as const,
             message: `node '${n.id}' cannot reach any outcome`,
             path: `nodes[${idx}]`,
+            target: { kind: 'node' as const, id: n.id },
           },
         ],
   );

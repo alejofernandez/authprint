@@ -32,6 +32,7 @@ function checkDecisionPredicates(flow: Flow): Diagnostic[] {
         code: 'validation-predicate-slot-undeclared',
         message: `decision '${node.id}' references undeclared context slot '${predicate.slot}'`,
         path: `${path}.slot`,
+        target: { kind: 'node', id: node.id },
       });
       continue; // can't check op/value without a slot type
     }
@@ -42,6 +43,7 @@ function checkDecisionPredicates(flow: Flow): Diagnostic[] {
         code: 'validation-predicate-op-incompatible',
         message: `decision '${node.id}' uses op '${predicate.op}' which is not valid for ${slot.type} slot '${predicate.slot}'`,
         path: `${path}.op`,
+        target: { kind: 'node', id: node.id },
       });
     }
 
@@ -52,6 +54,7 @@ function checkDecisionPredicates(flow: Flow): Diagnostic[] {
         code: 'validation-predicate-value-type-mismatch',
         message: `decision '${node.id}' predicate value ${valueErr} (slot '${predicate.slot}' is ${slot.type})`,
         path: `${path}.value`,
+        target: { kind: 'node', id: node.id },
       });
     }
   }

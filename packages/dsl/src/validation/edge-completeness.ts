@@ -44,6 +44,7 @@ function checkDecisionBranches(flow: Flow, nodeById: Map<string, Node>): Diagnos
         code: 'validation-decision-branch-missing',
         message: `decision '${node.id}' is missing branch for value=true`,
         path: `nodes[${idx}]`,
+        target: { kind: 'node', id: node.id },
       });
     }
     if (!seenValues.has(false)) {
@@ -52,6 +53,7 @@ function checkDecisionBranches(flow: Flow, nodeById: Map<string, Node>): Diagnos
         code: 'validation-decision-branch-missing',
         message: `decision '${node.id}' is missing branch for value=false`,
         path: `nodes[${idx}]`,
+        target: { kind: 'node', id: node.id },
       });
     }
     if (branches.length > 2) {
@@ -61,6 +63,7 @@ function checkDecisionBranches(flow: Flow, nodeById: Map<string, Node>): Diagnos
         code: 'validation-decision-branch-extra',
         message: `decision '${node.id}' has ${branches.length} branches (v1 expects exactly 2 for boolean predicates); ${extras} extra`,
         path: `nodes[${idx}]`,
+        target: { kind: 'node', id: node.id },
       });
     }
   }
@@ -91,6 +94,7 @@ function checkActionResultEdges(flow: Flow, nodeById: Map<string, Node>): Diagno
         code: 'validation-action-missing-success-edge',
         message: `action '${node.id}' is missing an on-success outgoing edge`,
         path: `nodes[${idx}]`,
+        target: { kind: 'node', id: node.id },
       });
     }
     if (!hasError) {
@@ -99,6 +103,7 @@ function checkActionResultEdges(flow: Flow, nodeById: Map<string, Node>): Diagno
         code: 'validation-action-missing-error-edge',
         message: `action '${node.id}' is missing an on-error outgoing edge`,
         path: `nodes[${idx}]`,
+        target: { kind: 'node', id: node.id },
       });
     }
   }
@@ -125,6 +130,7 @@ function checkExternalResultEdges(flow: Flow, nodeById: Map<string, Node>): Diag
         code: 'validation-external-missing-success-edge',
         message: `external '${node.id}' is missing an on-success outgoing edge`,
         path: `nodes[${idx}]`,
+        target: { kind: 'node', id: node.id },
       });
     }
     if (!hasError) {
@@ -133,6 +139,7 @@ function checkExternalResultEdges(flow: Flow, nodeById: Map<string, Node>): Diag
         code: 'validation-external-missing-error-edge',
         message: `external '${node.id}' is missing an on-error outgoing edge`,
         path: `nodes[${idx}]`,
+        target: { kind: 'node', id: node.id },
       });
     }
   }
@@ -154,6 +161,7 @@ function checkOutcomeNoOutgoingEdges(flow: Flow, nodeById: Map<string, Node>): D
         code: 'validation-outcome-has-outgoing-edge',
         message: `outcome '${edge.source}' has an outgoing edge to '${edge.target}'`,
         path: `edges[${eIdx}]`,
+        target: { kind: 'edge', id: edge.id },
       });
     }
   }
@@ -177,6 +185,7 @@ function checkTriggerCompatibility(flow: Flow, nodeById: Map<string, Node>): Dia
         code: 'validation-trigger-incompatible-with-source',
         message: err.reason,
         path: `edges[${eIdx}].trigger`,
+        target: { kind: 'edge', id: edge.id },
       });
     }
   }
