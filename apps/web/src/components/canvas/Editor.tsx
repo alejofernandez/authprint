@@ -43,6 +43,7 @@ import { NodeInspector } from './NodeInspector.tsx';
 import { NodeTypePicker, type NodeTypePickerPlacement } from './NodeTypePicker.tsx';
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
+import { ProblemsPanel } from './ProblemsPanel.tsx';
 import { useValidation } from './useValidation.ts';
 import {
   type CreatableType,
@@ -592,6 +593,7 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
         isValidConnection={isValidConnection}
         onNodeDoubleClick={onNodeDoubleClick}
       />
+      <ProblemsPanel validation={validation} />
       {pickerPlacement && (
         <NodeTypePicker
           placement={pickerPlacement}
