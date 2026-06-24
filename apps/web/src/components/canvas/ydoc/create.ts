@@ -8,8 +8,9 @@
 // positioned next to the source. The inline card (US-051) / predicate overlay
 // (US-052) fill in the real values; validation (E33) flags what's still missing.
 
-import type { Node as DslNode, Edge, Trigger } from '@authprint/dsl';
+import type { Node as DslNode, Edge, Flow, Trigger } from '@authprint/dsl';
 import type * as Y from 'yjs';
+import { sourceHandleFor } from '../flowToReactFlow.ts';
 import {
   buildEdgeMap,
   buildNodeMap,
@@ -126,4 +127,55 @@ export function createConnectedNode(doc: Y.Doc, args: CreateConnectedNodeArgs): 
   }, LOCAL_ORIGIN);
 
   return nodeId;
+}
+
+// ─── Connect (drag-from-handle onto an existing node, US-050) ─────────────────
+
+/** Connect `sourceId`→`targetId` with the handle's trigger (no new node).
+ *  Returns the new edge id, or null if the source/handle can't originate. */
+export function connectNodes(
+  doc: Y.Doc,
+  args: { sourceId: string; sourceHandle: string | null; targetId: string },
+): string | null {
+  const { sourceId, sourceHandle, targetId } = args;
+  const source = nodesMap(doc).get(sourceId);
+  if (!source || !nodesMap(doc).has(targetId)) return null;
+  const trigger = triggerFor(source.get('type') as DslNode['type'], sourceHandle);
+  if (!trigger) return null;
+
+  const edge: Edge = { id: `e-${rid()}`, source: sourceId, target: targetId, trigger };
+  doc.transact(() => edgesMap(doc).set(edge.id, buildEdgeMap(edge)), LOCAL_ORIGIN);
+  return edge.id;
+}
+
+// Screen interaction handles are open (a screen can have many interactions);
+// every other source handle (entry's, decision branches, action/external
+// results) takes exactly one edge.
+function isSingleUseHandle(sourceType: DslNode['type']): boolean {
+  return sourceType !== 'screen';
+}
+
+/** Is a proposed connection valid by construction (§5)? Used by React Flow's
+ *  `isValidConnection` to reject invalid drags before they land. */
+export function validateConnection(
+  flow: Flow,
+  c: { source?: string | null; target?: string | null; sourceHandle?: string | null },
+): boolean {
+  const { source, target, sourceHandle } = c;
+  if (!source || !target || source === target) return false; // need both ends; no self-loop
+
+  const src = flow.nodes.find((n) => n.id === source);
+  const tgt = flow.nodes.find((n) => n.id === target);
+  if (!src || !tgt) return false;
+  if (tgt.type === 'entry') return false; // entry has no incoming edges
+  if (!triggerFor(src.type, sourceHandle ?? null)) return false; // source can't originate here
+
+  if (isSingleUseHandle(src.type)) {
+    const handle = sourceHandle ?? '';
+    const filled = flow.edges.some(
+      (e) => e.source === source && (sourceHandleFor(e.trigger) ?? '') === handle,
+    );
+    if (filled) return false; // this typed handle already has its edge
+  }
+  return true;
 }

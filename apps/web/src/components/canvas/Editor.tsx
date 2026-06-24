@@ -13,9 +13,14 @@ import '@xyflow/react/dist/style.css';
 import type { Diagnostic, Flow } from '@authprint/dsl';
 import {
   Background,
+  type Connection,
   Controls,
+  type FinalConnectionState,
+  type IsValidConnection,
   MarkerType,
   MiniMap,
+  type OnConnect,
+  type OnConnectEnd,
   type OnEdgesChange,
   type OnNodesChange,
   ReactFlow,
@@ -35,7 +40,12 @@ import { layoutFlow } from './layout.ts';
 import { NodeTypePicker } from './NodeTypePicker.tsx';
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
-import { type CreatableType, createConnectedNode } from './ydoc/create.ts';
+import {
+  type CreatableType,
+  connectNodes,
+  createConnectedNode,
+  validateConnection,
+} from './ydoc/create.ts';
 import { hydrate } from './ydoc/hydrate.ts';
 import { docToArtifact, extractLayout, serializeBundle } from './ydoc/persist.ts';
 import { useYDocFlow } from './ydoc/useYDocFlow.ts';
@@ -358,8 +368,12 @@ function useElkLayout(flow: Flow, layout: NodePositionsMap): NodePositionsMap | 
 type CreateMenu = {
   sourceId: string;
   sourceHandle: string | null;
-  side: 'right' | 'bottom'; // which handle side → the new node's alignment axis
   at: { x: number; y: number }; // screen coords to anchor the picker
+  // How to place the new node: a `+` aligns it to the source along the handle's
+  // axis; a drag drops it where the user released.
+  placement:
+    | { kind: 'aligned'; side: 'right' | 'bottom' }
+    | { kind: 'drop'; at: { x: number; y: number } };
 };
 
 // Gap (flow units) between a source node and the node its `+` creates.
@@ -394,7 +408,7 @@ function alignedNodePosition(
 function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const { flow, layout, onNodesChange: nodesToDoc, onEdgesChange: edgesToDoc } = useYDocFlow(doc);
   const autoPositions = useElkLayout(flow, layout);
-  const { getNode } = useReactFlow();
+  const { getNode, screenToFlowPosition } = useReactFlow();
   const [menu, setMenu] = useState<CreateMenu | null>(null);
 
   // Dragged + freshly-created nodes (in the layout map) win over auto-placed.
@@ -412,30 +426,73 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
     setMenu({
       sourceId,
       sourceHandle,
-      side,
       at: { x: (anchor.left + anchor.right) / 2, y: (anchor.top + anchor.bottom) / 2 },
+      placement: { kind: 'aligned', side },
     });
   }, []);
 
   const pickType = useCallback(
     (type: CreatableType) => {
       if (!menu) return;
+      const position =
+        menu.placement.kind === 'drop'
+          ? screenToFlowPosition(menu.placement.at)
+          : alignedNodePosition(getNode(menu.sourceId), menu.placement.side, type);
       createConnectedNode(doc, {
         sourceId: menu.sourceId,
         sourceHandle: menu.sourceHandle,
         type,
-        position: alignedNodePosition(getNode(menu.sourceId), menu.side, type),
+        position,
       });
       setMenu(null);
     },
-    [doc, menu, getNode],
+    [doc, menu, getNode, screenToFlowPosition],
+  );
+
+  // Drag-from-handle onto an existing node → connect only (no new node).
+  const onConnect = useCallback<OnConnect>(
+    (c: Connection) => {
+      connectNodes(doc, { sourceId: c.source, sourceHandle: c.sourceHandle, targetId: c.target });
+    },
+    [doc],
+  );
+
+  // Drag-from-handle released on empty canvas → open the picker there and create
+  // a node connected to the drag's source handle. (A drop on a node connects via
+  // `onConnect` and leaves `isValid` true, so we skip those here.)
+  const onConnectEnd = useCallback<OnConnectEnd>((event, state: FinalConnectionState) => {
+    if (state.isValid || !state.fromNode) return;
+    const onPane = (event.target as Element | null)?.classList?.contains('react-flow__pane');
+    if (!onPane) return;
+    const point =
+      'changedTouches' in event
+        ? { x: event.changedTouches[0]?.clientX ?? 0, y: event.changedTouches[0]?.clientY ?? 0 }
+        : { x: event.clientX, y: event.clientY };
+    setMenu({
+      sourceId: state.fromNode.id,
+      sourceHandle: state.fromHandle?.id ?? null,
+      at: point,
+      placement: { kind: 'drop', at: point },
+    });
+  }, []);
+
+  const isValidConnection = useCallback<IsValidConnection>(
+    (c) => validateConnection(flow, c),
+    [flow],
   );
 
   if (!graph) return null;
 
   return (
     <NodeCreateProvider value={openCreateMenu}>
-      <BoundCanvas graph={graph} nodesToDoc={nodesToDoc} edgesToDoc={edgesToDoc} />
+      <BoundCanvas
+        graph={graph}
+        nodesToDoc={nodesToDoc}
+        edgesToDoc={edgesToDoc}
+        onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
+        isValidConnection={isValidConnection}
+      />
       {menu && <NodeTypePicker anchor={menu.at} onPick={pickType} onClose={() => setMenu(null)} />}
     </NodeCreateProvider>
   );
@@ -449,10 +506,16 @@ function BoundCanvas({
   graph,
   nodesToDoc,
   edgesToDoc,
+  onConnect,
+  onConnectEnd,
+  isValidConnection,
 }: {
   graph: ReturnType<typeof flowToReactFlow>;
   nodesToDoc: OnNodesChange<RfNode<CanvasNodeData>>;
   edgesToDoc: OnEdgesChange;
+  onConnect: OnConnect;
+  onConnectEnd: OnConnectEnd;
+  isValidConnection: IsValidConnection;
 }) {
   const [nodes, setNodes, onNodesChangeLocal] = useNodesState(graph.nodes);
   const [edges, setEdges, onEdgesChangeLocal] = useEdgesState(graph.edges);
@@ -483,10 +546,12 @@ function BoundCanvas({
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
+      onConnect={onConnect}
+      onConnectEnd={onConnectEnd}
+      isValidConnection={isValidConnection}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
-      // Edge *creation* UX is E26; E24 binds move + delete only.
-      nodesConnectable={false}
+      nodesConnectable
       deleteKeyCode={['Delete', 'Backspace']}
       defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
       fitView

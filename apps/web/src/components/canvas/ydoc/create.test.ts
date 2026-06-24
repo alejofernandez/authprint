@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import type { Flow } from '@authprint/dsl';
-import { createConnectedNode, defaultNode, triggerFor } from './create.ts';
+import {
+  connectNodes,
+  createConnectedNode,
+  defaultNode,
+  triggerFor,
+  validateConnection,
+} from './create.ts';
 import { hydrate } from './hydrate.ts';
 import { edgesMap, layoutMap, nodesMap, readEdgeMap, readNodeMap } from './schema.ts';
 
@@ -30,6 +36,7 @@ function base(): Flow {
       { type: 'action', id: 'a1', name: 'A', kind: 'send-otp' },
       { type: 'external', id: 'x1', name: 'X', kind: 'google' },
       { type: 'outcome', id: 'o1', name: 'O', kind: 'authenticated' },
+      { type: 'outcome', id: 'o2', name: 'O2', kind: 'denied' },
     ],
     edges: [],
     annotations: [],
@@ -137,5 +144,78 @@ describe('createConnectedNode', () => {
         position: { x: 0, y: 0 },
       }),
     ).toBeNull();
+  });
+});
+
+describe('connectNodes', () => {
+  test('connects two existing nodes with the handle trigger', () => {
+    const doc = hydrate(base());
+    const id = connectNodes(doc, { sourceId: 'd1', sourceHandle: 'true', targetId: 'o1' });
+    expect(id).not.toBeNull();
+    const edge = [...edgesMap(doc).values()].map(readEdgeMap).find((e) => e.id === id);
+    expect(edge).toMatchObject({
+      source: 'd1',
+      target: 'o1',
+      trigger: { type: 'branch', value: true },
+    });
+  });
+  test('null for an invalid source (outcome) or missing target', () => {
+    const doc = hydrate(base());
+    expect(connectNodes(doc, { sourceId: 'o1', sourceHandle: null, targetId: 's1' })).toBeNull();
+    expect(
+      connectNodes(doc, { sourceId: 's1', sourceHandle: 'default', targetId: 'ghost' }),
+    ).toBeNull();
+  });
+});
+
+describe('validateConnection', () => {
+  const flow = base();
+  test('valid: screen → outcome via its interaction handle', () => {
+    expect(validateConnection(flow, { source: 's1', target: 'o1', sourceHandle: 'default' })).toBe(
+      true,
+    );
+  });
+  test('rejects self-loop, missing ends, target=entry, and outcome source', () => {
+    expect(validateConnection(flow, { source: 's1', target: 's1', sourceHandle: 'default' })).toBe(
+      false,
+    );
+    expect(validateConnection(flow, { source: 's1', target: null, sourceHandle: 'default' })).toBe(
+      false,
+    );
+    expect(
+      validateConnection(flow, { source: 's1', target: 'entry', sourceHandle: 'default' }),
+    ).toBe(false);
+    expect(validateConnection(flow, { source: 'o1', target: 's1', sourceHandle: null })).toBe(
+      false,
+    );
+  });
+  test('single-use handle: rejects a second edge from a filled branch, allows the open one', () => {
+    const withBranch: Flow = {
+      ...flow,
+      edges: [{ id: 'e1', source: 'd1', target: 'o1', trigger: { type: 'branch', value: true } }],
+    };
+    // `true` branch is filled → reject; `false` branch is open → allow.
+    expect(
+      validateConnection(withBranch, { source: 'd1', target: 'o2', sourceHandle: 'true' }),
+    ).toBe(false);
+    expect(
+      validateConnection(withBranch, { source: 'd1', target: 'o2', sourceHandle: 'false' }),
+    ).toBe(true);
+  });
+  test('screen interaction handle stays open even with an existing edge', () => {
+    const withInteraction: Flow = {
+      ...flow,
+      edges: [
+        {
+          id: 'e1',
+          source: 's1',
+          target: 'o1',
+          trigger: { type: 'interaction', action: 'submit' },
+        },
+      ],
+    };
+    expect(
+      validateConnection(withInteraction, { source: 's1', target: 'o2', sourceHandle: 'default' }),
+    ).toBe(true);
   });
 });
