@@ -10,7 +10,15 @@ import { useReactFlow } from '@xyflow/react';
 import { useState } from 'react';
 import type { ValidationResult } from './useValidation.ts';
 
-export function ProblemsPanel({ validation }: { validation: ValidationResult }) {
+export function ProblemsPanel({
+  validation,
+  showOutlines,
+  onToggleOutlines,
+}: {
+  validation: ValidationResult;
+  showOutlines: boolean;
+  onToggleOutlines: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const { errorCount, warningCount, diagnostics } = validation;
   const { getNode, setCenter } = useReactFlow();
@@ -28,30 +36,51 @@ export function ProblemsPanel({ validation }: { validation: ValidationResult }) 
 
   return (
     <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-1">
-      <button
-        type="button"
-        onClick={() => total > 0 && setOpen((o) => !o)}
-        className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm shadow-sm backdrop-blur ${
+      <div
+        className={`flex items-center rounded-md border shadow-sm backdrop-blur ${
           total === 0
-            ? 'cursor-default border-emerald-300 bg-emerald-50/80 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300'
+            ? 'border-emerald-300 bg-emerald-50/80 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300'
             : 'border-zinc-300 bg-white/80 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-200'
         }`}
-        aria-expanded={open}
       >
-        {total === 0 ? (
-          <span>✓ Valid</span>
-        ) : (
-          <>
-            {errorCount > 0 && (
-              <span className="text-red-600 dark:text-red-400">⛔ {errorCount}</span>
-            )}
-            {warningCount > 0 && (
-              <span className="text-amber-600 dark:text-amber-400">⚠️ {warningCount}</span>
-            )}
-            <span className="text-zinc-400 text-xs">Problems</span>
-          </>
+        <button
+          type="button"
+          onClick={() => total > 0 && setOpen((o) => !o)}
+          className="flex items-center gap-2 px-2.5 py-1.5 text-sm"
+          aria-expanded={open}
+        >
+          {total === 0 ? (
+            <span>✓ Valid</span>
+          ) : (
+            <>
+              {errorCount > 0 && (
+                <span className="text-red-600 dark:text-red-400">⛔ {errorCount}</span>
+              )}
+              {warningCount > 0 && (
+                <span className="text-amber-600 dark:text-amber-400">⚠️ {warningCount}</span>
+              )}
+              <span className="text-zinc-400 text-xs">Problems</span>
+            </>
+          )}
+        </button>
+        {total > 0 && (
+          <button
+            type="button"
+            onClick={onToggleOutlines}
+            aria-pressed={showOutlines}
+            title={
+              showOutlines
+                ? 'Hide error outlines on the canvas'
+                : 'Show error outlines on the canvas'
+            }
+            className={`border-zinc-300 border-l px-2 py-1.5 text-sm dark:border-zinc-700 ${
+              showOutlines ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-400 line-through'
+            }`}
+          >
+            👁
+          </button>
         )}
-      </button>
+      </div>
 
       {open && total > 0 && (
         <div className="max-h-72 w-80 overflow-auto rounded-lg border border-zinc-200 bg-white p-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">

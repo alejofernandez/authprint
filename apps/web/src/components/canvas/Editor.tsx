@@ -473,13 +473,21 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const { flow, layout, onNodesChange: nodesToDoc, onEdgesChange: edgesToDoc } = useYDocFlow(doc);
   const autoPositions = useElkLayout(flow, layout);
   const validation = useValidation(flow);
+  // Error outlines on the canvas are opt-in (off while building — the per-handle
+  // `+` already hints at incompleteness; the Problems badge tracks the count).
+  // Flip them on to review. Gates both node rings and edge recoloring.
+  const [showOutlines, setShowOutlines] = useState(false);
   const { getNode, screenToFlowPosition } = useReactFlow();
   const [menu, setMenu] = useState<CreateMenu | null>(null);
 
   // Dragged + freshly-created nodes (in the layout map) win over auto-placed.
   const graph = useMemo(() => {
     if (!autoPositions) return null;
-    const base = flowToReactFlow(flow, { ...autoPositions, ...layout }, validation);
+    const base = flowToReactFlow(
+      flow,
+      { ...autoPositions, ...layout },
+      showOutlines ? validation : undefined,
+    );
     if (menu?.placement.kind !== 'aligned') return base;
     // Patch picker anchor into node data so React Flow re-renders the `+`.
     return {
@@ -490,7 +498,7 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
           : n,
       ),
     };
-  }, [flow, layout, autoPositions, menu, validation]);
+  }, [flow, layout, autoPositions, menu, validation, showOutlines]);
 
   // A `+` was clicked: record the source handle side so the picker anchors to the
   // node (same placement as the inspector) and the new node aligns on pick.
@@ -593,7 +601,11 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
         isValidConnection={isValidConnection}
         onNodeDoubleClick={onNodeDoubleClick}
       />
-      <ProblemsPanel validation={validation} />
+      <ProblemsPanel
+        validation={validation}
+        showOutlines={showOutlines}
+        onToggleOutlines={() => setShowOutlines((v) => !v)}
+      />
       {pickerPlacement && (
         <NodeTypePicker
           placement={pickerPlacement}
