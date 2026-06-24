@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { DevBuildOverlay } from '@/components/dev-build-overlay';
 import { InlineScript } from '@/components/inline-script';
 import { ThemeProvider } from '@/components/theme';
 import './globals.css';
@@ -39,7 +40,10 @@ export default function RootLayout({
         <InlineScript html={THEME_INIT_SCRIPT} />
       </head>
       <body className="flex min-h-full flex-col">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          {process.env.NODE_ENV === 'development' && <DevBuildOverlay />}
+        </ThemeProvider>
       </body>
     </html>
   );
