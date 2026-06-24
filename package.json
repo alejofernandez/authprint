@@ -20,6 +20,7 @@
     "storybook": "bun --filter '@authprint/web' storybook",
     "test:visual": "bun --filter '@authprint/web' test-storybook:ci",
     "test:visual:update": "bun --filter '@authprint/web' test-storybook:update",
+    "op:run": "bun scripts/op-run.ts",
     "prepare": "lefthook install"
   },
   "devDependencies": {

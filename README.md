@@ -54,8 +54,11 @@ bun run lint
 | `bun run storybook` | Storybook component workbench |
 | `bun run test:visual` | Visual-regression vs committed PNG baselines |
 | `bun run test:visual:update` | Re-bless baselines after intentional visual changes |
+| `bun run op:run -- <cmd>` | Run `<cmd>` with secrets from 1Password (no `.env` on disk) |
 
 Visual baselines live under `apps/web/__snapshots__/visual/`. They are **local-only for now** (font/OS-dependent; CI wiring deferred).
+
+**Secrets (local dev):** no plaintext in `.env` files — use [`secrets/README.md`](./secrets/README.md). Copy `secrets/op.env.tpl.example` → `secrets/op.env.tpl`, add `op://` references, then `bun run op:run -- bun run dev`.
 
 **Example flows** (`.authprint`): [`packages/dsl-spec/examples/`](./packages/dsl-spec/examples/) — Demo Flow Zero is the canonical auth spec for a future hosted product.
 

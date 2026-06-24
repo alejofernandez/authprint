@@ -31,8 +31,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — never commit plaintext secrets
 .env*
+
+# 1Password local template (personal vault/item paths; example is committed)
+secrets/op.env.tpl
 
 # vercel
 .vercel
