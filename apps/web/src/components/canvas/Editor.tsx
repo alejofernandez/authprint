@@ -19,6 +19,7 @@ import {
   type IsValidConnection,
   MarkerType,
   MiniMap,
+  type NodeMouseHandler,
   type OnConnect,
   type OnConnectEnd,
   type OnEdgesChange,
@@ -37,6 +38,7 @@ import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { flowFromSource } from './flowFromSource.ts';
 import { flowToReactFlow, NODE_SIZE, type NodePositionsMap } from './flowToReactFlow.ts';
 import { layoutFlow } from './layout.ts';
+import { type NodeEditActions, NodeInlineEditor } from './NodeInlineEditor.tsx';
 import { NodeTypePicker } from './NodeTypePicker.tsx';
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
@@ -47,6 +49,13 @@ import {
   validateConnection,
 } from './ydoc/create.ts';
 import { hydrate } from './ydoc/hydrate.ts';
+import {
+  setNodeKind,
+  setNodeName,
+  setScreenFidelity,
+  setScreenFields,
+  setScreenTraits,
+} from './ydoc/ops.ts';
 import { docToArtifact, extractLayout, serializeBundle } from './ydoc/persist.ts';
 import { useYDocFlow } from './ydoc/useYDocFlow.ts';
 
@@ -481,6 +490,28 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
     [flow],
   );
 
+  // Double-click a node → inline editor anchored at the cursor (Entry has
+  // nothing to edit). The editor reads the live node from `flow`, so its values
+  // stay in sync as edits commit.
+  const [editing, setEditing] = useState<{ id: string; at: { x: number; y: number } } | null>(null);
+  const onNodeDoubleClick = useCallback<NodeMouseHandler>((event, node) => {
+    if (node.type === 'entry') return;
+    setEditing({ id: node.id, at: { x: event.clientX, y: event.clientY } });
+  }, []);
+
+  const editActions = useMemo<NodeEditActions>(
+    () => ({
+      setName: (id, v) => setNodeName(doc, id, v),
+      setKind: (id, v) => setNodeKind(doc, id, v),
+      setFidelity: (id, v) => setScreenFidelity(doc, id, v),
+      setTraits: (id, v) => setScreenTraits(doc, id, v),
+      setFields: (id, v) => setScreenFields(doc, id, v),
+    }),
+    [doc],
+  );
+
+  const editingNode = editing ? flow.nodes.find((n) => n.id === editing.id) : undefined;
+
   if (!graph) return null;
 
   return (
@@ -492,8 +523,17 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
         isValidConnection={isValidConnection}
+        onNodeDoubleClick={onNodeDoubleClick}
       />
       {menu && <NodeTypePicker anchor={menu.at} onPick={pickType} onClose={() => setMenu(null)} />}
+      {editing && editingNode && (
+        <NodeInlineEditor
+          node={editingNode}
+          at={editing.at}
+          actions={editActions}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </NodeCreateProvider>
   );
 }
@@ -509,6 +549,7 @@ function BoundCanvas({
   onConnect,
   onConnectEnd,
   isValidConnection,
+  onNodeDoubleClick,
 }: {
   graph: ReturnType<typeof flowToReactFlow>;
   nodesToDoc: OnNodesChange<RfNode<CanvasNodeData>>;
@@ -516,6 +557,7 @@ function BoundCanvas({
   onConnect: OnConnect;
   onConnectEnd: OnConnectEnd;
   isValidConnection: IsValidConnection;
+  onNodeDoubleClick: NodeMouseHandler;
 }) {
   const [nodes, setNodes, onNodesChangeLocal] = useNodesState(graph.nodes);
   const [edges, setEdges, onEdgesChangeLocal] = useEdgesState(graph.edges);
@@ -549,6 +591,7 @@ function BoundCanvas({
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
       isValidConnection={isValidConnection}
+      onNodeDoubleClick={onNodeDoubleClick}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       nodesConnectable

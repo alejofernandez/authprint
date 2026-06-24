@@ -124,7 +124,7 @@ export function readNodeMap(map: Y.Map<unknown>): DslNode {
   }
 }
 
-function buildFieldMap(field: Field): Y.Map<unknown> {
+export function buildFieldMap(field: Field): Y.Map<unknown> {
   const map = new Y.Map<unknown>();
   map.set('name', field.name);
   map.set('type', field.type);

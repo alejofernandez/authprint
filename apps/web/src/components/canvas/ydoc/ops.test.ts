@@ -1,7 +1,19 @@
 import { describe, expect, test } from 'bun:test';
 import type { Node as DslNode, Edge } from '@authprint/dsl';
-import { hydrate } from './hydrate.ts';
-import { addEdge, addNode, incidentEdgeIds, moveNode, removeEdge, removeNode } from './ops.ts';
+import { hydrate, readFlow } from './hydrate.ts';
+import {
+  addEdge,
+  addNode,
+  incidentEdgeIds,
+  moveNode,
+  removeEdge,
+  removeNode,
+  setNodeKind,
+  setNodeName,
+  setScreenFidelity,
+  setScreenFields,
+  setScreenTraits,
+} from './ops.ts';
 import { edgesMap, layoutMap, nodesMap } from './schema.ts';
 
 // Minimal flow: entry → screen → (decision) → outcome, decision has both branches.
@@ -125,6 +137,44 @@ describe('addEdge / removeEdge', () => {
 describe('incidentEdgeIds', () => {
   test('finds edges touching a node on either end', () => {
     expect(incidentEdgeIds(base(), 'd1').sort()).toEqual(['e2', 'e3', 'e4']);
+  });
+});
+
+describe('attribute edits', () => {
+  const screenOf = (doc: ReturnType<typeof base>) =>
+    readFlow(doc).nodes.find((n) => n.id === 's1') as Extract<DslNode, { type: 'screen' }>;
+
+  test('setNodeName / setNodeKind write through', () => {
+    const doc = base();
+    setNodeName(doc, 's1', 'Email');
+    setNodeKind(doc, 's1', 'password');
+    const s = screenOf(doc);
+    expect(s.name).toBe('Email');
+    expect(s.kind).toBe('password');
+  });
+
+  test('setScreenFidelity, traits, fields replace cleanly and round-trip', () => {
+    const doc = base();
+    setScreenFidelity(doc, 's1', 'wireframe');
+    setScreenTraits(doc, 's1', ['captcha', 'remember-me']);
+    setScreenFields(doc, 's1', [
+      { name: 'email', type: 'identifier', required: true },
+      { name: 'pw', type: 'password', required: false },
+    ]);
+    const s = screenOf(doc);
+    expect(s.fidelity).toBe('wireframe');
+    expect(s.traits).toEqual(['captcha', 'remember-me']);
+    expect(s.fields).toEqual([
+      { name: 'email', type: 'identifier', required: true },
+      { name: 'pw', type: 'password', required: false },
+    ]);
+    // Replacing again overwrites, not appends.
+    setScreenTraits(doc, 's1', []);
+    expect(screenOf(doc).traits).toEqual([]);
+  });
+
+  test('rejects an unknown node', () => {
+    expect(setNodeName(base(), 'ghost', 'x').ok).toBe(false);
   });
 });
 

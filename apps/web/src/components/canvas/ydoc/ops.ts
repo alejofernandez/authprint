@@ -9,10 +9,11 @@
 // internally consistent (no duplicate ids, no edges to nonexistent nodes, no
 // dangling edges after a node delete).
 
-import type { Node as DslNode, Edge } from '@authprint/dsl';
-import type * as Y from 'yjs';
+import type { Node as DslNode, Edge, Field } from '@authprint/dsl';
+import * as Y from 'yjs';
 import {
   buildEdgeMap,
+  buildFieldMap,
   buildNodeMap,
   edgesMap,
   LOCAL_ORIGIN,
@@ -69,4 +70,49 @@ export function addEdge(doc: Y.Doc, edge: Edge): OpResult {
 export function removeEdge(doc: Y.Doc, edgeId: string): OpResult {
   doc.transact(() => edgesMap(doc).delete(edgeId), LOCAL_ORIGIN);
   return ok;
+}
+
+// ─── Node attribute edits (E26 inline card, US-051) ──────────────────────────
+// Write through to a node's nested Y.Map. Each is one LOCAL_ORIGIN transaction.
+
+function withNode(doc: Y.Doc, id: string, fn: (node: Y.Map<unknown>) => void): OpResult {
+  const node = nodesMap(doc).get(id);
+  if (!node) return fail(`node '${id}' does not exist`);
+  doc.transact(() => fn(node), LOCAL_ORIGIN);
+  return ok;
+}
+
+export function setNodeName(doc: Y.Doc, id: string, name: string): OpResult {
+  return withNode(doc, id, (node) => node.set('name', name));
+}
+
+export function setNodeKind(doc: Y.Doc, id: string, kind: string): OpResult {
+  return withNode(doc, id, (node) => node.set('kind', kind));
+}
+
+export function setScreenFidelity(
+  doc: Y.Doc,
+  id: string,
+  fidelity: 'lo-fi' | 'wireframe' | 'mockup',
+): OpResult {
+  return withNode(doc, id, (node) => node.set('fidelity', fidelity));
+}
+
+// Traits/fields are replaced wholesale (a fresh Y.Array) on each edit — granular
+// per-item CRDT merge isn't needed for single-user v1, and replace keeps the
+// editor simple. The nested-Y.Array shape is preserved for when it matters.
+export function setScreenTraits(doc: Y.Doc, id: string, traits: string[]): OpResult {
+  return withNode(doc, id, (node) => {
+    const arr = new Y.Array<string>();
+    arr.push([...traits]);
+    node.set('traits', arr);
+  });
+}
+
+export function setScreenFields(doc: Y.Doc, id: string, fields: Field[]): OpResult {
+  return withNode(doc, id, (node) => {
+    const arr = new Y.Array<Y.Map<unknown>>();
+    arr.push(fields.map(buildFieldMap));
+    node.set('fields', arr);
+  });
 }
