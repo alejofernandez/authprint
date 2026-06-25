@@ -20,15 +20,15 @@ export function postCtaTraits(traits: TraitId[]): TraitId[] {
 
 function MockCheckbox({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-1.5 text-[10px] text-zinc-600 dark:text-zinc-300">
-      <span className="w-3 h-3 shrink-0 rounded-[3px] border border-zinc-300 bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800/60" />
+    <div className="flex items-center gap-1.5 text-[10px] text-zinc-600 flow-dark:text-zinc-300">
+      <span className="w-3 h-3 shrink-0 rounded-[3px] border border-zinc-300 bg-zinc-50 flow-dark:border-zinc-600 flow-dark:bg-zinc-800/60" />
       {label}
     </div>
   );
 }
 
 function MockLink({ children }: { children: string }) {
-  return <span className="text-[10px] text-indigo-500 dark:text-indigo-400">{children}</span>;
+  return <span className="text-[10px] text-indigo-500 flow-dark:text-indigo-400">{children}</span>;
 }
 
 export function PasswordStrengthMeter() {
@@ -38,7 +38,7 @@ export function PasswordStrengthMeter() {
         <span
           // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static meter segments
           key={i}
-          className={`h-1 flex-1 rounded-full ${i < 2 ? 'bg-emerald-400 dark:bg-emerald-500' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+          className={`h-1 flex-1 rounded-full ${i < 2 ? 'bg-emerald-400 flow-dark:bg-emerald-500' : 'bg-zinc-200 flow-dark:bg-zinc-700'}`}
         />
       ))}
     </div>
@@ -47,7 +47,7 @@ export function PasswordStrengthMeter() {
 
 export function ShowPasswordToggle() {
   return (
-    <span className="text-zinc-400 dark:text-zinc-500" aria-hidden="true">
+    <span className="text-zinc-400 flow-dark:text-zinc-500" aria-hidden="true">
       <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" aria-hidden="true">
         <path
           d="M1.5 8s2.5-4 6.5-4 6.5 4 6.5 4-2.5 4-6.5 4S1.5 8 1.5 8Z"
@@ -67,7 +67,7 @@ function SocialLoginButtons() {
       {providers.map((label) => (
         <div
           key={label}
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 bg-white text-[9px] font-semibold text-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 bg-white text-[9px] font-semibold text-zinc-500 flow-dark:border-zinc-600 flow-dark:bg-zinc-800 flow-dark:text-zinc-300"
         >
           {label}
         </div>
@@ -78,7 +78,7 @@ function SocialLoginButtons() {
 
 function PasskeyBanner() {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 dark:border-indigo-800 dark:bg-indigo-950/50">
+    <div className="flex items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 flow-dark:border-indigo-800 flow-dark:bg-indigo-950/50">
       <svg
         viewBox="0 0 16 16"
         className="h-3.5 w-3.5 shrink-0 text-indigo-500"
@@ -93,7 +93,7 @@ function PasskeyBanner() {
           strokeLinecap="round"
         />
       </svg>
-      <span className="text-[10px] font-medium text-indigo-700 dark:text-indigo-300">
+      <span className="text-[10px] font-medium text-indigo-700 flow-dark:text-indigo-300">
         Sign in faster with a passkey
       </span>
     </div>
@@ -102,8 +102,8 @@ function PasskeyBanner() {
 
 function CaptchaWidget() {
   return (
-    <div className="flex h-12 items-center justify-center rounded-md border border-dashed border-zinc-300 bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800/40">
-      <span className="text-[9px] font-medium tracking-wide text-zinc-400 uppercase dark:text-zinc-500">
+    <div className="flex h-12 items-center justify-center rounded-md border border-dashed border-zinc-300 bg-zinc-50 flow-dark:border-zinc-600 flow-dark:bg-zinc-800/40">
+      <span className="text-[9px] font-medium tracking-wide text-zinc-400 uppercase flow-dark:text-zinc-500">
         Captcha
       </span>
     </div>

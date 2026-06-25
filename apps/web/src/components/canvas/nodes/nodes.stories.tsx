@@ -67,7 +67,9 @@ export const EntryLight: Story = { args: { type: 'entry', node: entry, theme: 'l
 export const EntryDark: Story = { args: { type: 'entry', node: entry, theme: 'dark' } };
 
 export const ScreenLight: Story = { args: { type: 'screen', node: screen, theme: 'light' } };
-export const ScreenDark: Story = { args: { type: 'screen', node: screen, theme: 'dark' } };
+export const ScreenDark: Story = {
+  args: { type: 'screen', node: screen, theme: 'dark', flowTheme: 'dark' },
+};
 
 // Mockup-fidelity screens (US-067) — render as real auth screens.
 const passwordMockup: ScreenNode = {
@@ -109,19 +111,19 @@ export const ScreenMockupPasswordLight: Story = {
   args: { type: 'screen', node: passwordMockup, theme: 'light', ...mockupCanvas },
 };
 export const ScreenMockupPasswordDark: Story = {
-  args: { type: 'screen', node: passwordMockup, theme: 'dark', ...mockupCanvas },
+  args: { type: 'screen', node: passwordMockup, theme: 'dark', flowTheme: 'dark', ...mockupCanvas },
 };
 export const ScreenMockupOtpLight: Story = {
   args: { type: 'screen', node: otpMockup, theme: 'light', ...mockupCanvas },
 };
 export const ScreenMockupOtpDark: Story = {
-  args: { type: 'screen', node: otpMockup, theme: 'dark', ...mockupCanvas },
+  args: { type: 'screen', node: otpMockup, theme: 'dark', flowTheme: 'dark', ...mockupCanvas },
 };
 export const ScreenMockupProviderLight: Story = {
   args: { type: 'screen', node: providerMockup, theme: 'light', ...mockupCanvas },
 };
 export const ScreenMockupProviderDark: Story = {
-  args: { type: 'screen', node: providerMockup, theme: 'dark', ...mockupCanvas },
+  args: { type: 'screen', node: providerMockup, theme: 'dark', flowTheme: 'dark', ...mockupCanvas },
 };
 
 // Trait chrome (US-068) — several traits composing on a password screen.
@@ -150,7 +152,13 @@ export const ScreenMockupTraitsLight: Story = {
   args: { type: 'screen', node: passwordTraitsMockup, theme: 'light', ...mockupTraitsCanvas },
 };
 export const ScreenMockupTraitsDark: Story = {
-  args: { type: 'screen', node: passwordTraitsMockup, theme: 'dark', ...mockupTraitsCanvas },
+  args: {
+    type: 'screen',
+    node: passwordTraitsMockup,
+    theme: 'dark',
+    flowTheme: 'dark',
+    ...mockupTraitsCanvas,
+  },
 };
 
 // Fidelity tiers (US-069) — same password screen across mockup / wireframe / lo-fi.
@@ -183,6 +191,7 @@ export const ScreenFidelityMockupDark: Story = {
     type: 'screen',
     node: { ...passwordFidelityScreen, fidelity: 'mockup' },
     theme: 'dark',
+    flowTheme: 'dark',
     ...fidelityTierCanvas,
   },
 };
@@ -199,6 +208,7 @@ export const ScreenFidelityWireframeDark: Story = {
     type: 'screen',
     node: { ...passwordFidelityScreen, fidelity: 'wireframe' },
     theme: 'dark',
+    flowTheme: 'dark',
     ...fidelityTierCanvas,
   },
 };
@@ -215,7 +225,38 @@ export const ScreenFidelityLoFiDark: Story = {
     type: 'screen',
     node: { ...passwordFidelityScreen, fidelity: 'lo-fi' },
     theme: 'dark',
+    flowTheme: 'dark',
     ...loFiTierCanvas,
+  },
+};
+
+// Flow.theme axis (US-070) — editor vs flow theme combos (mockup password screen).
+// `theme: both` follows the editor theme (see screenTheme.ts).
+export const ScreenFlowThemeEditorLightFlowDark: Story = {
+  args: {
+    type: 'screen',
+    node: { ...passwordFidelityScreen, fidelity: 'mockup' },
+    theme: 'light',
+    flowTheme: 'dark',
+    ...fidelityTierCanvas,
+  },
+};
+export const ScreenFlowThemeEditorDarkFlowLight: Story = {
+  args: {
+    type: 'screen',
+    node: { ...passwordFidelityScreen, fidelity: 'mockup' },
+    theme: 'dark',
+    flowTheme: 'light',
+    ...fidelityTierCanvas,
+  },
+};
+export const ScreenFlowThemeBothFollowsEditorDark: Story = {
+  args: {
+    type: 'screen',
+    node: { ...passwordFidelityScreen, fidelity: 'mockup' },
+    theme: 'dark',
+    flowTheme: 'both',
+    ...fidelityTierCanvas,
   },
 };
 

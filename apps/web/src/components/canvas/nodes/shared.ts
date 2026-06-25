@@ -2,10 +2,13 @@
 // nodes. Each per-structural-type view receives this wrapped in `NodeProps`.
 
 import type { Diagnostic, Node } from '@authprint/dsl';
+import type { ResolvedScreenTheme } from './screen/screenTheme.ts';
 
 export type CanvasNodeData<TNode extends Node = Node> = {
   /** The original DSL node — single source of truth for rendering. */
   node: TNode;
+  /** Resolved screen light/dark from Flow.theme (US-070). Set on Screen nodes only. */
+  screenTheme?: ResolvedScreenTheme;
   /** Live validation diagnostics targeting this node (E33). Absent = clean. */
   diagnostics?: Diagnostic[];
   /**

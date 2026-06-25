@@ -1,8 +1,9 @@
 import '@xyflow/react/dist/style.css';
 
-import type { Node as DslNode } from '@authprint/dsl';
+import type { Node as DslNode, FlowTheme } from '@authprint/dsl';
 import { ReactFlow, ReactFlowProvider, type Node as RfNode } from '@xyflow/react';
 import { nodeTypes } from '../index.ts';
+import { resolveScreenTheme } from '../screen/screenTheme.ts';
 
 export type NodeCanvasProps = {
   /** Structural type — selects the React Flow node component to render. */
@@ -11,6 +12,8 @@ export type NodeCanvasProps = {
   node: DslNode;
   /** Editor theme to render under (drives Tailwind's `.dark` variant). */
   theme?: 'light' | 'dark';
+  /** Flow.theme for screen nodes — independent of the editor theme (US-070). */
+  flowTheme?: FlowTheme;
   /** Canvas size — bumped for taller nodes (e.g. mockup screens). */
   width?: number;
   height?: number;
@@ -24,6 +27,7 @@ export function NodeCanvas({
   type,
   node,
   theme = 'light',
+  flowTheme = 'light',
   width = 360,
   height = 240,
 }: NodeCanvasProps) {
@@ -32,7 +36,12 @@ export function NodeCanvas({
       id: node.id,
       type,
       position: { x: 56, y: 52 },
-      data: { node },
+      data: {
+        node,
+        ...(node.type === 'screen' && {
+          screenTheme: resolveScreenTheme(flowTheme, theme),
+        }),
+      },
       draggable: false,
       selectable: false,
       connectable: false,

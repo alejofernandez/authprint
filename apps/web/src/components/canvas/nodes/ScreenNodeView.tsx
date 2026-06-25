@@ -9,6 +9,7 @@ import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { HandlePlus } from './HandlePlus.tsx';
 import { validationRing, validationTitle } from './nodeValidation.ts';
 import { ScreenFidelityView } from './screen/ScreenFidelityView.tsx';
+import { screenThemeClass } from './screen/screenTheme.ts';
 import type { CanvasNodeData } from './shared.ts';
 
 type ScreenNodeProps = NodeProps & { data: CanvasNodeData<ScreenNode> };
@@ -28,7 +29,9 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
       title={validationTitle(data.diagnostics)}
     >
       <Handle type="target" position={Position.Left} />
-      <ScreenFidelityView node={node} />
+      <div className={screenThemeClass(data.screenTheme ?? 'light')}>
+        <ScreenFidelityView node={node} />
+      </div>
       <Handle type="source" position={Position.Right} id="default" />
       <Handle type="source" position={Position.Bottom} id="alt" />
       {!connected?.has('default') && (

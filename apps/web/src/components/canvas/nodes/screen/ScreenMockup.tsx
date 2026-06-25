@@ -35,9 +35,9 @@ function Monogram() {
 
 function TextInput({ masked, showToggle }: { masked: boolean; showToggle?: boolean }) {
   return (
-    <div className="h-6 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 px-2 flex items-center justify-between gap-1">
+    <div className="h-6 rounded-md border border-zinc-200 flow-dark:border-zinc-700 bg-zinc-50 flow-dark:bg-zinc-800/60 px-2 flex items-center justify-between gap-1">
       {masked ? (
-        <span className="text-[10px] tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
+        <span className="text-[10px] tracking-[0.2em] text-zinc-400 flow-dark:text-zinc-500">
           ••••••••
         </span>
       ) : (
@@ -55,7 +55,7 @@ function OtpInput() {
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static mockup boxes
           key={i}
-          className="w-5 h-6 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60"
+          className="w-5 h-6 rounded-md border border-zinc-200 flow-dark:border-zinc-700 bg-zinc-50 flow-dark:bg-zinc-800/60"
         />
       ))}
     </div>
@@ -64,7 +64,7 @@ function OtpInput() {
 
 function PasskeyButton() {
   return (
-    <div className="h-7 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 flex items-center justify-center gap-1.5 text-[11px] font-medium text-zinc-700 dark:text-zinc-200">
+    <div className="h-7 rounded-md border border-zinc-300 flow-dark:border-zinc-600 bg-white flow-dark:bg-zinc-800 flex items-center justify-center gap-1.5 text-[11px] font-medium text-zinc-700 flow-dark:text-zinc-200">
       <svg viewBox="0 0 16 16" className="w-3 h-3" fill="none" aria-hidden="true">
         <circle cx="5.5" cy="6" r="3" stroke="currentColor" strokeWidth="1.4" />
         <path
@@ -84,8 +84,8 @@ function FieldRow({ field, traits }: { field: Field; traits: ReadonlySet<TraitId
     // A static mock of a checkbox row — not a real control, so a plain div
     // (not <label>) is correct here.
     return (
-      <div className="flex items-center gap-1.5 text-[10px] text-zinc-600 dark:text-zinc-300">
-        <span className="w-3 h-3 rounded-[3px] border border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800/60" />
+      <div className="flex items-center gap-1.5 text-[10px] text-zinc-600 flow-dark:text-zinc-300">
+        <span className="w-3 h-3 rounded-[3px] border border-zinc-300 flow-dark:border-zinc-600 bg-zinc-50 flow-dark:bg-zinc-800/60" />
         {humanize(field.name)}
       </div>
     );
@@ -101,7 +101,7 @@ function FieldRow({ field, traits }: { field: Field; traits: ReadonlySet<TraitId
 
   return (
     <div className="space-y-1">
-      <div className="text-[9px] font-medium text-zinc-500 dark:text-zinc-400">
+      <div className="text-[9px] font-medium text-zinc-500 flow-dark:text-zinc-400">
         {humanize(field.name)}
       </div>
       {field.type === 'otp' ? <OtpInput /> : <TextInput masked={masked} showToggle={showToggle} />}
@@ -116,23 +116,27 @@ export function ScreenMockup({ node }: { node: ScreenNode }) {
   const traitsAfterCta = postCtaTraits(node.traits);
 
   return (
-    <div className="w-[244px] rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
+    <div className="w-[244px] rounded-xl border border-zinc-200 flow-dark:border-zinc-700 bg-white flow-dark:bg-zinc-900 shadow-sm overflow-hidden">
       {/* window chrome — dots left, the kind as a monospace route tag right */}
-      <div className="h-5 flex items-center justify-between px-2.5 border-b border-zinc-100 dark:border-zinc-800">
+      <div className="h-5 flex items-center justify-between px-2.5 border-b border-zinc-100 flow-dark:border-zinc-800">
         <div className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
         </div>
-        <span className="font-mono text-[8px] text-zinc-400 dark:text-zinc-500">{node.kind}</span>
+        <span className="font-mono text-[8px] text-zinc-400 flow-dark:text-zinc-500">
+          {node.kind}
+        </span>
       </div>
       <div className="px-4 pb-4 space-y-3">
         {/* centered brand block — monogram over company name, with breathing room */}
         <div className="flex flex-col items-center gap-1.5 pt-4 pb-1">
           <Monogram />
-          <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-300">Acme</span>
+          <span className="text-[11px] font-semibold text-zinc-600 flow-dark:text-zinc-300">
+            Acme
+          </span>
         </div>
-        <div className="text-center text-[13px] font-semibold leading-tight text-zinc-900 dark:text-zinc-100">
+        <div className="text-center text-[13px] font-semibold leading-tight text-zinc-900 flow-dark:text-zinc-100">
           {node.name}
         </div>
         {node.fields.length > 0 ? (

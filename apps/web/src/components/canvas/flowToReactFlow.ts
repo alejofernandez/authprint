@@ -6,7 +6,9 @@
 
 import type { Diagnostic, Node as DslNode, Flow, Trigger } from '@authprint/dsl';
 import { MarkerType, type Edge as RfEdge, type Node as RfNode } from '@xyflow/react';
+import type { Theme } from '@/components/theme';
 import type { CanvasNodeData } from './nodes/index.ts';
+import { resolveScreenTheme } from './nodes/screen/screenTheme.ts';
 
 export type NodePositionsMap = Record<string, { x: number; y: number }>;
 
@@ -111,6 +113,7 @@ export function flowToReactFlow(
   flow: Flow,
   positions: NodePositionsMap,
   validation?: ValidationMaps,
+  editorTheme: Theme | 'light' | 'dark' = 'light',
 ): FlowToReactFlowResult {
   // Which source handles already carry an edge, per node — drives the per-handle
   // `+` (E26). The unconditional/entry handle has no id, keyed by ''.
@@ -135,6 +138,9 @@ export function flowToReactFlow(
       node,
       connectedHandles: connectedHandles.get(node.id),
       diagnostics: validation?.byNode.get(node.id),
+      ...(node.type === 'screen' && {
+        screenTheme: resolveScreenTheme(flow.theme, editorTheme),
+      }),
     },
   }));
 

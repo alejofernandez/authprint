@@ -5,6 +5,10 @@
    so the editor theme is switchable — Light / Dark / System. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Screen-card theme axis (US-070): Flow.theme drives `flow-dark:` on the card
+   root, independent of the editor `.dark` class on <html> or the canvas. */
+@custom-variant flow-dark (&:where(.flow-theme-dark, .flow-theme-dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

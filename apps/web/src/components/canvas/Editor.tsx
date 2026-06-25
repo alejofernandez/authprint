@@ -712,6 +712,7 @@ function alignedNodePosition(
 
 function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const { flow, layout, onNodesChange: nodesToDoc, onEdgesChange: edgesToDoc } = useYDocFlow(doc);
+  const { theme: editorTheme } = useTheme();
   const autoPositions = useElkLayout(flow, layout);
   const validation = useValidation(flow);
   // Scenario mode makes the canvas read-only — no create / drag / delete / inline
@@ -732,6 +733,7 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
       flow,
       { ...autoPositions, ...layout },
       showOutlines ? validation : undefined,
+      editorTheme,
     );
     if (menu?.placement.kind !== 'aligned') return base;
     // Patch picker anchor into node data so React Flow re-renders the `+`.
@@ -743,7 +745,7 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
           : n,
       ),
     };
-  }, [flow, layout, autoPositions, menu, validation, showOutlines]);
+  }, [flow, layout, autoPositions, menu, validation, showOutlines, editorTheme]);
 
   // A `+` was clicked: record the source handle side so the picker anchors to the
   // node (same placement as the inspector) and the new node aligns on pick.

@@ -9,7 +9,7 @@ const MASKED_TYPES = new Set(['password', 'new-password', 'confirm-password']);
 const STRENGTH_METER_TYPES = new Set(['password', 'new-password']);
 
 function Bar({ className }: { className?: string }) {
-  return <div className={`rounded-md bg-zinc-200 dark:bg-zinc-700 ${className ?? ''}`} />;
+  return <div className={`rounded-md bg-zinc-200 flow-dark:bg-zinc-700 ${className ?? ''}`} />;
 }
 
 function WireframeFieldRow({ field, traits }: { field: Field; traits: ReadonlySet<TraitId> }) {
@@ -106,12 +106,12 @@ export function ScreenWireframe({ node }: { node: ScreenNode }) {
   const traitsAfterCta = postCtaTraits(node.traits);
 
   return (
-    <div className="w-[244px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-      <div className="flex h-5 items-center justify-between border-b border-zinc-100 px-2.5 dark:border-zinc-800">
+    <div className="w-[244px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm flow-dark:border-zinc-700 flow-dark:bg-zinc-900">
+      <div className="flex h-5 items-center justify-between border-b border-zinc-100 px-2.5 flow-dark:border-zinc-800">
         <div className="flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
         </div>
         <Bar className="h-2 w-14" />
       </div>
