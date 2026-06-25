@@ -7,38 +7,28 @@
 import type { ScreenNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { HandlePlus } from './HandlePlus.tsx';
-import { NodeShellContent } from './NodeShell.tsx';
 import { validationRing, validationTitle } from './nodeValidation.ts';
-import { ScreenMockup } from './screen/ScreenMockup.tsx';
+import { ScreenFidelityView } from './screen/ScreenFidelityView.tsx';
 import type { CanvasNodeData } from './shared.ts';
 
 type ScreenNodeProps = NodeProps & { data: CanvasNodeData<ScreenNode> };
 
-// `mockup`-fidelity screens render as a real screen (US-067); `wireframe` /
-// `lo-fi` keep the labeled box until US-069 builds their lighter tiers. The
-// wrapper (handles, validation ring, `+` affordances) is shared across both.
+// All three fidelity tiers render through ScreenFidelityView (US-069). Mockup
+// and wireframe share the card chrome wrapper; lo-fi is a compact titled box.
 export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
   const { node } = data;
   const connected = data.connectedHandles;
-  const isMockup = node.fidelity === 'mockup';
+  const isCardTier = node.fidelity === 'mockup' || node.fidelity === 'wireframe';
   // Each `+` hides once its handle carries an edge (like every other node type).
   // A second interaction off an already-wired handle is added via drag-from-
   // handle (US-050), not by stacking another `+` on a connected handle.
   return (
     <div
-      className={
-        isMockup
-          ? `group relative rounded-xl ${validationRing(data.diagnostics)}`
-          : `group relative rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-300 dark:border-indigo-800 border-t-4 border-t-indigo-500 dark:border-t-indigo-400 ${validationRing(data.diagnostics)}`
-      }
+      className={`group relative ${isCardTier ? 'rounded-xl' : 'rounded-lg'} ${validationRing(data.diagnostics)}`}
       title={validationTitle(data.diagnostics)}
     >
       <Handle type="target" position={Position.Left} />
-      {isMockup ? (
-        <ScreenMockup node={node} />
-      ) : (
-        <NodeShellContent typeLabel="Screen" name={node.name} id={node.id} kind={node.kind} />
-      )}
+      <ScreenFidelityView node={node} />
       <Handle type="source" position={Position.Right} id="default" />
       <Handle type="source" position={Position.Bottom} id="alt" />
       {!connected?.has('default') && (

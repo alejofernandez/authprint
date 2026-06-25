@@ -153,6 +153,72 @@ export const ScreenMockupTraitsDark: Story = {
   args: { type: 'screen', node: passwordTraitsMockup, theme: 'dark', ...mockupTraitsCanvas },
 };
 
+// Fidelity tiers (US-069) — same password screen across mockup / wireframe / lo-fi.
+const passwordFidelityScreen: ScreenNode = {
+  type: 'screen',
+  id: 'password-fidelity',
+  name: 'Sign in',
+  kind: 'password',
+  traits: [],
+  fields: [
+    { name: 'email', type: 'email', required: true },
+    { name: 'password', type: 'password', required: true },
+  ],
+  fidelity: 'mockup',
+};
+
+const fidelityTierCanvas = { width: 360, height: 380 };
+const loFiTierCanvas = { width: 360, height: 260 };
+
+export const ScreenFidelityMockupLight: Story = {
+  args: {
+    type: 'screen',
+    node: { ...passwordFidelityScreen, fidelity: 'mockup' },
+    theme: 'light',
+    ...fidelityTierCanvas,
+  },
+};
+export const ScreenFidelityMockupDark: Story = {
+  args: {
+    type: 'screen',
+    node: { ...passwordFidelityScreen, fidelity: 'mockup' },
+    theme: 'dark',
+    ...fidelityTierCanvas,
+  },
+};
+export const ScreenFidelityWireframeLight: Story = {
+  args: {
+    type: 'screen',
+    node: { ...passwordFidelityScreen, fidelity: 'wireframe' },
+    theme: 'light',
+    ...fidelityTierCanvas,
+  },
+};
+export const ScreenFidelityWireframeDark: Story = {
+  args: {
+    type: 'screen',
+    node: { ...passwordFidelityScreen, fidelity: 'wireframe' },
+    theme: 'dark',
+    ...fidelityTierCanvas,
+  },
+};
+export const ScreenFidelityLoFiLight: Story = {
+  args: {
+    type: 'screen',
+    node: { ...passwordFidelityScreen, fidelity: 'lo-fi' },
+    theme: 'light',
+    ...loFiTierCanvas,
+  },
+};
+export const ScreenFidelityLoFiDark: Story = {
+  args: {
+    type: 'screen',
+    node: { ...passwordFidelityScreen, fidelity: 'lo-fi' },
+    theme: 'dark',
+    ...loFiTierCanvas,
+  },
+};
+
 export const DecisionLight: Story = { args: { type: 'decision', node: decision, theme: 'light' } };
 export const DecisionDark: Story = { args: { type: 'decision', node: decision, theme: 'dark' } };
 

@@ -92,9 +92,13 @@ export const NODE_SIZE: Record<DslNode['type'], { width: number; height: number 
 // than the labeled box. Size is fidelity-aware so lo-fi / wireframe screens
 // keep their tight footprint (US-069 refines the per-tier sizes).
 const SCREEN_MOCKUP_SIZE = { width: 256, height: 232 };
+const SCREEN_WIREFRAME_SIZE = { width: 256, height: 232 };
 
 export function nodeSize(node: DslNode): { width: number; height: number } {
-  if (node.type === 'screen' && node.fidelity === 'mockup') return SCREEN_MOCKUP_SIZE;
+  if (node.type === 'screen') {
+    if (node.fidelity === 'mockup') return SCREEN_MOCKUP_SIZE;
+    if (node.fidelity === 'wireframe') return SCREEN_WIREFRAME_SIZE;
+  }
   return NODE_SIZE[node.type];
 }
 
