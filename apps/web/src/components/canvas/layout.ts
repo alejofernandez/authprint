@@ -9,7 +9,7 @@
 
 import type { Flow } from '@authprint/dsl';
 import ELK from 'elkjs/lib/elk.bundled.js';
-import { NODE_SIZE, type NodePositionsMap, sourceHandleFor } from './flowToReactFlow.ts';
+import { type NodePositionsMap, nodeSize, sourceHandleFor } from './flowToReactFlow.ts';
 
 const elk = new ELK();
 
@@ -79,8 +79,8 @@ export async function layoutFlow(flow: Flow): Promise<NodePositionsMap> {
       const outgoing = sourcePorts.get(node.id);
       return {
         id: node.id,
-        width: NODE_SIZE[node.type].width,
-        height: NODE_SIZE[node.type].height,
+        width: nodeSize(node).width,
+        height: nodeSize(node).height,
         ports: [
           { id: `${node.id}::in`, layoutOptions: { 'elk.port.side': 'WEST' } },
           ...(outgoing

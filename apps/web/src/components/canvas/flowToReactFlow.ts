@@ -88,6 +88,16 @@ export const NODE_SIZE: Record<DslNode['type'], { width: number; height: number 
   outcome: { width: 180, height: 68 },
 };
 
+// `mockup`-fidelity screens (US-067) render as a full screen card, much larger
+// than the labeled box. Size is fidelity-aware so lo-fi / wireframe screens
+// keep their tight footprint (US-069 refines the per-tier sizes).
+const SCREEN_MOCKUP_SIZE = { width: 256, height: 232 };
+
+export function nodeSize(node: DslNode): { width: number; height: number } {
+  if (node.type === 'screen' && node.fidelity === 'mockup') return SCREEN_MOCKUP_SIZE;
+  return NODE_SIZE[node.type];
+}
+
 export type FlowToReactFlowResult = {
   nodes: RfNode<CanvasNodeData>[];
   edges: RfEdge[];
@@ -115,8 +125,8 @@ export function flowToReactFlow(
     id: node.id,
     type: node.type,
     position: positions[node.id] ?? { x: 0, y: 0 },
-    initialWidth: NODE_SIZE[node.type].width,
-    initialHeight: NODE_SIZE[node.type].height,
+    initialWidth: nodeSize(node).width,
+    initialHeight: nodeSize(node).height,
     data: {
       node,
       connectedHandles: connectedHandles.get(node.id),

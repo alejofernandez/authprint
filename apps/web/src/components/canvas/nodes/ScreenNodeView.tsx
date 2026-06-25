@@ -9,23 +9,36 @@ import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { HandlePlus } from './HandlePlus.tsx';
 import { NodeShellContent } from './NodeShell.tsx';
 import { validationRing, validationTitle } from './nodeValidation.ts';
+import { ScreenMockup } from './screen/ScreenMockup.tsx';
 import type { CanvasNodeData } from './shared.ts';
 
 type ScreenNodeProps = NodeProps & { data: CanvasNodeData<ScreenNode> };
 
+// `mockup`-fidelity screens render as a real screen (US-067); `wireframe` /
+// `lo-fi` keep the labeled box until US-069 builds their lighter tiers. The
+// wrapper (handles, validation ring, `+` affordances) is shared across both.
 export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
   const { node } = data;
   const connected = data.connectedHandles;
+  const isMockup = node.fidelity === 'mockup';
   // Each `+` hides once its handle carries an edge (like every other node type).
   // A second interaction off an already-wired handle is added via drag-from-
   // handle (US-050), not by stacking another `+` on a connected handle.
   return (
     <div
-      className={`group relative rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-300 dark:border-indigo-800 border-t-4 border-t-indigo-500 dark:border-t-indigo-400 ${validationRing(data.diagnostics)}`}
+      className={
+        isMockup
+          ? `group relative rounded-xl ${validationRing(data.diagnostics)}`
+          : `group relative rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-300 dark:border-indigo-800 border-t-4 border-t-indigo-500 dark:border-t-indigo-400 ${validationRing(data.diagnostics)}`
+      }
       title={validationTitle(data.diagnostics)}
     >
       <Handle type="target" position={Position.Left} />
-      <NodeShellContent typeLabel="Screen" name={node.name} id={node.id} kind={node.kind} />
+      {isMockup ? (
+        <ScreenMockup node={node} />
+      ) : (
+        <NodeShellContent typeLabel="Screen" name={node.name} id={node.id} kind={node.kind} />
+      )}
       <Handle type="source" position={Position.Right} id="default" />
       <Handle type="source" position={Position.Bottom} id="alt" />
       {!connected?.has('default') && (

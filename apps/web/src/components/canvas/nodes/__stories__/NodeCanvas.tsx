@@ -11,13 +11,22 @@ export type NodeCanvasProps = {
   node: DslNode;
   /** Editor theme to render under (drives Tailwind's `.dark` variant). */
   theme?: 'light' | 'dark';
+  /** Canvas size — bumped for taller nodes (e.g. mockup screens). */
+  width?: number;
+  height?: number;
 };
 
 // Renders one structural node on a minimal, non-interactive React Flow canvas at
 // a fixed position and zoom = 1, so the same node always lands on the same
 // pixels — the prerequisite for stable screenshot baselines. React Flow context
 // is mandatory because every node component mounts `<Handle>`s.
-export function NodeCanvas({ type, node, theme = 'light' }: NodeCanvasProps) {
+export function NodeCanvas({
+  type,
+  node,
+  theme = 'light',
+  width = 360,
+  height = 240,
+}: NodeCanvasProps) {
   const nodes: RfNode[] = [
     {
       id: node.id,
@@ -34,7 +43,7 @@ export function NodeCanvas({ type, node, theme = 'light' }: NodeCanvasProps) {
     <div
       data-testid="node-canvas"
       className={`${theme === 'dark' ? 'dark ' : ''}bg-zinc-50 dark:bg-zinc-950`}
-      style={{ width: 360, height: 240 }}
+      style={{ width, height }}
     >
       <ReactFlowProvider>
         <ReactFlow

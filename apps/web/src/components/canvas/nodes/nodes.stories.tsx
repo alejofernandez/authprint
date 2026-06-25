@@ -69,6 +69,61 @@ export const EntryDark: Story = { args: { type: 'entry', node: entry, theme: 'da
 export const ScreenLight: Story = { args: { type: 'screen', node: screen, theme: 'light' } };
 export const ScreenDark: Story = { args: { type: 'screen', node: screen, theme: 'dark' } };
 
+// Mockup-fidelity screens (US-067) — render as real auth screens.
+const passwordMockup: ScreenNode = {
+  type: 'screen',
+  id: 'password',
+  name: 'Password',
+  kind: 'password',
+  traits: [],
+  fields: [
+    { name: 'email', type: 'email', required: true },
+    { name: 'password', type: 'password', required: true },
+  ],
+  fidelity: 'mockup',
+};
+
+const otpMockup: ScreenNode = {
+  type: 'screen',
+  id: 'mfa',
+  name: 'MFA challenge',
+  kind: 'mfa-challenge',
+  traits: [],
+  fields: [{ name: 'code', type: 'otp', required: true }],
+  fidelity: 'mockup',
+};
+
+const providerMockup: ScreenNode = {
+  type: 'screen',
+  id: 'provider-select',
+  name: 'Choose a provider',
+  kind: 'provider-select',
+  traits: [],
+  fields: [],
+  fidelity: 'mockup',
+};
+
+const mockupCanvas = { width: 360, height: 320 };
+
+export const ScreenMockupPasswordLight: Story = {
+  args: { type: 'screen', node: passwordMockup, theme: 'light', ...mockupCanvas },
+};
+export const ScreenMockupPasswordDark: Story = {
+  args: { type: 'screen', node: passwordMockup, theme: 'dark', ...mockupCanvas },
+};
+export const ScreenMockupOtpLight: Story = {
+  args: { type: 'screen', node: otpMockup, theme: 'light', ...mockupCanvas },
+};
+export const ScreenMockupOtpDark: Story = {
+  args: { type: 'screen', node: otpMockup, theme: 'dark', ...mockupCanvas },
+};
+export const ScreenMockupProviderLight: Story = {
+  args: { type: 'screen', node: providerMockup, theme: 'light', ...mockupCanvas },
+};
+export const ScreenMockupProviderDark: Story = {
+  args: { type: 'screen', node: providerMockup, theme: 'dark', ...mockupCanvas },
+};
+
 export const DecisionLight: Story = { args: { type: 'decision', node: decision, theme: 'light' } };
 export const DecisionDark: Story = { args: { type: 'decision', node: decision, theme: 'dark' } };
 
