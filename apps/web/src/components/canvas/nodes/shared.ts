@@ -2,6 +2,7 @@
 // nodes. Each per-structural-type view receives this wrapped in `NodeProps`.
 
 import type { Diagnostic, Node } from '@authprint/dsl';
+import type { TraceNodeState } from '../scenario/scenarioTrace.ts';
 import type { ResolvedScreenTheme } from './screen/screenTheme.ts';
 
 export type CanvasNodeData<TNode extends Node = Node> = {
@@ -9,6 +10,10 @@ export type CanvasNodeData<TNode extends Node = Node> = {
   node: TNode;
   /** Resolved screen light/dark from Flow.theme (US-070). Set on Screen nodes only. */
   screenTheme?: ResolvedScreenTheme;
+  /** Scenario trace styling (US-061). Set when walking a scenario run. */
+  traceState?: TraceNodeState;
+  /** Divergence tooltip for `traceState: 'diverged'`. */
+  traceTooltip?: string;
   /** Live validation diagnostics targeting this node (E33). Absent = clean. */
   diagnostics?: Diagnostic[];
   /**

@@ -9,6 +9,7 @@ import { MarkerType, type Edge as RfEdge, type Node as RfNode } from '@xyflow/re
 import type { Theme } from '@/components/theme';
 import type { CanvasNodeData } from './nodes/index.ts';
 import { resolveScreenTheme } from './nodes/screen/screenTheme.ts';
+import type { TraceAttachment } from './scenario/scenarioTrace.ts';
 
 export type NodePositionsMap = Record<string, { x: number; y: number }>;
 
@@ -20,9 +21,17 @@ export type ValidationMaps = {
 
 // Stroke color for an edge with diagnostics (red error / amber warning).
 const EDGE_STROKE = { error: '#ef4444', warning: '#f59e0b' } as const;
+const TRACE_EDGE_STROKE = { active: '#6366f1', diverged: '#ef4444' } as const;
+
 function edgeStroke(diagnostics: Diagnostic[] | undefined): string | null {
   if (!diagnostics || diagnostics.length === 0) return null;
   return diagnostics.some((d) => d.severity === 'error') ? EDGE_STROKE.error : EDGE_STROKE.warning;
+}
+
+function edgeTraceStroke(traceState: 'active' | 'diverged' | undefined): string | null {
+  if (traceState === 'diverged') return TRACE_EDGE_STROKE.diverged;
+  if (traceState === 'active') return TRACE_EDGE_STROKE.active;
+  return null;
 }
 
 // Screen interactions that mean "leave / give up" exit the bottom `alt` handle
@@ -114,6 +123,7 @@ export function flowToReactFlow(
   positions: NodePositionsMap,
   validation?: ValidationMaps,
   editorTheme: Theme | 'light' | 'dark' = 'light',
+  trace?: TraceAttachment,
 ): FlowToReactFlowResult {
   // Which source handles already carry an edge, per node — drives the per-handle
   // `+` (E26). The unconditional/entry handle has no id, keyed by ''.
@@ -141,11 +151,17 @@ export function flowToReactFlow(
       ...(node.type === 'screen' && {
         screenTheme: resolveScreenTheme(flow.theme, editorTheme),
       }),
+      ...(trace && {
+        traceState: trace.byNode.get(node.id),
+        traceTooltip: trace.tooltips.get(node.id),
+      }),
     },
   }));
 
   const edges: RfEdge[] = flow.edges.map((edge) => {
-    const stroke = edgeStroke(validation?.byEdge.get(edge.id));
+    const traceStroke = edgeTraceStroke(trace?.byEdge.get(edge.id));
+    const validationStroke = edgeStroke(validation?.byEdge.get(edge.id));
+    const stroke = traceStroke ?? validationStroke;
     return {
       id: edge.id,
       source: edge.source,
@@ -153,7 +169,7 @@ export function flowToReactFlow(
       sourceHandle: sourceHandleFor(edge.trigger),
       label: labelFor(edge.trigger),
       ...(stroke && {
-        style: { stroke, strokeWidth: 2 },
+        style: { stroke, strokeWidth: traceStroke ? 3 : 2 },
         markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: stroke },
       }),
     };

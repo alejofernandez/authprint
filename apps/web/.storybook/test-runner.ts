@@ -30,9 +30,16 @@ const config: TestRunnerConfig = {
   async postVisit(page, context) {
     // Capture just the fixed-size canvas (not the full viewport) so the baseline
     // is tight and a small node change is a large fraction of the diff.
-    const canvas = page.locator('[data-testid="node-canvas"]');
-    // Wait for the node and webfonts so the capture is never taken mid-render.
-    await canvas.locator('.react-flow__node').first().waitFor({ state: 'visible' });
+    const isContextPanel = /contextpanel/i.test(context.id);
+    const canvas = page.locator(
+      isContextPanel ? '[data-testid="context-panel-canvas"]' : '[data-testid="node-canvas"]',
+    );
+    // Wait for content and webfonts so the capture is never taken mid-render.
+    if (isContextPanel) {
+      await canvas.getByText('Context').waitFor({ state: 'visible' });
+    } else {
+      await canvas.locator('.react-flow__node').first().waitFor({ state: 'visible' });
+    }
     await page.evaluate(() => document.fonts.ready);
 
     const image = await canvas.screenshot();

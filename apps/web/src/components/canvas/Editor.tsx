@@ -10,7 +10,7 @@
 
 import '@xyflow/react/dist/style.css';
 
-import { type Diagnostic, type Flow, runScenario, type ScenarioRun } from '@authprint/dsl';
+import { type Diagnostic, type Flow, runScenario } from '@authprint/dsl';
 import {
   Background,
   type Connection,
@@ -45,7 +45,10 @@ import { NodeTypePicker, type NodeTypePickerPlacement } from './NodeTypePicker.t
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
 import { ProblemsPanel } from './ProblemsPanel.tsx';
+import { ContextPanel } from './scenario/ContextPanel.tsx';
+import { ScenarioControls } from './scenario/ScenarioControls.tsx';
 import { ScenarioModeProvider, useScenarioMode } from './scenario/ScenarioModeContext.tsx';
+import { buildTraceAttachment } from './scenario/scenarioTrace.ts';
 import { useScenarioRun } from './scenario/useScenarioRun.ts';
 import { useValidation } from './useValidation.ts';
 import {
@@ -439,7 +442,8 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
             group: 'Scenario',
             label: `Run scenario: ${sc.name}`,
             keywords: `play walk-through simulate trace test ${sc.id}`,
-            run: () => scenario.enter(runScenario(docToArtifact(doc).flow, sc), sc.name),
+            run: () =>
+              scenario.enter(runScenario(docToArtifact(doc).flow, sc), sc.name, sc.initialContext),
           }))
         : [
             {
@@ -527,58 +531,18 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
         {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
 
         {scenario.session && (
-          <ScenarioModeBanner
-            name={scenario.session.name}
-            run={scenario.session.run}
-            stepIndex={scenario.stepIndex}
-            onExit={scenario.exit}
-          />
+          <>
+            <ContextPanel
+              initialContext={scenario.session.initialContext}
+              divergence={scenario.session.run.divergence}
+            />
+            <ScenarioControls scenario={scenario} />
+          </>
         )}
 
         <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
       </div>
     </ScenarioModeProvider>
-  );
-}
-
-// Minimal scenario-mode indicator (US-060). The floating step controls + Context
-// panel are US-062; this just signals the mode + step position and offers an exit.
-// Warm = the scenario diverged (state signal); indigo = on track.
-function ScenarioModeBanner({
-  name,
-  run,
-  stepIndex,
-  onExit,
-}: {
-  name: string;
-  run: ScenarioRun;
-  stepIndex: number;
-  onExit: () => void;
-}) {
-  const diverged = run.status === 'diverged';
-  return (
-    <div
-      className={`absolute top-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full border px-4 py-1.5 text-sm shadow-lg backdrop-blur ${
-        diverged
-          ? 'border-amber-300 bg-amber-50/90 text-amber-900 dark:border-amber-800 dark:bg-amber-950/70 dark:text-amber-200'
-          : 'border-indigo-300 bg-indigo-50/90 text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-200'
-      }`}
-    >
-      <span className="font-medium">▶ {name}</span>
-      <span className="text-xs tabular-nums opacity-80">
-        step {stepIndex + 1} / {run.trace.length}
-      </span>
-      <span className="text-xs opacity-70">{diverged ? 'diverged' : 'on track'}</span>
-      <span className="text-xs opacity-50">← → step · Esc exit</span>
-      <button
-        type="button"
-        onClick={onExit}
-        aria-label="Exit scenario mode"
-        className="text-xs leading-none opacity-60 hover:opacity-100"
-      >
-        ✕
-      </button>
-    </div>
   );
 }
 
@@ -729,11 +693,16 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   // Dragged + freshly-created nodes (in the layout map) win over auto-placed.
   const graph = useMemo(() => {
     if (!autoPositions) return null;
+    const trace =
+      scenario.session !== null
+        ? buildTraceAttachment(scenario.session.run, scenario.stepIndex)
+        : undefined;
     const base = flowToReactFlow(
       flow,
       { ...autoPositions, ...layout },
       showOutlines ? validation : undefined,
       editorTheme,
+      trace,
     );
     if (menu?.placement.kind !== 'aligned') return base;
     // Patch picker anchor into node data so React Flow re-renders the `+`.
@@ -745,7 +714,17 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
           : n,
       ),
     };
-  }, [flow, layout, autoPositions, menu, validation, showOutlines, editorTheme]);
+  }, [
+    flow,
+    layout,
+    autoPositions,
+    menu,
+    validation,
+    showOutlines,
+    editorTheme,
+    scenario.session,
+    scenario.stepIndex,
+  ]);
 
   // A `+` was clicked: record the source handle side so the picker anchors to the
   // node (same placement as the inspector) and the new node aligns on pick.

@@ -16,7 +16,11 @@ export function clampStepIndex(index: number, traceLength: number): number {
   return Math.min(Math.max(index, 0), last);
 }
 
-export type ScenarioSession = { run: ScenarioRun; name: string };
+export type ScenarioSession = {
+  run: ScenarioRun;
+  name: string;
+  initialContext: Record<string, unknown>;
+};
 
 export type ScenarioModeValue = {
   /** The running scenario, or `null` in edit mode. */
@@ -26,7 +30,7 @@ export type ScenarioModeValue = {
   isPlaying: boolean;
   atStart: boolean;
   atEnd: boolean;
-  enter: (run: ScenarioRun, name: string) => void;
+  enter: (run: ScenarioRun, name: string, initialContext: Record<string, unknown>) => void;
   exit: () => void;
   step: () => void;
   back: () => void;
@@ -45,11 +49,14 @@ export function useScenarioRun(): ScenarioModeValue {
   const atStart = stepIndex <= 0;
   const atEnd = stepIndex >= lastIndex;
 
-  const enter = useCallback((run: ScenarioRun, name: string) => {
-    setSession({ run, name });
-    setStepIndex(0);
-    setIsPlaying(false);
-  }, []);
+  const enter = useCallback(
+    (run: ScenarioRun, name: string, initialContext: Record<string, unknown>) => {
+      setSession({ run, name, initialContext });
+      setStepIndex(0);
+      setIsPlaying(false);
+    },
+    [],
+  );
 
   const exit = useCallback(() => {
     setSession(null);

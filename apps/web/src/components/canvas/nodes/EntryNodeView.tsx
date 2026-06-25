@@ -4,7 +4,7 @@
 import type { EntryNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { HandlePlus } from './HandlePlus.tsx';
-import { validationRing, validationTitle } from './nodeValidation.ts';
+import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
 import type { CanvasNodeData } from './shared.ts';
 
 type EntryNodeProps = NodeProps & { data: CanvasNodeData<EntryNode> };
@@ -14,8 +14,8 @@ export function EntryNodeView({ data, selected }: EntryNodeProps) {
   const free = !data.connectedHandles?.has('');
   return (
     <div
-      className={`group relative ${validationRing(data.diagnostics)}`}
-      title={validationTitle(data.diagnostics)}
+      className={`group relative ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
+      title={canvasNodeTitle(data.diagnostics, data.traceTooltip)}
     >
       <div className="h-16 w-16 rounded-full bg-zinc-200 dark:bg-zinc-800 border-2 border-zinc-400 dark:border-zinc-600 flex items-center justify-center">
         <div className="text-[10px] uppercase tracking-wider font-semibold text-zinc-700 dark:text-zinc-300">

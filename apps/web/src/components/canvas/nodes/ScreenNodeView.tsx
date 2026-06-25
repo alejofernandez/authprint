@@ -7,7 +7,7 @@
 import type { ScreenNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { HandlePlus } from './HandlePlus.tsx';
-import { validationRing, validationTitle } from './nodeValidation.ts';
+import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
 import { ScreenFidelityView } from './screen/ScreenFidelityView.tsx';
 import { screenThemeClass } from './screen/screenTheme.ts';
 import type { CanvasNodeData } from './shared.ts';
@@ -25,8 +25,8 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
   // handle (US-050), not by stacking another `+` on a connected handle.
   return (
     <div
-      className={`group relative ${isCardTier ? 'rounded-xl' : 'rounded-lg'} ${validationRing(data.diagnostics)}`}
-      title={validationTitle(data.diagnostics)}
+      className={`group relative ${isCardTier ? 'rounded-xl' : 'rounded-lg'} ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
+      title={canvasNodeTitle(data.diagnostics, data.traceTooltip)}
     >
       <Handle type="target" position={Position.Left} />
       <div className={screenThemeClass(data.screenTheme ?? 'light')}>
