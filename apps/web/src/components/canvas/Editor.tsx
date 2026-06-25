@@ -61,7 +61,13 @@ import {
   setScreenFields,
   setScreenTraits,
 } from './ydoc/ops.ts';
-import { docToArtifact, extractLayout, serializeBundle } from './ydoc/persist.ts';
+import {
+  docToArtifact,
+  extractLayout,
+  serializeBundle,
+  serializeSemantic,
+  serializeSidecar,
+} from './ydoc/persist.ts';
 import { shouldDeferUndoToField, useUndoManager } from './ydoc/useUndoManager.ts';
 import { useYDocFlow } from './ydoc/useYDocFlow.ts';
 
@@ -84,7 +90,9 @@ const DEFAULT_EDGE_OPTIONS = {
 } as const;
 
 const FILE_EXT = '.authprint';
+const LAYOUT_EXT = '.authprint.layout';
 const MIME = 'application/vnd.authprint+yaml';
+const LAYOUT_MIME = 'application/vnd.authprint.layout+yaml';
 const MAX_BYTES = 2_000_000; // generous guard; real flows are a few KB
 
 const THEME_LABELS: Record<Theme, string> = { light: 'Light', dark: 'Dark', system: 'System' };
@@ -250,8 +258,53 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
         label: 'Save flow',
         keywords: 'export download write',
         run: () => {
-          const { flow, layout } = docToArtifact(doc);
-          downloadText(`${slugify(flow.name)}${FILE_EXT}`, serializeBundle({ flow, layout }), MIME);
+          const artifact = docToArtifact(doc);
+          downloadText(
+            `${slugify(artifact.flow.name)}${FILE_EXT}`,
+            serializeBundle(artifact),
+            MIME,
+          );
+        },
+      },
+      {
+        id: 'export-semantic',
+        group: 'Export',
+        label: 'Export semantic only…',
+        keywords: 'download git clean layout-free diff codegen',
+        run: () => {
+          const artifact = docToArtifact(doc);
+          downloadText(
+            `${slugify(artifact.flow.name)}${FILE_EXT}`,
+            serializeSemantic(artifact),
+            MIME,
+          );
+        },
+      },
+      {
+        id: 'export-sidecar',
+        group: 'Export',
+        label: 'Export with layout sidecar…',
+        keywords: 'download two files positions layout sidecar',
+        run: () => {
+          const artifact = docToArtifact(doc);
+          const base = slugify(artifact.flow.name);
+          const { semantic, layout } = serializeSidecar(artifact);
+          downloadText(`${base}${FILE_EXT}`, semantic, MIME);
+          downloadText(`${base}${LAYOUT_EXT}`, layout, LAYOUT_MIME);
+        },
+      },
+      {
+        id: 'export-bundled',
+        group: 'Export',
+        label: 'Export bundled (inline layout)…',
+        keywords: 'download save default single file bundle',
+        run: () => {
+          const artifact = docToArtifact(doc);
+          downloadText(
+            `${slugify(artifact.flow.name)}${FILE_EXT}`,
+            serializeBundle(artifact),
+            MIME,
+          );
         },
       },
       ...examples.map((example) => ({

@@ -91,3 +91,23 @@ export function extractLayout(source: string): LayoutPositions {
     return {};
   }
 }
+
+// ─── Export packagings (E32 / US-065) ────────────────────────────────────────
+// Semantic-only and sidecar exports for git-friendly / tooling workflows.
+// Bundled save remains `serializeBundle` above (default working save, E25).
+
+/** Semantic-only `.authprint`: the flow DSL with no `layout:` key — even when
+ *  the runtime has manual positions (clean export for git/codegen). */
+export function serializeSemantic(artifact: FlowArtifact): string {
+  return serialize(artifact.flow);
+}
+
+export type SidecarExport = { semantic: string; layout: string };
+
+/** Sidecar pair: pure semantic `.authprint` + `.authprint.layout` YAML sidecar. */
+export function serializeSidecar(artifact: FlowArtifact): SidecarExport {
+  return {
+    semantic: serialize(artifact.flow),
+    layout: serializeLayout(artifact.layout),
+  };
+}

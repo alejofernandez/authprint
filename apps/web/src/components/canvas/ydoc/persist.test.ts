@@ -10,6 +10,8 @@ import {
   parseLayout,
   serializeBundle,
   serializeLayout,
+  serializeSemantic,
+  serializeSidecar,
 } from './persist.ts';
 import { type LayoutPositions, layoutMap } from './schema.ts';
 
@@ -180,5 +182,39 @@ describe('bundle round-trip', () => {
     expect(out.flow.edges).toHaveLength(demo.edges.length);
     expect(out.flow.annotations).toHaveLength(demo.annotations.length);
     expect(out.flow.scenarios).toHaveLength(demo.scenarios.length);
+  });
+});
+
+describe('export packagings (US-065)', () => {
+  const layout: LayoutPositions = { entry: { x: 5, y: 6 }, s1: { x: 100, y: 200 } };
+  const artifact = { flow, layout };
+
+  test('serializeSemantic omits layout even when positions exist', () => {
+    const semantic = serializeSemantic(artifact);
+    expect(semantic).toBe(serialize(flow));
+    expect(semantic.includes('layout:')).toBe(false);
+  });
+
+  test('serializeSemantic matches bundled when there are no manual positions', () => {
+    expect(serializeSemantic({ flow, layout: {} })).toBe(serializeBundle({ flow, layout: {} }));
+  });
+
+  test('serializeSidecar emits semantic + layout files', () => {
+    const { semantic, layout: layoutYaml } = serializeSidecar(artifact);
+    expect(semantic).toBe(serialize(flow));
+    expect(semantic.includes('layout:')).toBe(false);
+    expect(parseLayout(yamlParse(layoutYaml))).toEqual(layout);
+  });
+
+  test('serializeSidecar with empty layout still emits an empty sidecar', () => {
+    const { layout: layoutYaml } = serializeSidecar({ flow, layout: {} });
+    expect(parseLayout(yamlParse(layoutYaml))).toEqual({});
+  });
+
+  test('bundled unchanged: still inline layout when positions exist', () => {
+    const bundled = serializeBundle(artifact);
+    expect(bundled.includes('layout:')).toBe(true);
+    expect(extractLayout(bundled)).toEqual(layout);
+    expect(serializeSemantic(artifact)).not.toBe(bundled);
   });
 });
