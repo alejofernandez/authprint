@@ -10,7 +10,7 @@
 
 import '@xyflow/react/dist/style.css';
 
-import type { Diagnostic, Flow } from '@authprint/dsl';
+import { type Diagnostic, type Flow, runScenario, type ScenarioRun } from '@authprint/dsl';
 import {
   Background,
   type Connection,
@@ -44,6 +44,8 @@ import { NodeTypePicker, type NodeTypePickerPlacement } from './NodeTypePicker.t
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
 import { ProblemsPanel } from './ProblemsPanel.tsx';
+import { ScenarioModeProvider, useScenarioMode } from './scenario/ScenarioModeContext.tsx';
+import { useScenarioRun } from './scenario/useScenarioRun.ts';
 import { useValidation } from './useValidation.ts';
 import {
   type CreatableType,
@@ -144,6 +146,12 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
   const { fitView } = useReactFlow();
   const { theme, setTheme } = useTheme();
   const { undo, redo, canUndo, canRedo } = useUndoManager(doc);
+  // Scenario walk-through mode (US-060): null session = edit mode. Owned here so
+  // the palette can launch it and the canvas (+ US-061/062) consume it via context.
+  const scenario = useScenarioRun();
+  // Scenarios travel with the flow (carried opaquely in `meta`, E24). They don't
+  // change during a session, so deriving them off `doc` identity is enough.
+  const scenarios = useMemo(() => docToArtifact(doc).flow.scenarios ?? [], [doc]);
 
   // Parse `.authprint` source (and optional layout sidecar) and swap the flow
   // on success; on failure the current flow stays and errors surface in the toast.
@@ -276,6 +284,43 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
     return () => document.removeEventListener('keydown', onKey);
   }, [undo, redo]);
 
+  // Stable controls (useCallback in the hook) — destructured so the effects can
+  // depend on them precisely rather than the whole (per-render) scenario object.
+  const {
+    session: scenarioSession,
+    exit: exitScenario,
+    step: stepScenario,
+    back: backScenario,
+    reset: resetScenario,
+  } = scenario;
+
+  // Scenario-mode keyboard: Esc exits; ← / → walk the trace; R resets. The
+  // visual step controls are US-062 — this keeps the mode usable + verifiable now.
+  useEffect(() => {
+    if (!scenarioSession) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (paletteOpen) return;
+      if (event.key === 'Escape') exitScenario();
+      else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        stepScenario();
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        backScenario();
+      } else if (event.key.toLowerCase() === 'r') {
+        resetScenario();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [scenarioSession, exitScenario, stepScenario, backScenario, resetScenario, paletteOpen]);
+
+  // Loading a new flow drops out of scenario mode (the run is for the old flow).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: must re-run on each load (revision change), not just on exit identity.
+  useEffect(() => {
+    exitScenario();
+  }, [revision, exitScenario]);
+
   const commands = useMemo<PaletteCommand[]>(
     () => [
       {
@@ -377,6 +422,38 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
         keywords: `dark light system appearance ${option}`,
         run: () => setTheme(option),
       })),
+      // One command per scenario (a flat-palette pick by name, not a sub-menu —
+      // §7 surface call). Runs the interpreter on the *current* flow and enters
+      // scenario mode. Empty-state when the flow declares no scenarios.
+      ...(scenarios.length > 0
+        ? scenarios.map((sc) => ({
+            id: `run-scenario-${sc.id}`,
+            group: 'Scenario',
+            label: `Run scenario: ${sc.name}`,
+            keywords: `play walk-through simulate trace test ${sc.id}`,
+            run: () => scenario.enter(runScenario(docToArtifact(doc).flow, sc), sc.name),
+          }))
+        : [
+            {
+              id: 'no-scenarios',
+              group: 'Scenario',
+              label: 'No scenarios in this flow',
+              keywords: 'run play walk-through simulate',
+              disabled: true,
+              run: () => {},
+            },
+          ]),
+      ...(scenario.session
+        ? [
+            {
+              id: 'exit-scenario',
+              group: 'Scenario',
+              label: `Exit scenario: ${scenario.session.name}`,
+              keywords: 'stop close edit mode esc',
+              run: scenario.exit,
+            },
+          ]
+        : []),
     ],
     [
       doc,
@@ -390,6 +467,8 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
       redo,
       canUndo,
       canRedo,
+      scenarios,
+      scenario,
     ],
   );
 
@@ -402,43 +481,95 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
   };
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: a file drop zone has no semantic role; the palette's "Open file" command is the keyboard-accessible equivalent.
-    <div
-      className="relative h-dvh w-full bg-zinc-50 dark:bg-zinc-950"
-      onDragOver={(e) => {
-        e.preventDefault();
-        if (!dragging) setDragging(true);
-      }}
-      onDragLeave={(e) => {
-        if (e.currentTarget === e.target) setDragging(false);
-      }}
-      onDrop={onDrop}
-    >
-      <FlowCanvas key={revision} doc={doc} />
+    <ScenarioModeProvider value={scenario}>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: a file drop zone has no semantic role; the palette's "Open file" command is the keyboard-accessible equivalent. */}
+      <div
+        className="relative h-dvh w-full bg-zinc-50 dark:bg-zinc-950"
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!dragging) setDragging(true);
+        }}
+        onDragLeave={(e) => {
+          if (e.currentTarget === e.target) setDragging(false);
+        }}
+        onDrop={onDrop}
+      >
+        <FlowCanvas key={revision} doc={doc} />
 
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          aria-label="Open command palette"
+          className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-md border border-zinc-300 bg-white/80 py-1.5 pr-2 pl-3 text-sm text-zinc-600 shadow-sm backdrop-blur transition-colors hover:bg-white dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-900"
+        >
+          Search & commands
+          <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+            ⌘K
+          </kbd>
+        </button>
+
+        {dragging && (
+          <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-indigo-500/10 backdrop-blur-sm">
+            <div className="rounded-xl border-2 border-indigo-400 border-dashed bg-white/90 px-8 py-6 font-medium text-indigo-700 dark:bg-zinc-900/90 dark:text-indigo-300">
+              Drop a {FILE_EXT} file to load it
+            </div>
+          </div>
+        )}
+
+        {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
+
+        {scenario.session && (
+          <ScenarioModeBanner
+            name={scenario.session.name}
+            run={scenario.session.run}
+            stepIndex={scenario.stepIndex}
+            onExit={scenario.exit}
+          />
+        )}
+
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
+      </div>
+    </ScenarioModeProvider>
+  );
+}
+
+// Minimal scenario-mode indicator (US-060). The floating step controls + Context
+// panel are US-062; this just signals the mode + step position and offers an exit.
+// Warm = the scenario diverged (state signal); indigo = on track.
+function ScenarioModeBanner({
+  name,
+  run,
+  stepIndex,
+  onExit,
+}: {
+  name: string;
+  run: ScenarioRun;
+  stepIndex: number;
+  onExit: () => void;
+}) {
+  const diverged = run.status === 'diverged';
+  return (
+    <div
+      className={`absolute top-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full border px-4 py-1.5 text-sm shadow-lg backdrop-blur ${
+        diverged
+          ? 'border-amber-300 bg-amber-50/90 text-amber-900 dark:border-amber-800 dark:bg-amber-950/70 dark:text-amber-200'
+          : 'border-indigo-300 bg-indigo-50/90 text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-200'
+      }`}
+    >
+      <span className="font-medium">▶ {name}</span>
+      <span className="text-xs tabular-nums opacity-80">
+        step {stepIndex + 1} / {run.trace.length}
+      </span>
+      <span className="text-xs opacity-70">{diverged ? 'diverged' : 'on track'}</span>
+      <span className="text-xs opacity-50">← → step · Esc exit</span>
       <button
         type="button"
-        onClick={() => setPaletteOpen(true)}
-        aria-label="Open command palette"
-        className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-md border border-zinc-300 bg-white/80 py-1.5 pr-2 pl-3 text-sm text-zinc-600 shadow-sm backdrop-blur transition-colors hover:bg-white dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-900"
+        onClick={onExit}
+        aria-label="Exit scenario mode"
+        className="text-xs leading-none opacity-60 hover:opacity-100"
       >
-        Search & commands
-        <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-          ⌘K
-        </kbd>
+        ✕
       </button>
-
-      {dragging && (
-        <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-indigo-500/10 backdrop-blur-sm">
-          <div className="rounded-xl border-2 border-indigo-400 border-dashed bg-white/90 px-8 py-6 font-medium text-indigo-700 dark:bg-zinc-900/90 dark:text-indigo-300">
-            Drop a {FILE_EXT} file to load it
-          </div>
-        </div>
-      )}
-
-      {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
-
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
     </div>
   );
 }
@@ -575,6 +706,10 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const { flow, layout, onNodesChange: nodesToDoc, onEdgesChange: edgesToDoc } = useYDocFlow(doc);
   const autoPositions = useElkLayout(flow, layout);
   const validation = useValidation(flow);
+  // Scenario mode makes the canvas read-only — no create / drag / delete / inline
+  // edit while walking a trace (US-060). US-061 adds the trace styling on top.
+  const scenario = useScenarioMode();
+  const readOnly = scenario.session !== null;
   // Error outlines on the canvas are opt-in (off while building — the per-handle
   // `+` already hints at incompleteness; the Problems badge tracks the count).
   // Flip them on to review. Gates both node rings and edge recoloring.
@@ -693,7 +828,9 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   if (!graph) return null;
 
   return (
-    <NodeCreateProvider value={openCreateMenu}>
+    // In scenario mode the `+` affordances vanish (HandlePlus renders nothing
+    // without a create handler), reinforcing read-only.
+    <NodeCreateProvider value={readOnly ? null : openCreateMenu}>
       <BoundCanvas
         graph={graph}
         nodesToDoc={nodesToDoc}
@@ -701,21 +838,22 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
         isValidConnection={isValidConnection}
-        onNodeDoubleClick={onNodeDoubleClick}
+        onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
+        readOnly={readOnly}
       />
       <ProblemsPanel
         validation={validation}
         showOutlines={showOutlines}
         onToggleOutlines={() => setShowOutlines((v) => !v)}
       />
-      {pickerPlacement && (
+      {!readOnly && pickerPlacement && (
         <NodeTypePicker
           placement={pickerPlacement}
           onPick={pickType}
           onClose={() => setMenu(null)}
         />
       )}
-      {editingId && editingNode && (
+      {!readOnly && editingId && editingNode && (
         <NodeInspector
           key={editingId}
           nodeId={editingId}
@@ -741,6 +879,7 @@ function BoundCanvas({
   onConnectEnd,
   isValidConnection,
   onNodeDoubleClick,
+  readOnly,
 }: {
   graph: ReturnType<typeof flowToReactFlow>;
   nodesToDoc: OnNodesChange<RfNode<CanvasNodeData>>;
@@ -748,7 +887,9 @@ function BoundCanvas({
   onConnect: OnConnect;
   onConnectEnd: OnConnectEnd;
   isValidConnection: IsValidConnection;
-  onNodeDoubleClick: NodeMouseHandler;
+  onNodeDoubleClick?: NodeMouseHandler;
+  /** Scenario mode (US-060): disable all editing; pan/zoom stay live. */
+  readOnly?: boolean;
 }) {
   const [nodes, setNodes, onNodesChangeLocal] = useNodesState(graph.nodes);
   const [edges, setEdges, onEdgesChangeLocal] = useEdgesState(graph.edges);
@@ -785,8 +926,10 @@ function BoundCanvas({
       onNodeDoubleClick={onNodeDoubleClick}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
-      nodesConnectable
-      deleteKeyCode={['Delete', 'Backspace']}
+      nodesDraggable={!readOnly}
+      nodesConnectable={!readOnly}
+      elementsSelectable={!readOnly}
+      deleteKeyCode={readOnly ? null : ['Delete', 'Backspace']}
       defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
       fitView
       fitViewOptions={FIT_VIEW_OPTIONS}
