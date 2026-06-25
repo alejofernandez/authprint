@@ -7,7 +7,11 @@ import { moveNode } from './ops.ts';
 import {
   docToArtifact,
   extractLayout,
+  findMatchingSidecar,
+  isAuthprintFile,
+  isLayoutSidecarFile,
   parseLayout,
+  resolveLayoutForImport,
   serializeBundle,
   serializeLayout,
   serializeSemantic,
@@ -216,5 +220,53 @@ describe('export packagings (US-065)', () => {
     expect(bundled.includes('layout:')).toBe(true);
     expect(extractLayout(bundled)).toEqual(layout);
     expect(serializeSemantic(artifact)).not.toBe(bundled);
+  });
+});
+
+describe('import packaging detection (US-066)', () => {
+  const layout: LayoutPositions = { entry: { x: 5, y: 6 }, s1: { x: 100, y: 200 } };
+  const artifact = { flow, layout };
+
+  function reloadImport(authprintSource: string, sidecarSource?: string) {
+    const { flow: parsed } = parse(authprintSource);
+    if (!parsed) throw new Error('authprint did not parse');
+    return docToArtifact(hydrate(parsed, resolveLayoutForImport(authprintSource, sidecarSource)));
+  }
+
+  test('bundled import restores inline positions', () => {
+    expect(reloadImport(serializeBundle(artifact)).layout).toEqual(layout);
+  });
+
+  test('semantic-only import yields empty layout (auto-layout)', () => {
+    expect(reloadImport(serializeSemantic(artifact)).layout).toEqual({});
+  });
+
+  test('sidecar import restores positions from the layout file', () => {
+    const { semantic, layout: layoutYaml } = serializeSidecar(artifact);
+    expect(reloadImport(semantic, layoutYaml).layout).toEqual(layout);
+  });
+
+  test('bundled inline layout wins over a dropped sidecar', () => {
+    const bundled = serializeBundle(artifact);
+    const { layout: sidecarOnly } = serializeSidecar({
+      flow,
+      layout: { entry: { x: 1, y: 1 } },
+    });
+    expect(resolveLayoutForImport(bundled, sidecarOnly)).toEqual(layout);
+  });
+
+  test('authprintBasename pairs semantic and sidecar filenames', () => {
+    expect(
+      findMatchingSidecar('my-flow.authprint', [
+        'other.authprint.layout',
+        'my-flow.authprint.layout',
+      ]),
+    ).toBe('my-flow.authprint.layout');
+  });
+
+  test('isAuthprintFile rejects layout sidecars', () => {
+    expect(isAuthprintFile('flow.authprint')).toBe(true);
+    expect(isAuthprintFile('flow.authprint.layout')).toBe(false);
+    expect(isLayoutSidecarFile('flow.authprint.layout')).toBe(true);
   });
 });

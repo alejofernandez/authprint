@@ -63,7 +63,10 @@ import {
 } from './ydoc/ops.ts';
 import {
   docToArtifact,
-  extractLayout,
+  findMatchingSidecar,
+  isAuthprintFile,
+  isLayoutSidecarFile,
+  resolveLayoutForImport,
   serializeBundle,
   serializeSemantic,
   serializeSidecar,
@@ -142,59 +145,105 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
   const { theme, setTheme } = useTheme();
   const { undo, redo, canUndo, canRedo } = useUndoManager(doc);
 
-  // Parse a source string and swap the flow on success; on a parse failure the
-  // current flow stays on screen and the errors surface in the toast.
-  const applySource = useCallback((source: string, label: string) => {
-    const { flow: parsed, diagnostics } = flowFromSource(source);
-    if (!parsed) {
-      setNotice({ kind: 'error', title: `Couldn’t parse ${label}`, diagnostics });
-      return;
-    }
-    // A bundled `.authprint` carries saved positions in a top-level `layout:`
-    // block; seed them so a reopened flow keeps its arrangement. A plain
-    // semantic file has none → empty map → elkjs auto-layout.
-    setDoc(hydrate(parsed, extractLayout(source)));
-    setRevision((r) => r + 1);
-    setNotice(
-      diagnostics.length
-        ? {
-            kind: 'info',
-            title: `Loaded ${label} with ${diagnostics.length} issue(s)`,
-            diagnostics,
-          }
-        : null,
-    );
-  }, []);
+  // Parse `.authprint` source (and optional layout sidecar) and swap the flow
+  // on success; on failure the current flow stays and errors surface in the toast.
+  const applyImport = useCallback(
+    (authprintSource: string, label: string, sidecarSource?: string) => {
+      const { flow: parsed, diagnostics } = flowFromSource(authprintSource);
+      if (!parsed) {
+        setNotice({ kind: 'error', title: `Couldn’t parse ${label}`, diagnostics });
+        return;
+      }
+      setDoc(hydrate(parsed, resolveLayoutForImport(authprintSource, sidecarSource)));
+      setRevision((r) => r + 1);
+      setNotice(
+        diagnostics.length
+          ? {
+              kind: 'info',
+              title: `Loaded ${label} with ${diagnostics.length} issue(s)`,
+              diagnostics,
+            }
+          : null,
+      );
+    },
+    [],
+  );
 
-  const loadFile = useCallback(
-    async (file: File) => {
-      if (!file.name.endsWith(FILE_EXT)) {
+  const applySource = useCallback(
+    (source: string, label: string) => {
+      applyImport(source, label);
+    },
+    [applyImport],
+  );
+
+  const loadFiles = useCallback(
+    async (files: File[]) => {
+      const authprints = files.filter((f) => isAuthprintFile(f.name));
+      const sidecars = files.filter((f) => isLayoutSidecarFile(f.name));
+
+      if (authprints.length === 0) {
+        if (sidecars.length > 0) {
+          setNotice({
+            kind: 'error',
+            title: `${sidecars[0]?.name ?? 'Layout file'} needs a matching ${FILE_EXT} file`,
+            diagnostics: [],
+          });
+          return;
+        }
         setNotice({
           kind: 'error',
-          title: `${file.name} isn’t a ${FILE_EXT} file`,
+          title: `No ${FILE_EXT} file selected`,
           diagnostics: [],
         });
         return;
       }
-      if (file.size > MAX_BYTES) {
-        setNotice({ kind: 'error', title: `${file.name} is too large to load`, diagnostics: [] });
+
+      const primary = authprints[0];
+      if (!primary) return;
+
+      if (primary.size > MAX_BYTES) {
+        setNotice({
+          kind: 'error',
+          title: `${primary.name} is too large to load`,
+          diagnostics: [],
+        });
         return;
       }
-      applySource(await file.text(), file.name);
+
+      const sidecarName = findMatchingSidecar(
+        primary.name,
+        sidecars.map((f) => f.name),
+      );
+      const sidecar = sidecarName ? sidecars.find((f) => f.name === sidecarName) : undefined;
+
+      if (sidecar && sidecar.size > MAX_BYTES) {
+        setNotice({
+          kind: 'error',
+          title: `${sidecar.name} is too large to load`,
+          diagnostics: [],
+        });
+        return;
+      }
+
+      const authprintSource = await primary.text();
+      const sidecarSource = sidecar ? await sidecar.text() : undefined;
+      const label = sidecar ? `${primary.name} + ${sidecar.name}` : primary.name;
+      applyImport(authprintSource, label, sidecarSource);
     },
-    [applySource],
+    [applyImport],
   );
 
   const openFilePicker = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = FILE_EXT;
+    input.accept = `${FILE_EXT},${LAYOUT_EXT}`;
+    input.multiple = true;
     input.addEventListener('change', () => {
-      const file = input.files?.[0];
-      if (file) loadFile(file);
+      const selected = input.files ? [...input.files] : [];
+      if (selected.length > 0) loadFiles(selected);
     });
     input.click();
-  }, [loadFile]);
+  }, [loadFiles]);
 
   // Cmd/Ctrl+K toggles the palette from anywhere.
   useEffect(() => {
@@ -348,8 +397,8 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
     event.preventDefault();
     setDragging(false);
     const files = [...event.dataTransfer.files];
-    const file = files.find((f) => f.name.endsWith(FILE_EXT)) ?? files[0];
-    if (file) loadFile(file);
+    const relevant = files.filter((f) => isAuthprintFile(f.name) || isLayoutSidecarFile(f.name));
+    if (relevant.length > 0) loadFiles(relevant);
   };
 
   return (

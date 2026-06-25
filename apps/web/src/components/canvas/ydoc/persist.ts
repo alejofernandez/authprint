@@ -111,3 +111,59 @@ export function serializeSidecar(artifact: FlowArtifact): SidecarExport {
     layout: serializeLayout(artifact.layout),
   };
 }
+
+// ─── Import packaging detection (E32 / US-066) ───────────────────────────────
+// Auto-detect bundled inline layout, semantic-only, or `.authprint.layout`
+// sidecar on open. Pair sidecars to their semantic file by basename.
+
+export const AUTHPRINT_EXT = '.authprint';
+export const LAYOUT_SIDECAR_EXT = '.authprint.layout';
+
+export function isAuthprintFile(filename: string): boolean {
+  return filename.endsWith(AUTHPRINT_EXT) && !filename.endsWith(LAYOUT_SIDECAR_EXT);
+}
+
+export function isLayoutSidecarFile(filename: string): boolean {
+  return filename.endsWith(LAYOUT_SIDECAR_EXT);
+}
+
+/** Basename shared by `<name>.authprint` and `<name>.authprint.layout`. */
+export function authprintBasename(filename: string): string | null {
+  if (filename.endsWith(LAYOUT_SIDECAR_EXT)) {
+    return filename.slice(0, -LAYOUT_SIDECAR_EXT.length);
+  }
+  if (isAuthprintFile(filename)) {
+    return filename.slice(0, -AUTHPRINT_EXT.length);
+  }
+  return null;
+}
+
+export function findMatchingSidecar(
+  authprintFilename: string,
+  sidecarFilenames: readonly string[],
+): string | undefined {
+  const stem = authprintBasename(authprintFilename);
+  if (!stem) return undefined;
+  return sidecarFilenames.find((name) => authprintBasename(name) === stem);
+}
+
+/** Parse a standalone `.authprint.layout` sidecar (flat positions map). */
+export function parseLayoutSidecar(source: string): LayoutPositions {
+  try {
+    return parseLayout(yamlParse(source));
+  } catch {
+    return {};
+  }
+}
+
+/** Resolve layout for import: bundled inline `layout:` wins; else sidecar; else
+ *  empty map (semantic-only → elkjs auto-layout on hydrate). */
+export function resolveLayoutForImport(
+  authprintSource: string,
+  sidecarSource?: string,
+): LayoutPositions {
+  const bundled = extractLayout(authprintSource);
+  if (Object.keys(bundled).length > 0) return bundled;
+  if (sidecarSource !== undefined) return parseLayoutSidecar(sidecarSource);
+  return {};
+}
