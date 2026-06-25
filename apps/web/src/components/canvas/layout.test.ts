@@ -11,6 +11,7 @@ import type { NodePositionsMap } from './flowToReactFlow.ts';
 delete (globalThis as { self?: unknown }).self;
 
 const { layoutFlow } = await import('./layout.ts');
+const { nodeSize } = await import('./flowToReactFlow.ts');
 const { sampleFlow } = await import('./sampleFlow.ts');
 
 // Fetch a position, asserting it exists — narrows away `undefined` (the map is
@@ -40,6 +41,64 @@ describe('layoutFlow', () => {
     expect(at(positions, 'e1').x).toBeLessThan(at(positions, 's1').x);
     // Terminal outcomes sit to the right of the entry.
     expect(at(positions, 'o-authenticated-otp').x).toBeGreaterThan(at(positions, 'e1').x);
+  });
+
+  test('spaces mockup-fidelity screens by their larger box (no overlap)', async () => {
+    // Two sibling screens off a decision land in the same layer (same x),
+    // stacked vertically. With mockup fidelity they get the larger size hint
+    // (E39/US-067), so ELK must separate them by at least the card height.
+    const mockupHeight = nodeSize({
+      type: 'screen',
+      id: 'probe',
+      name: 'probe',
+      kind: 'password',
+      traits: [],
+      fields: [],
+      fidelity: 'mockup',
+    }).height;
+
+    const flow: Flow = {
+      ...sampleFlow,
+      context: { 'user.x': { type: 'boolean' } },
+      nodes: [
+        { type: 'entry', id: 'e' },
+        {
+          type: 'decision',
+          id: 'd',
+          name: 'D',
+          kind: 'user-exists',
+          predicate: { slot: 'user.x', op: 'equals', value: true },
+        },
+        {
+          type: 'screen',
+          id: 'sa',
+          name: 'A',
+          kind: 'password',
+          traits: [],
+          fields: [],
+          fidelity: 'mockup',
+        },
+        {
+          type: 'screen',
+          id: 'sb',
+          name: 'B',
+          kind: 'password',
+          traits: [],
+          fields: [],
+          fidelity: 'mockup',
+        },
+      ],
+      edges: [
+        { id: 'g1', source: 'e', target: 'd', trigger: { type: 'unconditional' } },
+        { id: 'g2', source: 'd', target: 'sa', trigger: { type: 'branch', value: true } },
+        { id: 'g3', source: 'd', target: 'sb', trigger: { type: 'branch', value: false } },
+      ],
+    };
+
+    const positions = await layoutFlow(flow);
+    const a = at(positions, 'sa');
+    const b = at(positions, 'sb');
+    expect(Math.abs(a.y - b.y)).toBeGreaterThanOrEqual(mockupHeight);
   });
 
   test('returns an empty map for an empty flow (no elkjs call)', async () => {
