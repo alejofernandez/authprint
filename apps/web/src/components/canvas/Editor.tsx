@@ -33,6 +33,7 @@ import {
 } from '@xyflow/react';
 import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type * as Y from 'yjs';
+import { track } from '@/analytics';
 import { type Theme, useTheme } from '@/components/theme';
 import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { flowFromSource } from './flowFromSource.ts';
@@ -156,11 +157,11 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
   // Parse `.authprint` source (and optional layout sidecar) and swap the flow
   // on success; on failure the current flow stays and errors surface in the toast.
   const applyImport = useCallback(
-    (authprintSource: string, label: string, sidecarSource?: string) => {
+    (authprintSource: string, label: string, sidecarSource?: string): boolean => {
       const { flow: parsed, diagnostics } = flowFromSource(authprintSource);
       if (!parsed) {
         setNotice({ kind: 'error', title: `Couldn’t parse ${label}`, diagnostics });
-        return;
+        return false;
       }
       setDoc(hydrate(parsed, resolveLayoutForImport(authprintSource, sidecarSource)));
       setRevision((r) => r + 1);
@@ -173,6 +174,7 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
             }
           : null,
       );
+      return true;
     },
     [],
   );
@@ -236,7 +238,9 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
       const authprintSource = await primary.text();
       const sidecarSource = sidecar ? await sidecar.text() : undefined;
       const label = sidecar ? `${primary.name} + ${sidecar.name}` : primary.name;
-      applyImport(authprintSource, label, sidecarSource);
+      if (applyImport(authprintSource, label, sidecarSource)) {
+        track('flow_opened', { fileName: primary.name, hasSidecar: Boolean(sidecar) });
+      }
     },
     [applyImport],
   );
@@ -353,6 +357,7 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
         keywords: 'export download write',
         run: () => {
           const artifact = docToArtifact(doc);
+          track('flow_saved', { flowName: artifact.flow.name });
           downloadText(
             `${slugify(artifact.flow.name)}${FILE_EXT}`,
             serializeBundle(artifact),
@@ -406,7 +411,10 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
         group: 'Examples',
         label: `Open example: ${example.name}`,
         keywords: example.id,
-        run: () => applySource(example.source, example.name),
+        run: () => {
+          track('example_opened', { exampleId: example.id });
+          applySource(example.source, example.name);
+        },
       })),
       {
         id: 'fit-view',
