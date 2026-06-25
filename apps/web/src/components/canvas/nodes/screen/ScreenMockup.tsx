@@ -5,15 +5,24 @@
 // (US-070) build on this. The visual language set here is what they extend.
 
 import type { Field, ScreenNode } from '@authprint/dsl';
-import { humanize, screenCopy } from './screenCopy.ts';
+import { humanize, screenCta } from './screenCopy.ts';
 
 const MASKED_TYPES = new Set(['password', 'new-password', 'confirm-password']);
 
-function BrandGlyph() {
+// Brand-neutral "A" monogram (placeholder brand mark) in the indigo square.
+function Monogram() {
   return (
-    <svg viewBox="0 0 12 12" className="w-2.5 h-2.5" fill="none" aria-hidden="true">
-      <path d="M6 1l1.6 3.4L11 6 7.6 7.6 6 11 4.4 7.6 1 6l3.4-1.6L6 1z" fill="currentColor" />
-    </svg>
+    <span className="inline-flex w-8 h-8 items-center justify-center rounded-[9px] bg-indigo-500">
+      <svg viewBox="0 0 20 20" className="w-4 h-4" fill="none" aria-hidden="true">
+        <path
+          d="M10 4 L4.5 16 M10 4 L15.5 16 M7 12.5 H13"
+          stroke="white"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
   );
 }
 
@@ -85,26 +94,26 @@ function FieldRow({ field }: { field: Field }) {
 }
 
 export function ScreenMockup({ node }: { node: ScreenNode }) {
-  const { title, cta } = screenCopy(node.kind);
+  const cta = screenCta(node.kind);
   return (
     <div className="w-[244px] rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
-      {/* window chrome — gives the card a "screen" read without brand assets */}
-      <div className="h-5 flex items-center gap-1 px-2.5 border-b border-zinc-100 dark:border-zinc-800">
-        <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-        <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-        <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-      </div>
-      <div className="px-4 pt-3.5 pb-4 space-y-3">
-        <div className="flex items-center gap-1.5">
-          <span className="inline-flex w-4 h-4 items-center justify-center rounded-[5px] bg-indigo-500 text-white">
-            <BrandGlyph />
-          </span>
-          <span className="text-[10px] font-semibold tracking-wide text-zinc-400 dark:text-zinc-500">
-            Acme
-          </span>
+      {/* window chrome — dots left, the kind as a monospace route tag right */}
+      <div className="h-5 flex items-center justify-between px-2.5 border-b border-zinc-100 dark:border-zinc-800">
+        <div className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
         </div>
-        <div className="text-[13px] font-semibold leading-tight text-zinc-900 dark:text-zinc-100">
-          {title}
+        <span className="font-mono text-[8px] text-zinc-400 dark:text-zinc-500">{node.kind}</span>
+      </div>
+      <div className="px-4 pb-4 space-y-3">
+        {/* centered brand block — monogram over company name, with breathing room */}
+        <div className="flex flex-col items-center gap-1.5 pt-4 pb-1">
+          <Monogram />
+          <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-300">Acme</span>
+        </div>
+        <div className="text-center text-[13px] font-semibold leading-tight text-zinc-900 dark:text-zinc-100">
+          {node.name}
         </div>
         {node.fields.length > 0 ? (
           <div className="space-y-2">

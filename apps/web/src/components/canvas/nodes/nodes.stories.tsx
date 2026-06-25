@@ -103,7 +103,7 @@ const providerMockup: ScreenNode = {
   fidelity: 'mockup',
 };
 
-const mockupCanvas = { width: 360, height: 320 };
+const mockupCanvas = { width: 360, height: 380 };
 
 export const ScreenMockupPasswordLight: Story = {
   args: { type: 'screen', node: passwordMockup, theme: 'light', ...mockupCanvas },
