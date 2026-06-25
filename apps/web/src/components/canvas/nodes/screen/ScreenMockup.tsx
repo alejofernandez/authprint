@@ -4,10 +4,17 @@
 // Traits (US-068), the wireframe/lo-fi tiers (US-069), and the Flow.theme axis
 // (US-070) build on this. The visual language set here is what they extend.
 
-import type { Field, ScreenNode } from '@authprint/dsl';
+import type { Field, ScreenNode, TraitId } from '@authprint/dsl';
 import { humanize, screenCta } from './screenCopy.ts';
+import {
+  PasswordStrengthMeter,
+  postCtaTraits,
+  ShowPasswordToggle,
+  TraitChromeBlock,
+} from './traitChrome.tsx';
 
 const MASKED_TYPES = new Set(['password', 'new-password', 'confirm-password']);
+const STRENGTH_METER_TYPES = new Set(['password', 'new-password']);
 
 // Brand-neutral "A" monogram (placeholder brand mark) in the indigo square.
 function Monogram() {
@@ -26,14 +33,17 @@ function Monogram() {
   );
 }
 
-function TextInput({ masked }: { masked: boolean }) {
+function TextInput({ masked, showToggle }: { masked: boolean; showToggle?: boolean }) {
   return (
-    <div className="h-6 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 px-2 flex items-center">
+    <div className="h-6 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 px-2 flex items-center justify-between gap-1">
       {masked ? (
         <span className="text-[10px] tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
           ••••••••
         </span>
-      ) : null}
+      ) : (
+        <span />
+      )}
+      {showToggle ? <ShowPasswordToggle /> : null}
     </div>
   );
 }
@@ -69,7 +79,7 @@ function PasskeyButton() {
   );
 }
 
-function FieldRow({ field }: { field: Field }) {
+function FieldRow({ field, traits }: { field: Field; traits: ReadonlySet<TraitId> }) {
   if (field.type === 'consent-checkbox') {
     // A static mock of a checkbox row — not a real control, so a plain div
     // (not <label>) is correct here.
@@ -83,18 +93,28 @@ function FieldRow({ field }: { field: Field }) {
   if (field.type === 'passkey') {
     return <PasskeyButton />;
   }
+
+  const masked = MASKED_TYPES.has(field.type);
+  const showToggle = masked && traits.has('show-password-toggle');
+  const showStrengthMeter =
+    STRENGTH_METER_TYPES.has(field.type) && traits.has('password-strength-meter');
+
   return (
     <div className="space-y-1">
       <div className="text-[9px] font-medium text-zinc-500 dark:text-zinc-400">
         {humanize(field.name)}
       </div>
-      {field.type === 'otp' ? <OtpInput /> : <TextInput masked={MASKED_TYPES.has(field.type)} />}
+      {field.type === 'otp' ? <OtpInput /> : <TextInput masked={masked} showToggle={showToggle} />}
+      {showStrengthMeter ? <PasswordStrengthMeter /> : null}
     </div>
   );
 }
 
 export function ScreenMockup({ node }: { node: ScreenNode }) {
   const cta = screenCta(node.kind);
+  const traitSet = new Set(node.traits);
+  const traitsAfterCta = postCtaTraits(node.traits);
+
   return (
     <div className="w-[244px] rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
       {/* window chrome — dots left, the kind as a monospace route tag right */}
@@ -118,13 +138,20 @@ export function ScreenMockup({ node }: { node: ScreenNode }) {
         {node.fields.length > 0 ? (
           <div className="space-y-2">
             {node.fields.map((f) => (
-              <FieldRow key={f.name} field={f} />
+              <FieldRow key={f.name} field={f} traits={traitSet} />
             ))}
           </div>
         ) : null}
         {cta ? (
           <div className="h-7 rounded-md bg-indigo-500 text-white text-[11px] font-medium flex items-center justify-center">
             {cta}
+          </div>
+        ) : null}
+        {traitsAfterCta.length > 0 ? (
+          <div className="space-y-2">
+            {traitsAfterCta.map((trait) => (
+              <TraitChromeBlock key={trait} trait={trait} />
+            ))}
           </div>
         ) : null}
       </div>

@@ -124,6 +124,35 @@ export const ScreenMockupProviderDark: Story = {
   args: { type: 'screen', node: providerMockup, theme: 'dark', ...mockupCanvas },
 };
 
+// Trait chrome (US-068) — several traits composing on a password screen.
+const passwordTraitsMockup: ScreenNode = {
+  type: 'screen',
+  id: 'password-traits',
+  name: 'Sign in',
+  kind: 'password',
+  traits: [
+    'show-password-toggle',
+    'password-strength-meter',
+    'remember-me',
+    'forgot-password-link',
+    'social-login-buttons',
+  ],
+  fields: [
+    { name: 'email', type: 'email', required: true },
+    { name: 'password', type: 'password', required: true },
+  ],
+  fidelity: 'mockup',
+};
+
+const mockupTraitsCanvas = { width: 360, height: 460 };
+
+export const ScreenMockupTraitsLight: Story = {
+  args: { type: 'screen', node: passwordTraitsMockup, theme: 'light', ...mockupTraitsCanvas },
+};
+export const ScreenMockupTraitsDark: Story = {
+  args: { type: 'screen', node: passwordTraitsMockup, theme: 'dark', ...mockupTraitsCanvas },
+};
+
 export const DecisionLight: Story = { args: { type: 'decision', node: decision, theme: 'light' } };
 export const DecisionDark: Story = { args: { type: 'decision', node: decision, theme: 'dark' } };
 
