@@ -13,7 +13,17 @@ import type {
   PredicateOp,
   SlotType,
 } from '@authprint/dsl';
-import { FIDELITIES, PREDICATE_OPS, SLOT_TYPES, TRAIT_IDS } from '@authprint/dsl';
+import {
+  ACTION_KINDS_BUILTIN,
+  DECISION_KINDS_BUILTIN,
+  EXTERNAL_KINDS_BUILTIN,
+  FIDELITIES,
+  OUTCOME_KINDS_BUILTIN,
+  PREDICATE_OPS,
+  SCREEN_KINDS_BUILTIN,
+  SLOT_TYPES,
+  TRAIT_IDS,
+} from '@authprint/dsl';
 import { useState } from 'react';
 
 export type NodeEditActions = {
@@ -49,6 +59,82 @@ function defaultValueFor(slot: ContextSlot | undefined): unknown {
 const labelCls = 'text-[10px] font-medium uppercase tracking-wider text-zinc-400';
 const inputCls =
   'w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 outline-none focus:border-indigo-400 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100';
+
+const KIND_OPTIONS = {
+  screen: SCREEN_KINDS_BUILTIN,
+  decision: DECISION_KINDS_BUILTIN,
+  action: ACTION_KINDS_BUILTIN,
+  external: EXTERNAL_KINDS_BUILTIN,
+  outcome: OUTCOME_KINDS_BUILTIN,
+} as const;
+
+type KindNodeType = keyof typeof KIND_OPTIONS;
+
+function KindSelect({
+  id,
+  nodeType,
+  value,
+  onChange,
+}: {
+  id: string;
+  nodeType: KindNodeType;
+  value: string;
+  onChange: (kind: string) => void;
+}) {
+  const options = KIND_OPTIONS[nodeType];
+  const [custom, setCustom] = useState(false);
+
+  if (custom) {
+    return (
+      <div className="space-y-1">
+        <input
+          id={id}
+          className={inputCls}
+          defaultValue={value}
+          onBlur={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+          }}
+        />
+        <button
+          type="button"
+          className="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
+          onClick={() => setCustom(false)}
+        >
+          Choose from list
+        </button>
+      </div>
+    );
+  }
+
+  const inList = (options as readonly string[]).includes(value);
+  return (
+    <select
+      id={id}
+      className={inputCls}
+      value={inList ? value : '__current__'}
+      onChange={(e) => {
+        if (e.target.value === '__custom__') {
+          setCustom(true);
+          return;
+        }
+        if (e.target.value !== '__current__') onChange(e.target.value);
+      }}
+    >
+      {!inList && (
+        <option value="__current__">
+          {value === 'custom' ? 'Choose kind…' : `${value} (custom)`}
+        </option>
+      )}
+      {options.map((k) => (
+        <option key={k} value={k}>
+          {k}
+        </option>
+      ))}
+      <option value="__custom__">Custom…</option>
+    </select>
+  );
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -90,16 +176,15 @@ export function NodeInlineEditor({
           </label>
         )}
 
-        {'kind' in node && (
-          <label className="block space-y-1">
+        {'kind' in node && node.type in KIND_OPTIONS && (
+          <label className="block space-y-1" htmlFor={`kind-${node.id}`}>
             <span className="text-xs text-zinc-500 dark:text-zinc-400">Kind</span>
-            <input
-              className={inputCls}
-              defaultValue={node.kind}
-              onBlur={(e) => actions.setKind(node.id, e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') e.currentTarget.blur();
-              }}
+            <KindSelect
+              id={`kind-${node.id}`}
+              key={node.id}
+              nodeType={node.type as KindNodeType}
+              value={node.kind}
+              onChange={(kind) => actions.setKind(node.id, kind)}
             />
           </label>
         )}

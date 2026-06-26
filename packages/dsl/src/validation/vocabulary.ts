@@ -26,33 +26,33 @@ export function checkVocabulary(flow: Flow): Diagnostic[] {
     switch (node.type) {
       case 'screen':
         if (!isBuiltinScreenKind(node.kind)) {
-          warnings.push(warn('vocabulary-unknown-screen-kind', node.kind, path));
+          warnings.push(warn('vocabulary-unknown-screen-kind', node.kind, path, node.id));
         }
         node.fields.forEach((field, fi) => {
           const fpath = `nodes[${i}].fields[${fi}].type`;
           if (!isBuiltinFieldType(field.type)) {
-            warnings.push(warn('vocabulary-unknown-field-type', field.type, fpath));
+            warnings.push(warn('vocabulary-unknown-field-type', field.type, fpath, node.id));
           }
         });
         break;
       case 'decision':
         if (!isBuiltinDecisionKind(node.kind)) {
-          warnings.push(warn('vocabulary-unknown-decision-kind', node.kind, path));
+          warnings.push(warn('vocabulary-unknown-decision-kind', node.kind, path, node.id));
         }
         break;
       case 'action':
         if (!isBuiltinActionKind(node.kind)) {
-          warnings.push(warn('vocabulary-unknown-action-kind', node.kind, path));
+          warnings.push(warn('vocabulary-unknown-action-kind', node.kind, path, node.id));
         }
         break;
       case 'external':
         if (!isBuiltinExternalKind(node.kind)) {
-          warnings.push(warn('vocabulary-unknown-external-kind', node.kind, path));
+          warnings.push(warn('vocabulary-unknown-external-kind', node.kind, path, node.id));
         }
         break;
       case 'outcome':
         if (!isBuiltinOutcomeKind(node.kind)) {
-          warnings.push(warn('vocabulary-unknown-outcome-kind', node.kind, path));
+          warnings.push(warn('vocabulary-unknown-outcome-kind', node.kind, path, node.id));
         }
         break;
       case 'entry':
@@ -64,11 +64,12 @@ export function checkVocabulary(flow: Flow): Diagnostic[] {
   return warnings;
 }
 
-function warn(code: DiagnosticCode, value: string, path: string): Diagnostic {
+function warn(code: DiagnosticCode, value: string, path: string, nodeId: string): Diagnostic {
   return {
     severity: 'warning',
     code,
     message: `'${value}' is not in the built-in vocabulary (accepted as custom)`,
     path,
+    target: { kind: 'node', id: nodeId },
   };
 }

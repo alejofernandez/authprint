@@ -50,6 +50,36 @@ describe('diagnostic targets', () => {
     });
   });
 
+  test('a vocabulary warning targets the node by id', () => {
+    const flow = FlowSchema.parse({
+      id: 'f',
+      name: 'X',
+      nodes: [
+        { type: 'entry', id: 'e1' },
+        {
+          type: 'screen',
+          id: 's1',
+          name: 'Hello',
+          kind: 'totally-custom-screen-kind',
+        },
+        { type: 'outcome', id: 'o1', name: 'Done', kind: 'authenticated' },
+      ],
+      edges: [
+        { id: 'edge-1', source: 'e1', target: 's1', trigger: { type: 'unconditional' } },
+        {
+          id: 'edge-2',
+          source: 's1',
+          target: 'o1',
+          trigger: { type: 'interaction', action: 'submit' },
+        },
+      ],
+    });
+    expect(find(flow, 'vocabulary-unknown-screen-kind')?.target).toEqual({
+      kind: 'node',
+      id: 's1',
+    });
+  });
+
   test('a flow-level error carries no target', () => {
     const flow = FlowSchema.parse({
       id: 'f',

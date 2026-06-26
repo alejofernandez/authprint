@@ -70,8 +70,8 @@ export function ProblemsPanel({
             aria-pressed={showOutlines}
             title={
               showOutlines
-                ? 'Hide error outlines on the canvas'
-                : 'Show error outlines on the canvas'
+                ? 'Hide validation outlines on the canvas'
+                : 'Show validation outlines on the canvas'
             }
             className={`border-zinc-300 border-l px-2 py-1.5 text-sm dark:border-zinc-700 ${
               showOutlines ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-400 line-through'
