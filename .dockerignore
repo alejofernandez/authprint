@@ -1,0 +1,22 @@
+# Exclude dependencies and build cache
+node_modules
+.next
+.next/cache
+
+# Exclude git metadata
+.git
+.gitignored
+.worktrees
+
+# Exclude secrets and visual test snapshots
+secrets
+__snapshots__
+
+# Exclude editor config/local files
+.vscode
+.claude
+.agents
+.tools
+.biome
+.DS_Store
+*.log

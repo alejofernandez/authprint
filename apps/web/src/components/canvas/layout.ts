@@ -8,10 +8,21 @@
 // + Re-tidy behavior arrives in Phase VI (E26+) once editing exists.
 
 import type { Flow } from '@authprint/dsl';
-import ELK from 'elkjs/lib/elk.bundled.js';
+import type ELK from 'elkjs/lib/elk.bundled.js';
 import { type NodePositionsMap, nodeSize, sourceHandleFor } from './flowToReactFlow.ts';
 
-const elk = new ELK();
+let elkInstance: ELK | null = null;
+
+async function getElk() {
+  if (!elkInstance) {
+    if (typeof window === 'undefined') {
+      delete (globalThis as { self?: unknown }).self;
+    }
+    const { default: ELKConstructor } = await import('elkjs/lib/elk.bundled.js');
+    elkInstance = new ELKConstructor();
+  }
+  return elkInstance;
+}
 
 // Which side of the node an outgoing handle sits on — must match the handle
 // positions on the node components: forward / yes / success exit the right
@@ -112,7 +123,7 @@ export async function layoutFlow(flow: Flow): Promise<NodePositionsMap> {
     }),
   };
 
-  const laid = await elk.layout(elkGraph);
+  const laid = await (await getElk()).layout(elkGraph);
 
   const positions: NodePositionsMap = {};
   for (const child of laid.children ?? []) {

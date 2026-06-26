@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   // and flooding "deps changed size" errors). React Flow is the editor's core,
   // so correctness wins. Revisit when React Flow ships compiler-safe builds.
   reactCompiler: false,
+  output: 'standalone',
 };
 
 export default nextConfig;
