@@ -47,6 +47,12 @@ next-env.d.ts
 # claude code — local-only settings (skills + launch.json are committed)
 .claude/settings.local.json
 
+# multi-agent worktrees — Implementers work in .worktrees/<branch>/ (see roles/*.md)
+.worktrees/
+
+# pinned local tool binaries (e.g. the gitleaks bootstrap cache) — see scripts/
+.tools/
+
 *storybook.log
 storybook-static
 
