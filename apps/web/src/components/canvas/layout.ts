@@ -11,7 +11,7 @@ import type { Flow } from '@authprint/dsl';
 import type ELK from 'elkjs/lib/elk.bundled.js';
 import { type NodePositionsMap, nodeSize, sourceHandleFor } from './flowToReactFlow.ts';
 
-let elkInstance: ELK | null = null;
+let elkInstance: InstanceType<typeof ELK> | null = null;
 
 async function getElk() {
   if (!elkInstance) {
