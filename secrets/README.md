@@ -85,3 +85,23 @@ Options when cloud CI needs secrets:
 1. Add the field in 1Password.
 2. Add `ENV_NAME=op://…` to `secrets/op.env.tpl`.
 3. Read it in app code via `process.env.ENV_NAME` as usual — no `.env` file needed.
+
+## Secret Scanning (Gitleaks)
+
+To prevent plaintext secrets from accidentally entering git history, Gitleaks is integrated as a local pre-commit hook and runs in CI.
+
+### Local Setup
+1. **Install git hooks**:
+   ```bash
+   bun run prepare
+   ```
+This configures `lefthook` to run Gitleaks on staged changes during `git commit`.
+
+2. **Self-Installing / Portable Wrapper**:
+   There is no manual installation required! The pre-commit hook runs `scripts/gitleaks.sh`, which automatically downloads the pinned Gitleaks binary (`8.30.1`) for your host OS/architecture, validates its SHA-256 checksum, caches it in the gitignored `.tools/gitleaks/` directory, and executes it.
+   *(Optional: You can still run `brew install gitleaks` if you want a global version for manual repository CLI queries, but the hooks will always use the pinned wrapper version).*
+
+### How to Bypass / Handle False Positives
+- **Do not use `LEFTHOOK=0`** to bypass checks, as it skips all pre-commit validation.
+- If Gitleaks flags a false positive (e.g. a reference that looks like a key but is safe), add an exclusion pattern under `[[allowlists]]` in the [`.gitleaks.toml`](../.gitleaks.toml) configuration file.
+- `op://` 1Password reference strings and `secrets/op.env.tpl*` files are already globally allowlisted.

@@ -10,6 +10,8 @@ pre-commit:
     biome-check:
       glob: '*.{js,ts,jsx,tsx,json,jsonc}'
       run: bunx biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+    gitleaks:
+      run: scripts/gitleaks.sh git --staged --redact --no-banner
 
 pre-push:
   commands:

@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Allowlist 1Password CLI reference strings and templates"
+regexes = [
+  'op://[a-zA-Z0-9_\-\.\/]+'
+]
+paths = [
+  'secrets/op\.env\.tpl.*'
+]
