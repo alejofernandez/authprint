@@ -36,6 +36,7 @@ import type * as Y from 'yjs';
 import { track } from '@/analytics';
 import { type Theme, useTheme } from '@/components/theme';
 import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
+import { elkLayoutReady } from './elkLayoutReady.ts';
 import { flowFromSource } from './flowFromSource.ts';
 import { flowToReactFlow, NODE_SIZE, type NodePositionsMap } from './flowToReactFlow.ts';
 import { layoutFlow } from './layout.ts';
@@ -632,7 +633,9 @@ function useElkLayout(flow: Flow, layout: NodePositionsMap): NodePositionsMap | 
     };
   }, [unplaced]);
 
-  return positions;
+  // Bundled imports place every node in the layout map — elk never runs, but the
+  // canvas still needs a non-null map to merge with layout (US-066 regression).
+  return elkLayoutReady(positions, unplaced);
 }
 
 type CreateMenu = {
