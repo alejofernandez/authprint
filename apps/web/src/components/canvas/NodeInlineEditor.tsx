@@ -18,6 +18,7 @@ import {
   DECISION_KINDS_BUILTIN,
   EXTERNAL_KINDS_BUILTIN,
   FIDELITIES,
+  FIELD_TYPES_BUILTIN,
   OUTCOME_KINDS_BUILTIN,
   PREDICATE_OPS,
   SCREEN_KINDS_BUILTIN,
@@ -241,6 +242,7 @@ export function NodeInlineEditor({
       {screen && (
         <Section title="Fields">
           <FieldsEditor
+            key={node.id}
             fields={screen.fields}
             onChange={(fields) => actions.setFields(node.id, fields)}
           />
@@ -442,6 +444,70 @@ function NewSlotForm({
   );
 }
 
+function FieldTypeSelect({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  onChange: (type: string) => void;
+}) {
+  const options = FIELD_TYPES_BUILTIN;
+  const [custom, setCustom] = useState(false);
+
+  if (custom) {
+    return (
+      <div className="space-y-1">
+        <input
+          id={id}
+          className={inputCls}
+          defaultValue={value}
+          onBlur={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+          }}
+        />
+        <button
+          type="button"
+          className="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
+          onClick={() => setCustom(false)}
+        >
+          Choose from list
+        </button>
+      </div>
+    );
+  }
+
+  const inList = (options as readonly string[]).includes(value);
+  return (
+    <select
+      id={id}
+      className={inputCls}
+      value={inList ? value : '__current__'}
+      onChange={(e) => {
+        if (e.target.value === '__custom__') {
+          setCustom(true);
+          return;
+        }
+        if (e.target.value !== '__current__') onChange(e.target.value);
+      }}
+    >
+      {!inList && (
+        <option value="__current__">
+          {value === 'custom' ? 'Choose type…' : `${value} (custom)`}
+        </option>
+      )}
+      {options.map((t) => (
+        <option key={t} value={t}>
+          {t}
+        </option>
+      ))}
+      <option value="__custom__">Custom…</option>
+    </select>
+  );
+}
+
 function FieldsEditor({
   fields,
   onChange,
@@ -449,26 +515,74 @@ function FieldsEditor({
   fields: Field[];
   onChange: (fields: Field[]) => void;
 }) {
+  const [rowKeys, setRowKeys] = useState(() => fields.map(() => crypto.randomUUID()));
+
   const update = (i: number, patch: Partial<Field>) =>
     onChange(fields.map((f, j) => (j === i ? { ...f, ...patch } : f)));
+
+  const move = (from: number, to: number) => {
+    if (to < 0 || to >= fields.length) return;
+    const next = [...fields];
+    const item = next.splice(from, 1)[0];
+    if (!item) return;
+    next.splice(to, 0, item);
+    setRowKeys((keys) => {
+      const nextKeys = [...keys];
+      const key = nextKeys.splice(from, 1)[0];
+      if (!key) return keys;
+      nextKeys.splice(to, 0, key);
+      return nextKeys;
+    });
+    onChange(next);
+  };
+
+  const remove = (i: number) => {
+    setRowKeys((keys) => keys.filter((_, j) => j !== i));
+    onChange(fields.filter((_, j) => j !== i));
+  };
+
+  const add = () => {
+    setRowKeys((keys) => [...keys, crypto.randomUUID()]);
+    onChange([...fields, { name: '', type: 'text', required: false }]);
+  };
 
   return (
     <div className="space-y-1">
       {fields.map((field, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: field rows are positional and edited in place
-        <div key={i} className="flex items-center gap-1">
+        <div key={rowKeys[i]} className="flex items-center gap-1">
+          <div className="flex shrink-0 flex-col gap-0.5">
+            <button
+              type="button"
+              aria-label="Move field up"
+              disabled={i === 0}
+              className="px-0.5 text-[10px] leading-none text-zinc-400 hover:text-zinc-600 disabled:opacity-30 dark:hover:text-zinc-200"
+              onClick={() => move(i, i - 1)}
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              aria-label="Move field down"
+              disabled={i === fields.length - 1}
+              className="px-0.5 text-[10px] leading-none text-zinc-400 hover:text-zinc-600 disabled:opacity-30 dark:hover:text-zinc-200"
+              onClick={() => move(i, i + 1)}
+            >
+              ↓
+            </button>
+          </div>
           <input
-            className={`${inputCls} flex-1`}
+            className={`${inputCls} min-w-0 flex-1`}
             placeholder="name"
             defaultValue={field.name}
             onBlur={(e) => update(i, { name: e.target.value })}
           />
-          <input
-            className={`${inputCls} w-20`}
-            placeholder="type"
-            defaultValue={field.type}
-            onBlur={(e) => update(i, { type: e.target.value })}
-          />
+          <div className="w-28 shrink-0">
+            <FieldTypeSelect
+              id={`field-type-${rowKeys[i]}`}
+              value={field.type}
+              onChange={(type) => update(i, { type })}
+            />
+          </div>
           <input
             type="checkbox"
             aria-label="required"
@@ -479,7 +593,7 @@ function FieldsEditor({
             type="button"
             aria-label="Remove field"
             className="px-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-            onClick={() => onChange(fields.filter((_, j) => j !== i))}
+            onClick={() => remove(i)}
           >
             ✕
           </button>
@@ -488,7 +602,7 @@ function FieldsEditor({
       <button
         type="button"
         className="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
-        onClick={() => onChange([...fields, { name: '', type: 'custom', required: false }])}
+        onClick={add}
       >
         + Add field
       </button>
