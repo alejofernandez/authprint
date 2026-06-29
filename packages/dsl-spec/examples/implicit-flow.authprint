@@ -1,0 +1,332 @@
+id: new-flow
+name: Untitled flow
+context:
+  identifier_exists:
+    type: boolean
+  otp_is_valid:
+    type: boolean
+  passkey_available:
+    type: boolean
+nodes:
+  - type: entry
+    id: entry
+  - type: screen
+    id: screen-b9f2f8bd
+    name: Welcome to app
+    kind: identifier-collect
+    traits:
+      - alternative-method-link
+    fields:
+      - name: email
+        type: identifier
+        required: true
+    fidelity: mockup
+  - type: decision
+    id: decision-377da22e
+    name: User exists
+    kind: custom
+    predicate:
+      slot: identifier_exists
+      op: equals
+      value: true
+  - type: action
+    id: action-627b5488
+    name: Send OTP code
+    kind: send-verification
+  - type: screen
+    id: screen-cb6814a8
+    name: Enter code
+    kind: custom
+    fields:
+      - name: code
+        type: otp
+        required: false
+    fidelity: mockup
+  - type: action
+    id: action-97e9d65c
+    name: Verify OTP code
+    kind: verify-otp
+  - type: decision
+    id: decision-6ee8c91d
+    name: Enroll passkeys?
+    kind: passkey-available
+    predicate:
+      slot: passkey_available
+      op: equals
+      value: true
+  - type: screen
+    id: screen-ecff2cb9
+    name: Create your passkey
+    kind: passkey-enroll
+    fields:
+      - name: passkey
+        type: passkey
+        required: false
+    fidelity: mockup
+  - type: outcome
+    id: outcome-551ddb32
+    name: Passkey associated
+    kind: authenticated
+  - type: outcome
+    id: outcome-c7db15a6
+    name: Authenticated
+    kind: authenticated
+  - type: screen
+    id: screen-c10c3bef
+    name: Create your account
+    kind: terms-acceptance
+    fields:
+      - name: Custom field 2
+        type: text
+        required: false
+      - name: Custom field 1
+        type: text
+        required: false
+      - name: Terms and Conditions
+        type: consent-checkbox
+        required: false
+    fidelity: mockup
+  - type: outcome
+    id: outcome-3581d005
+    name: Account created
+    kind: authenticated
+edges:
+  - id: e-89aae6fa
+    source: entry
+    target: screen-b9f2f8bd
+    trigger:
+      type: unconditional
+  - id: e-1d848e19
+    source: screen-b9f2f8bd
+    target: action-627b5488
+    trigger:
+      type: interaction
+      action: submit
+  - id: e-1edaaddc
+    source: action-627b5488
+    target: screen-cb6814a8
+    trigger:
+      type: on-success
+  - id: e-169a7ee3
+    source: screen-cb6814a8
+    target: action-97e9d65c
+    trigger:
+      type: interaction
+      action: submit
+  - id: e-e857ec55
+    source: decision-6ee8c91d
+    target: screen-ecff2cb9
+    trigger:
+      type: branch
+      value: true
+  - id: e-764742ef
+    source: screen-ecff2cb9
+    target: outcome-551ddb32
+    trigger:
+      type: interaction
+      action: submit
+  - id: e-fd92c302
+    source: decision-6ee8c91d
+    target: outcome-c7db15a6
+    trigger:
+      type: branch
+      value: false
+  - id: e-ec994476
+    source: decision-377da22e
+    target: decision-6ee8c91d
+    trigger:
+      type: branch
+      value: true
+  - id: e-d324ca64
+    source: decision-377da22e
+    target: screen-c10c3bef
+    trigger:
+      type: branch
+      value: false
+  - id: e-4c47e9b2
+    source: screen-c10c3bef
+    target: outcome-3581d005
+    trigger:
+      type: interaction
+      action: submit
+  - id: e-6c9924f3
+    source: action-97e9d65c
+    target: screen-cb6814a8
+    trigger:
+      type: on-error
+  - id: e-f446cd50
+    source: action-97e9d65c
+    target: decision-377da22e
+    trigger:
+      type: on-success
+  - id: e-3861c7bc
+    source: action-627b5488
+    target: screen-b9f2f8bd
+    trigger:
+      type: on-error
+
+scenarios:
+  - id: sc-returning-passkey-enroll
+    name: Returning user verifies OTP and enrolls a passkey
+    initialContext:
+      identifier_exists: true
+      passkey_available: true
+    inputScript:
+      - type: screen
+        nodeId: screen-b9f2f8bd
+        action: submit
+      - type: action
+        nodeId: action-627b5488
+        result: success
+      - type: screen
+        nodeId: screen-cb6814a8
+        action: submit
+      - type: action
+        nodeId: action-97e9d65c
+        result: success
+      - type: screen
+        nodeId: screen-ecff2cb9
+        action: submit
+    expectedOutcome:
+      outcomeId: outcome-551ddb32
+
+  - id: sc-returning-authenticated-skip-passkey
+    name: Returning user verifies OTP and skips passkey enrollment
+    initialContext:
+      identifier_exists: true
+      passkey_available: false
+    inputScript:
+      - type: screen
+        nodeId: screen-b9f2f8bd
+        action: submit
+      - type: action
+        nodeId: action-627b5488
+        result: success
+      - type: screen
+        nodeId: screen-cb6814a8
+        action: submit
+      - type: action
+        nodeId: action-97e9d65c
+        result: success
+    expectedOutcome:
+      outcomeId: outcome-c7db15a6
+
+  - id: sc-new-user-signup
+    name: New user verifies OTP and creates an account
+    initialContext:
+      identifier_exists: false
+      passkey_available: false
+    inputScript:
+      - type: screen
+        nodeId: screen-b9f2f8bd
+        action: submit
+      - type: action
+        nodeId: action-627b5488
+        result: success
+      - type: screen
+        nodeId: screen-cb6814a8
+        action: submit
+      - type: action
+        nodeId: action-97e9d65c
+        result: success
+      - type: screen
+        nodeId: screen-c10c3bef
+        action: submit
+    expectedOutcome:
+      outcomeId: outcome-3581d005
+
+  - id: sc-otp-retry-then-success
+    name: User mistypes the OTP once, retries, and signs in
+    description: |
+      Exercises the verify-OTP on-error loop back to the Enter code screen.
+    initialContext:
+      identifier_exists: true
+      passkey_available: false
+    inputScript:
+      - type: screen
+        nodeId: screen-b9f2f8bd
+        action: submit
+      - type: action
+        nodeId: action-627b5488
+        result: success
+      - type: screen
+        nodeId: screen-cb6814a8
+        action: submit
+      - type: action
+        nodeId: action-97e9d65c
+        result: error
+      - type: screen
+        nodeId: screen-cb6814a8
+        action: submit
+      - type: action
+        nodeId: action-97e9d65c
+        result: success
+    expectedOutcome:
+      outcomeId: outcome-c7db15a6
+
+  - id: sc-send-otp-retry-then-success
+    name: Send OTP fails once, user retries from Welcome, then signs in
+    description: |
+      Exercises the send-verification on-error loop back to the Welcome screen.
+    initialContext:
+      identifier_exists: true
+      passkey_available: false
+    inputScript:
+      - type: screen
+        nodeId: screen-b9f2f8bd
+        action: submit
+      - type: action
+        nodeId: action-627b5488
+        result: error
+      - type: screen
+        nodeId: screen-b9f2f8bd
+        action: submit
+      - type: action
+        nodeId: action-627b5488
+        result: success
+      - type: screen
+        nodeId: screen-cb6814a8
+        action: submit
+      - type: action
+        nodeId: action-97e9d65c
+        result: success
+    expectedOutcome:
+      outcomeId: outcome-c7db15a6
+
+layout:
+  action-627b5488:
+    x: 480
+    y: 85
+  action-97e9d65c:
+    x: 1059
+    y: 92
+  decision-377da22e:
+    x: 1590
+    y: 75
+  decision-6ee8c91d:
+    x: 1902
+    y: 75
+  entry:
+    x: -80
+    y: 108
+  outcome-3581d005:
+    x: 2451
+    y: 609
+  outcome-551ddb32:
+    x: 2661
+    y: 90
+  outcome-c7db15a6:
+    x: 2671
+    y: 265
+  screen-b9f2f8bd:
+    x: 156
+    y: 5
+  screen-c10c3bef:
+    x: 1971
+    y: 489
+  screen-cb6814a8:
+    x: 762
+    y: 7
+  screen-ecff2cb9:
+    x: 2215
+    y: 22
