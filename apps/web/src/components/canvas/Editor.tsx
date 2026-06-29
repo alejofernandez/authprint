@@ -82,6 +82,7 @@ import { shouldDeferUndoToField, useUndoManager } from './ydoc/useUndoManager.ts
 import { useYDocFlow } from './ydoc/useYDocFlow.ts';
 
 export type ExampleFlow = { id: string; name: string; source: string };
+export type PatternFlow = ExampleFlow;
 
 const edgeTypes = {};
 
@@ -127,17 +128,33 @@ function downloadText(filename: string, content: string, mime: string): void {
 
 type Notice = { kind: 'error' | 'info'; title: string; diagnostics: Diagnostic[] };
 
-export function Editor({ initialFlow, examples }: { initialFlow: Flow; examples: ExampleFlow[] }) {
+export function Editor({
+  initialFlow,
+  examples,
+  patterns,
+}: {
+  initialFlow: Flow;
+  examples: ExampleFlow[];
+  patterns: PatternFlow[];
+}) {
   // ReactFlowProvider hoists the store above the canvas so the palette (a
   // sibling of the canvas) can drive it — e.g. the "Fit view" command.
   return (
     <ReactFlowProvider>
-      <EditorShell initialFlow={initialFlow} examples={examples} />
+      <EditorShell initialFlow={initialFlow} examples={examples} patterns={patterns} />
     </ReactFlowProvider>
   );
 }
 
-function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: ExampleFlow[] }) {
+function EditorShell({
+  initialFlow,
+  examples,
+  patterns,
+}: {
+  initialFlow: Flow;
+  examples: ExampleFlow[];
+  patterns: PatternFlow[];
+}) {
   // The Y.Doc is the editable runtime model (§7). It's built from the parsed
   // Flow and rebuilt wholesale on each load — a fresh document per flow is
   // simpler than diffing one doc into another, and load is a deliberate reset.
@@ -410,6 +427,15 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
           );
         },
       },
+      ...patterns.map((pattern) => ({
+        id: `pattern-${pattern.id}`,
+        group: 'New flow from pattern',
+        label: pattern.name,
+        keywords: pattern.id,
+        run: () => {
+          applySource(pattern.source, pattern.name);
+        },
+      })),
       ...examples.map((example) => ({
         id: `example-${example.id}`,
         group: 'Examples',
@@ -471,6 +497,7 @@ function EditorShell({ initialFlow, examples }: { initialFlow: Flow; examples: E
     [
       doc,
       examples,
+      patterns,
       openFilePicker,
       applySource,
       fitView,

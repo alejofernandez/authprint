@@ -1,0 +1,115 @@
+# Step-up MFA — starter pattern.
+#
+# An already-authenticated session hits elevated risk and must re-verify with
+# MFA before continuing. Low-risk sessions skip the challenge entirely.
+
+id: pattern-step-up-mfa
+name: Step-up MFA
+
+context:
+  risk.elevated:
+    type: boolean
+
+nodes:
+  - type: entry
+    id: e1
+
+  - type: decision
+    id: d-risk
+    kind: risk-elevated
+    predicate:
+      slot: risk.elevated
+      op: equals
+      value: true
+
+  - type: screen
+    id: s-mfa
+    name: Verify it's you
+    kind: mfa-challenge
+    fields:
+      - name: otp
+        type: otp
+        required: true
+
+  - type: action
+    id: a-verify
+    name: Verify one-time code
+    kind: verify-otp
+
+  - type: outcome
+    id: o-no-step-up
+    name: Authenticated
+    kind: authenticated
+
+  - type: outcome
+    id: o-step-up-ok
+    name: Step-up complete
+    kind: authenticated
+
+  - type: outcome
+    id: o-step-up-failed
+    name: Verification failed
+    kind: error
+
+edges:
+  - id: edge-entry-risk
+    source: e1
+    target: d-risk
+    trigger:
+      type: unconditional
+
+  - id: edge-risk-low
+    source: d-risk
+    target: o-no-step-up
+    trigger:
+      type: branch
+      value: false
+
+  - id: edge-risk-high
+    source: d-risk
+    target: s-mfa
+    trigger:
+      type: branch
+      value: true
+
+  - id: edge-mfa-verify
+    source: s-mfa
+    target: a-verify
+    trigger:
+      type: interaction
+      action: submit
+
+  - id: edge-verify-success
+    source: a-verify
+    target: o-step-up-ok
+    trigger:
+      type: on-success
+
+  - id: edge-verify-error
+    source: a-verify
+    target: o-step-up-failed
+    trigger:
+      type: on-error
+
+scenarios:
+  - id: sc-low-risk
+    name: No step-up required
+    initialContext:
+      risk.elevated: false
+    inputScript: []
+    expectedOutcome:
+      outcomeId: o-no-step-up
+
+  - id: sc-step-up
+    name: Elevated risk — MFA succeeds
+    initialContext:
+      risk.elevated: true
+    inputScript:
+      - type: screen
+        nodeId: s-mfa
+        action: submit
+      - type: action
+        nodeId: a-verify
+        result: success
+    expectedOutcome:
+      outcomeId: o-step-up-ok

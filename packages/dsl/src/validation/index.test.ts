@@ -6,6 +6,26 @@ import { FlowSchema } from '../schema/flow.ts';
 import { canExport, validate } from './index.ts';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
+const specRoot = `${here}/../../../dsl-spec/examples`;
+
+const PATTERN_FILES = [
+  'patterns/social-account-link.authprint',
+  'patterns/step-up-mfa.authprint',
+  'patterns/email-password-verification.authprint',
+  'passkey-enrollment.authprint',
+  'magic-link-signin.authprint',
+];
+
+function expectFlowValidatesClean(relativePath: string): void {
+  const text = readFileSync(`${specRoot}/${relativePath}`, 'utf8');
+  const parsed = parse(text);
+  expect(parsed.flow).not.toBeNull();
+  if (!parsed.flow) return;
+
+  const diagnostics = validate(parsed.flow);
+  expect(diagnostics).toEqual([]);
+  expect(canExport(parsed.flow)).toBe(true);
+}
 
 describe('validate — orchestrator', () => {
   test('passkey-enrollment example: zero errors, zero warnings', () => {
@@ -145,4 +165,12 @@ describe('validate — orchestrator', () => {
     expect(codes.has('validation-predicate-slot-undeclared')).toBe(true);
     expect(canExport(flow)).toBe(false);
   });
+});
+
+describe('validate — pattern library', () => {
+  for (const file of PATTERN_FILES) {
+    test(`${file}: zero errors, zero warnings, canExport true`, () => {
+      expectFlowValidatesClean(file);
+    });
+  }
 });

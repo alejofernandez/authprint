@@ -1,0 +1,147 @@
+# Social account link — starter pattern.
+#
+# User signs in with Google; if the social identity is already linked we
+# authenticate, otherwise we link it to their account. Each branch ends on
+# its own outcome (§7 spine + branches).
+
+id: pattern-social-account-link
+name: Social account link
+
+context:
+  social.account_linked:
+    type: boolean
+
+nodes:
+  - type: entry
+    id: e1
+
+  - type: external
+    id: x-google
+    name: Continue with Google
+    kind: google
+
+  - type: decision
+    id: d-linked
+    kind: social-account-linked
+    predicate:
+      slot: social.account_linked
+      op: equals
+      value: true
+
+  - type: action
+    id: a-link
+    name: Link social account
+    kind: link-social-account
+
+  - type: outcome
+    id: o-already-linked
+    name: Authenticated
+    kind: authenticated
+
+  - type: outcome
+    id: o-linked
+    name: Account linked
+    kind: account-created
+
+  - type: outcome
+    id: o-oauth-error
+    name: OAuth error
+    kind: error
+
+  - type: outcome
+    id: o-denied
+    name: Access denied
+    kind: denied
+
+  - type: outcome
+    id: o-cancelled
+    name: User cancelled
+    kind: abandoned
+
+  - type: outcome
+    id: o-link-failed
+    name: Link failed
+    kind: error
+
+edges:
+  - id: edge-entry-google
+    source: e1
+    target: x-google
+    trigger:
+      type: unconditional
+
+  - id: edge-google-success
+    source: x-google
+    target: d-linked
+    trigger:
+      type: on-success
+
+  - id: edge-google-error
+    source: x-google
+    target: o-oauth-error
+    trigger:
+      type: on-error
+
+  - id: edge-google-denied
+    source: x-google
+    target: o-denied
+    trigger:
+      type: on-denied
+
+  - id: edge-google-cancelled
+    source: x-google
+    target: o-cancelled
+    trigger:
+      type: on-cancelled
+
+  - id: edge-linked-yes
+    source: d-linked
+    target: o-already-linked
+    trigger:
+      type: branch
+      value: true
+
+  - id: edge-linked-no
+    source: d-linked
+    target: a-link
+    trigger:
+      type: branch
+      value: false
+
+  - id: edge-link-success
+    source: a-link
+    target: o-linked
+    trigger:
+      type: on-success
+
+  - id: edge-link-error
+    source: a-link
+    target: o-link-failed
+    trigger:
+      type: on-error
+
+scenarios:
+  - id: sc-returning
+    name: Social account already linked
+    initialContext:
+      social.account_linked: true
+    inputScript:
+      - type: external
+        nodeId: x-google
+        result: success
+    expectedOutcome:
+      outcomeId: o-already-linked
+
+  - id: sc-new-link
+    name: First-time link after Google sign-in
+    initialContext:
+      social.account_linked: false
+    inputScript:
+      - type: external
+        nodeId: x-google
+        result: success
+      - type: action
+        nodeId: a-link
+        result: success
+    expectedOutcome:
+      outcomeId: o-linked
