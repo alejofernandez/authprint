@@ -24,7 +24,7 @@ nodes:
   - type: decision
     id: decision-377da22e
     name: User exists
-    kind: custom
+    kind: user-exists
     predicate:
       slot: identifier_exists
       op: equals
@@ -36,7 +36,7 @@ nodes:
   - type: screen
     id: screen-cb6814a8
     name: Enter code
-    kind: custom
+    kind: email-verify
     fields:
       - name: code
         type: otp

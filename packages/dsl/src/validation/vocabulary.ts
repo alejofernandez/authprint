@@ -65,10 +65,11 @@ export function checkVocabulary(flow: Flow): Diagnostic[] {
 }
 
 function warn(code: DiagnosticCode, value: string, path: string, nodeId: string): Diagnostic {
+  const noun = code === 'vocabulary-unknown-field-type' ? 'field type' : 'kind';
   return {
     severity: 'warning',
     code,
-    message: `'${value}' is not in the built-in vocabulary (accepted as custom)`,
+    message: `'${value}' is a custom ${noun} (not in the built-in vocabulary)`,
     path,
     target: { kind: 'node', id: nodeId },
   };

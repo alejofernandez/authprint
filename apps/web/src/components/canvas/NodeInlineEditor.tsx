@@ -122,11 +122,7 @@ function KindSelect({
         if (e.target.value !== '__current__') onChange(e.target.value);
       }}
     >
-      {!inList && (
-        <option value="__current__">
-          {value === 'custom' ? 'Choose kind…' : `${value} (custom)`}
-        </option>
-      )}
+      {!inList && <option value="__current__">{`${value} (custom)`}</option>}
       {options.map((k) => (
         <option key={k} value={k}>
           {k}

@@ -60,22 +60,29 @@ export function triggerFor(sourceType: DslNode['type'], handleId: string | null)
   }
 }
 
-// Placeholder kind for a freshly-created node — honest "not chosen yet" (the
-// vocabulary check warns; the inline card sets a real value). Decisions get a
-// placeholder predicate slot so the node stays schema-valid (slot is min-1) and
-// round-trips; validation flags it as undeclared until the predicate editor
-// (US-052) sets a real slot.
-const PLACEHOLDER_KIND = 'custom';
+// Default kind per structural type — a real built-in so new nodes are
+// valid-silent (no spurious vocabulary-unknown-*-kind). The inline card still
+// lets the author pick a different kind. Decisions get a placeholder predicate
+// slot so the node stays schema-valid (slot is min-1) and round-trips;
+// validation flags it as undeclared until the predicate editor sets a real slot.
+const DEFAULT_KIND: Record<CreatableType, string> = {
+  screen: 'identifier-collect',
+  decision: 'user-exists',
+  action: 'validate-credentials',
+  external: 'oauth-provider',
+  outcome: 'authenticated',
+};
 const PLACEHOLDER_SLOT = 'choose-slot';
 
 export function defaultNode(type: CreatableType, id: string): DslNode {
+  const kind = DEFAULT_KIND[type];
   switch (type) {
     case 'screen':
       return {
         type,
         id,
         name: 'New screen',
-        kind: PLACEHOLDER_KIND,
+        kind,
         traits: [],
         fields: [],
         fidelity: 'lo-fi',
@@ -85,15 +92,15 @@ export function defaultNode(type: CreatableType, id: string): DslNode {
         type,
         id,
         name: 'New decision',
-        kind: PLACEHOLDER_KIND,
+        kind,
         predicate: { slot: PLACEHOLDER_SLOT, op: 'equals', value: true },
       };
     case 'action':
-      return { type, id, name: 'New action', kind: PLACEHOLDER_KIND };
+      return { type, id, name: 'New action', kind };
     case 'external':
-      return { type, id, name: 'New external', kind: PLACEHOLDER_KIND };
+      return { type, id, name: 'New external', kind };
     case 'outcome':
-      return { type, id, name: 'New outcome', kind: PLACEHOLDER_KIND };
+      return { type, id, name: 'New outcome', kind };
   }
 }
 

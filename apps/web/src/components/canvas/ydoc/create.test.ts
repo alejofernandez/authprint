@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import type { Flow } from '@authprint/dsl';
+import { type Flow, validate } from '@authprint/dsl';
 import {
+  CREATABLE_TYPES,
   connectNodes,
   createConnectedNode,
   defaultNode,
@@ -78,13 +79,36 @@ describe('defaultNode', () => {
       type: 'screen',
       id: 'x',
       name: 'New screen',
+      kind: 'identifier-collect',
       traits: [],
       fields: [],
     });
   });
   test('decision has a schema-valid (non-empty) placeholder slot', () => {
     const n = defaultNode('decision', 'x');
-    expect(n.type === 'decision' && n.predicate.slot.length).toBeGreaterThan(0);
+    expect(n.type).toBe('decision');
+    if (n.type !== 'decision') return;
+    expect(n.predicate.slot.length).toBeGreaterThan(0);
+    expect(n.kind).toBe('user-exists');
+  });
+  test('each creatable type uses a built-in default kind (no vocabulary warnings)', () => {
+    for (const type of CREATABLE_TYPES) {
+      const node = defaultNode(type, `new-${type}`);
+      const flow: Flow = {
+        id: 'f',
+        name: 'F',
+        theme: 'light',
+        context: {},
+        nodes: [{ type: 'entry', id: 'entry' }, node],
+        edges: [],
+        annotations: [],
+        scenarios: [],
+      };
+      const vocabularyWarnings = validate(flow).filter((d) =>
+        d.code.startsWith('vocabulary-unknown'),
+      );
+      expect(vocabularyWarnings).toEqual([]);
+    }
   });
 });
 
