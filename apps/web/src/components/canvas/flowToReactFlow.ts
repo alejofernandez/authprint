@@ -11,6 +11,7 @@ import type { CanvasNodeData } from './nodes/index.ts';
 import { buildNodeAriaLabel } from './nodes/nodeAriaLabel.ts';
 import { resolveScreenTheme } from './nodes/screen/screenTheme.ts';
 import type { TraceAttachment } from './scenario/scenarioTrace.ts';
+import type { EdgeRoutes } from './ydoc/schema.ts';
 
 export type NodePositionsMap = Record<string, { x: number; y: number }>;
 
@@ -122,6 +123,7 @@ export type FlowToReactFlowResult = {
 export function flowToReactFlow(
   flow: Flow,
   positions: NodePositionsMap,
+  edgeRoutes: EdgeRoutes = {},
   validation?: ValidationMaps,
   editorTheme: Theme | 'light' | 'dark' = 'light',
   trace?: TraceAttachment,
@@ -164,12 +166,15 @@ export function flowToReactFlow(
     const traceStroke = edgeTraceStroke(trace?.byEdge.get(edge.id));
     const validationStroke = edgeStroke(validation?.byEdge.get(edge.id));
     const stroke = traceStroke ?? validationStroke;
+    const waypoints = edgeRoutes[edge.id] ?? [];
     return {
       id: edge.id,
       source: edge.source,
       target: edge.target,
       sourceHandle: sourceHandleFor(edge.trigger),
       label: labelFor(edge.trigger),
+      type: 'routable',
+      data: { waypoints },
       ...(stroke && {
         style: { stroke, strokeWidth: traceStroke ? 3 : 2 },
         markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: stroke },

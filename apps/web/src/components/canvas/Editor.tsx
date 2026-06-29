@@ -37,6 +37,8 @@ import type * as Y from 'yjs';
 import { track } from '@/analytics';
 import { useTheme } from '@/components/theme';
 import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
+import { EdgeRouteProvider } from './edges/edgeRouteContext.tsx';
+import { RoutableEdge } from './edges/RoutableEdge.tsx';
 import { elkLayoutReady } from './elkLayoutReady.ts';
 import { flowFromSource } from './flowFromSource.ts';
 import { flowToReactFlow, NODE_SIZE, type NodePositionsMap } from './flowToReactFlow.ts';
@@ -64,6 +66,7 @@ import { hydrate } from './ydoc/hydrate.ts';
 import {
   declareContextSlot,
   setDecisionPredicate,
+  setEdgeRoute,
   setNodeKind,
   setNodeName,
   setScreenFidelity,
@@ -86,7 +89,7 @@ import { useYDocFlow } from './ydoc/useYDocFlow.ts';
 export type ExampleFlow = { id: string; name: string; source: string };
 export type PatternFlow = ExampleFlow;
 
-const edgeTypes = {};
+const edgeTypes = { routable: RoutableEdge };
 
 // Leave margin around the fitted graph. `maxZoom` caps magnification so a lone
 // entry node doesn't blow up to fill the viewport; wide flows still zoom out to
@@ -715,7 +718,13 @@ function alignedNodePosition(
 }
 
 function FlowCanvas({ doc }: { doc: Y.Doc }) {
-  const { flow, layout, onNodesChange: nodesToDoc, onEdgesChange: edgesToDoc } = useYDocFlow(doc);
+  const {
+    flow,
+    layout,
+    edgeLayout,
+    onNodesChange: nodesToDoc,
+    onEdgesChange: edgesToDoc,
+  } = useYDocFlow(doc);
   const { theme: editorTheme } = useTheme();
   const autoPositions = useElkLayout(flow, layout);
   const validation = useValidation(flow);
@@ -730,6 +739,13 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const { getNode, screenToFlowPosition } = useReactFlow();
   const [menu, setMenu] = useState<CreateMenu | null>(null);
 
+  const setEdgeRouteOnDoc = useCallback(
+    (edgeId: string, points: { x: number; y: number }[]) => {
+      setEdgeRoute(doc, edgeId, points);
+    },
+    [doc],
+  );
+
   // Dragged + freshly-created nodes (in the layout map) win over auto-placed.
   const graph = useMemo(() => {
     if (!autoPositions) return null;
@@ -740,6 +756,7 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
     const base = flowToReactFlow(
       flow,
       { ...autoPositions, ...layout },
+      edgeLayout,
       showOutlines ? validation : undefined,
       editorTheme,
       trace,
@@ -757,6 +774,7 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   }, [
     flow,
     layout,
+    edgeLayout,
     autoPositions,
     menu,
     validation,
@@ -868,42 +886,44 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   return (
     // In scenario mode the `+` affordances vanish (HandlePlus renders nothing
     // without a create handler), reinforcing read-only.
-    <NodeActivateProvider value={readOnly ? null : onNodeActivate}>
-      <NodeCreateProvider value={readOnly ? null : openCreateMenu}>
-        <BoundCanvas
-          graph={graph}
-          nodesToDoc={nodesToDoc}
-          edgesToDoc={edgesToDoc}
-          onConnect={onConnect}
-          onConnectEnd={onConnectEnd}
-          isValidConnection={isValidConnection}
-          onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
-          readOnly={readOnly}
-        />
-        <ProblemsPanel
-          validation={validation}
-          showOutlines={showOutlines}
-          onToggleOutlines={() => setShowOutlines((v) => !v)}
-        />
-        {!readOnly && pickerPlacement && (
-          <NodeTypePicker
-            placement={pickerPlacement}
-            onPick={pickType}
-            onClose={() => setMenu(null)}
+    <EdgeRouteProvider setRoute={readOnly ? null : setEdgeRouteOnDoc}>
+      <NodeActivateProvider value={readOnly ? null : onNodeActivate}>
+        <NodeCreateProvider value={readOnly ? null : openCreateMenu}>
+          <BoundCanvas
+            graph={graph}
+            nodesToDoc={nodesToDoc}
+            edgesToDoc={edgesToDoc}
+            onConnect={onConnect}
+            onConnectEnd={onConnectEnd}
+            isValidConnection={isValidConnection}
+            onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
+            readOnly={readOnly}
           />
-        )}
-        {!readOnly && editingId && editingNode && (
-          <NodeInspector
-            key={editingId}
-            nodeId={editingId}
-            node={editingNode}
-            onClose={() => setEditingId(null)}
-          >
-            <NodeInlineEditor node={editingNode} context={flow.context} actions={editActions} />
-          </NodeInspector>
-        )}
-      </NodeCreateProvider>
-    </NodeActivateProvider>
+          <ProblemsPanel
+            validation={validation}
+            showOutlines={showOutlines}
+            onToggleOutlines={() => setShowOutlines((v) => !v)}
+          />
+          {!readOnly && pickerPlacement && (
+            <NodeTypePicker
+              placement={pickerPlacement}
+              onPick={pickType}
+              onClose={() => setMenu(null)}
+            />
+          )}
+          {!readOnly && editingId && editingNode && (
+            <NodeInspector
+              key={editingId}
+              nodeId={editingId}
+              node={editingNode}
+              onClose={() => setEditingId(null)}
+            >
+              <NodeInlineEditor node={editingNode} context={flow.context} actions={editActions} />
+            </NodeInspector>
+          )}
+        </NodeCreateProvider>
+      </NodeActivateProvider>
+    </EdgeRouteProvider>
   );
 }
 

@@ -18,6 +18,8 @@ import { readFlow } from './hydrate.ts';
 import { moveNode, removeEdge, removeNode } from './ops.ts';
 import {
   contextMap,
+  type EdgeRoutes,
+  edgeLayoutMap,
   edgesMap,
   type LayoutPositions,
   layoutMap,
@@ -25,12 +27,16 @@ import {
   nodesMap,
 } from './schema.ts';
 
-export type { LayoutPositions };
+export type { EdgeRoutes, LayoutPositions };
 
-export type YDocFlowSnapshot = { flow: Flow; layout: LayoutPositions };
+export type YDocFlowSnapshot = { flow: Flow; layout: LayoutPositions; edgeLayout: EdgeRoutes };
 
 function snapshot(doc: Y.Doc): YDocFlowSnapshot {
-  return { flow: readFlow(doc), layout: Object.fromEntries(layoutMap(doc).entries()) };
+  return {
+    flow: readFlow(doc),
+    layout: Object.fromEntries(layoutMap(doc).entries()),
+    edgeLayout: Object.fromEntries(edgeLayoutMap(doc).entries()),
+  };
 }
 
 // ─── Pure change appliers (canvas → Y.Doc) ───────────────────────────────────
@@ -65,7 +71,14 @@ export function useYDocFlow(doc: Y.Doc) {
 
   const subscribe = useCallback(
     (onChange: () => void) => {
-      const maps = [nodesMap(doc), edgesMap(doc), contextMap(doc), layoutMap(doc), metaMap(doc)];
+      const maps = [
+        nodesMap(doc),
+        edgesMap(doc),
+        contextMap(doc),
+        layoutMap(doc),
+        edgeLayoutMap(doc),
+        metaMap(doc),
+      ];
       const onMutation = () => {
         cache.current = null; // invalidate; getSnapshot recomputes on next read
         onChange();
@@ -94,5 +107,11 @@ export function useYDocFlow(doc: Y.Doc) {
     [doc],
   );
 
-  return { flow: state.flow, layout: state.layout, onNodesChange, onEdgesChange };
+  return {
+    flow: state.flow,
+    layout: state.layout,
+    edgeLayout: state.edgeLayout,
+    onNodesChange,
+    onEdgesChange,
+  };
 }

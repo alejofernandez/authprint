@@ -28,6 +28,7 @@ describe('flowToReactFlow — validation attachment (E33)', () => {
     const { nodes, edges } = flowToReactFlow(
       flow,
       {},
+      {},
       { byNode: new Map([['a1', [err()]]]), byEdge: new Map([['e1', [err()]]]) },
     );
     expect(nodes.find((n) => n.id === 'a1')?.data.diagnostics).toHaveLength(1);
@@ -42,5 +43,13 @@ describe('flowToReactFlow — validation attachment (E33)', () => {
     const { nodes, edges } = flowToReactFlow(flow, {});
     expect(nodes.every((n) => n.data.diagnostics === undefined)).toBe(true);
     expect(edges[0]?.style).toBeUndefined();
+    expect(edges[0]?.type).toBe('routable');
+  });
+
+  test('edge routes attach waypoints on routable edges', () => {
+    const route = [{ x: 40, y: 90 }];
+    const { edges } = flowToReactFlow(flow, {}, { e1: route });
+    expect(edges[0]?.type).toBe('routable');
+    expect(edges[0]?.data).toEqual({ waypoints: route });
   });
 });
