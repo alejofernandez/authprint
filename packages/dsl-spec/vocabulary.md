@@ -272,9 +272,59 @@ These spec-correct or common-tech names were considered and rejected per Princip
 
 ## Extension model
 
-- **Kind / field-type identifiers**: DSL parser accepts unknown values as custom; validator emits `vocabulary-unknown-kind` warning (not error). Custom values render with generic visual treatment in the canvas.
+What can be extended, and how:
+
+- **Kind / field-type identifiers**: DSL parser accepts unknown values as custom; they render with generic visual treatment in the canvas. A custom value is either **declared** (in the flow's `vocabulary:` block — silent) or **undeclared** (emits a `vocabulary-unknown-*-kind` / `-field-type` **warning**, not an error). See [Declaring custom kinds](#declaring-custom-kinds) below.
 - **Trait identifiers**: validator **rejects** unknown values (errors, not warnings). Trait vocabulary is curated by design — additions go through maintainer review.
-- **User action labels**: accepts custom freely; common patterns surface as autocomplete.
+- **User action labels**: accepts custom freely (no warning); common patterns surface as autocomplete.
 - **Predicate operators**: closed set; cannot be extended in v1.
 - **Context slot types**: closed set; cannot be extended in v1.
 - **Structural types**: closed set permanently (these define the graph semantics).
+
+### Declaring custom kinds
+
+`kind` and field-`type` are **open** layers — but "open" doesn't mean "anything goes silently." The vocabulary check can't tell a typo (`send-otpp`) from a deliberate domain kind (`biometric-gate`) from a bare string, so intent is made **explicit** via a per-flow declaration. (Full rationale: [ADR 0002 — Custom vocabulary declaration & promotion](./decisions/0002-custom-vocabulary-declaration.md).)
+
+A flow may carry an optional top-level **`vocabulary:`** block listing its custom identifiers, grouped by open category:
+
+```yaml
+id: signup-flow
+name: Sign up
+vocabulary:
+  screenKinds: [biometric-gate, kiosk-unlock]
+  actionKinds: [risk-score]
+# decisionKinds, externalKinds, outcomeKinds, fieldTypes likewise
+nodes:
+  - type: screen
+    id: screen-1
+    kind: biometric-gate   # declared above → no warning
+```
+
+`vocabulary:` is **semantic** (it changes what the flow means), so it lives inside the flow and travels in every export — unlike `layout:`, which is view state. It is omitted entirely when empty, so a flow with no custom vocabulary is unchanged.
+
+**Validator behavior** for a node `kind` (and, analogously, a field `type`):
+
+| The value is… | Result |
+|---|---|
+| a built-in (this document's tables) | accepted, silent |
+| listed in the flow's `vocabulary.<category>` (declared custom) | accepted, **silent** |
+| neither | `vocabulary-unknown-*-kind` **warning** — "pick a built-in, or declare it under `vocabulary:`" |
+
+So a **declared** custom kind is deliberate and silent; an **undeclared** non-built-in is treated as probably-a-typo and warned. Two optional tidy lints: a declaration that duplicates a now-built-in value (`vocabulary-redundant-declaration`), and a declaration no node uses (`vocabulary-unused-declaration`).
+
+**In the editor**, choosing **"Custom…"** in the kind picker and committing a value *is* the intent assertion — the editor declares it into `vocabulary:` automatically, so in-app authoring never produces the warning. The warning's job narrows to hand-authored or imported flows.
+
+### Promoting a custom kind to built-in
+
+Declared customs are the candidate pool for growing this vocabulary. The lifecycle:
+
+```
+invent custom kind → declare in vocabulary: (silent locally)
+  → observed across many flows (demand signal)
+  → maintainer review promotes it → added to the *_KINDS_BUILTIN arrays + the tables here
+  → existing declarations become redundant (info lint) → authors drop them
+```
+
+Promotion uses the same maintainer-review governance traits already follow. It is graceful in both directions: a flow authored before promotion keeps working (declared → now also built-in → still silent), and nothing breaks when a kind graduates.
+
+**Scope:** declaration + promotion apply to the **open** layers only (kinds + field types). Traits, predicate operators, context-slot types, and structural types stay closed. Project-level / shared vocabularies and named extension packs are future rungs (see ADR 0002).
