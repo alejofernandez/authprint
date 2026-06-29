@@ -14,7 +14,15 @@ function node(
     type: 'screen',
     position: { x, y },
     data: {
-      node: { id, type: 'screen', title: id, interactions: [] },
+      node: {
+        id,
+        type: 'screen',
+        name: id,
+        kind: 'login',
+        traits: [],
+        fields: [],
+        fidelity: 'lo-fi',
+      },
       ariaLabel: id,
     },
     ...extra,
