@@ -10,13 +10,14 @@ import {
   removeEdge,
   removeNode,
   setDecisionPredicate,
+  setEdgeRoute,
   setNodeKind,
   setNodeName,
   setScreenFidelity,
   setScreenFields,
   setScreenTraits,
 } from './ops.ts';
-import { edgesMap, layoutMap, nodesMap } from './schema.ts';
+import { edgeLayoutMap, edgesMap, layoutMap, nodesMap } from './schema.ts';
 
 // Minimal flow: entry → screen → (decision) → outcome, decision has both branches.
 function base() {
@@ -72,12 +73,17 @@ describe('addNode', () => {
 });
 
 describe('removeNode', () => {
-  test('cascades to incident edges and the layout entry', () => {
+  test('cascades to incident edges, their routes, and the layout entry', () => {
     const doc = base();
     moveNode(doc, 'd1', { x: 10, y: 20 });
+    setEdgeRoute(doc, 'e2', [{ x: 1, y: 2 }]);
+    setEdgeRoute(doc, 'e3', [{ x: 3, y: 4 }]);
     expect(removeNode(doc, 'd1')).toEqual({ ok: true });
     expect(nodesMap(doc).has('d1')).toBe(false);
     expect(layoutMap(doc).has('d1')).toBe(false);
+    expect(edgeLayoutMap(doc).has('e2')).toBe(false);
+    expect(edgeLayoutMap(doc).has('e3')).toBe(false);
+    expect(edgeLayoutMap(doc).has('e4')).toBe(false);
     // e2 (→d1), e3 (d1→), e4 (d1→) all gone; e1 (entry→s1) stays.
     expect([...edgesMap(doc).keys()].sort()).toEqual(['e1']);
   });
@@ -129,10 +135,28 @@ describe('addEdge / removeEdge', () => {
       }).ok,
     ).toBe(false);
   });
-  test('removeEdge deletes', () => {
+  test('removeEdge deletes the edge and its route', () => {
     const doc = base();
+    setEdgeRoute(doc, 'e3', [{ x: 10, y: 20 }]);
     expect(removeEdge(doc, 'e3')).toEqual({ ok: true });
     expect(edgesMap(doc).has('e3')).toBe(false);
+    expect(edgeLayoutMap(doc).has('e3')).toBe(false);
+  });
+});
+
+describe('setEdgeRoute', () => {
+  test('writes a route for an existing edge', () => {
+    const doc = base();
+    const points = [
+      { x: 100, y: 200 },
+      { x: 150, y: 250 },
+    ];
+    expect(setEdgeRoute(doc, 'e2', points)).toEqual({ ok: true });
+    expect(edgeLayoutMap(doc).get('e2')).toEqual(points);
+  });
+
+  test('rejects an unknown edge', () => {
+    expect(setEdgeRoute(base(), 'ghost', [{ x: 0, y: 0 }]).ok).toBe(false);
   });
 });
 

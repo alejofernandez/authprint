@@ -13,6 +13,8 @@ import {
   buildNodeMap,
   contextMap,
   createDoc,
+  type EdgeRoutes,
+  edgeLayoutMap,
   edgesMap,
   type LayoutPositions,
   LOCAL_ORIGIN,
@@ -24,7 +26,7 @@ import {
   readNodeMap,
 } from './schema.ts';
 
-export function hydrate(flow: Flow, layout?: LayoutPositions): Y.Doc {
+export function hydrate(flow: Flow, layout?: LayoutPositions, edgeLayout?: EdgeRoutes): Y.Doc {
   const doc = createDoc();
   doc.transact(() => {
     const meta = metaMap(doc);
@@ -56,6 +58,14 @@ export function hydrate(flow: Flow, layout?: LayoutPositions): Y.Doc {
       const positions = layoutMap(doc);
       for (const [id, position] of Object.entries(layout)) {
         if (nodeIds.has(id)) positions.set(id, position);
+      }
+    }
+
+    if (edgeLayout) {
+      const edgeIds = new Set(flow.edges.map((e) => e.id));
+      const routes = edgeLayoutMap(doc);
+      for (const [id, points] of Object.entries(edgeLayout)) {
+        if (edgeIds.has(id)) routes.set(id, points);
       }
     }
   }, LOCAL_ORIGIN);

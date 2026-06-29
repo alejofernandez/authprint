@@ -186,7 +186,8 @@ function EditorShell({
         setNotice({ kind: 'error', title: tNotices('parseFailed', { label }), diagnostics });
         return false;
       }
-      setDoc(hydrate(parsed, resolveLayoutForImport(authprintSource, sidecarSource)));
+      const { nodes, edges } = resolveLayoutForImport(authprintSource, sidecarSource);
+      setDoc(hydrate(parsed, nodes, edges));
       setRevision((r) => r + 1);
       setNotice(
         diagnostics.length

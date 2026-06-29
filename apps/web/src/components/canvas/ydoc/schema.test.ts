@@ -7,6 +7,7 @@ import {
   buildNodeMap,
   contextMap,
   createDoc,
+  edgeLayoutMap,
   edgesMap,
   layoutMap,
   metaMap,
@@ -36,9 +37,9 @@ function roundTripSlot(slot: ContextSlot): ContextSlot {
 }
 
 describe('createDoc', () => {
-  test('a fresh doc has the four maps plus meta, all empty', () => {
+  test('a fresh doc has the five maps plus meta, all empty', () => {
     const doc = createDoc();
-    for (const map of [nodesMap, edgesMap, contextMap, layoutMap, metaMap]) {
+    for (const map of [nodesMap, edgesMap, contextMap, layoutMap, edgeLayoutMap, metaMap]) {
       expect(map(doc).size).toBe(0);
     }
   });

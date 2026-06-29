@@ -5,8 +5,8 @@
 // refactor (§9). It is NOT the persisted form — on save we serialize to DSL +
 // layout JSON (E25 / §10); Yjs binary blobs are never the canonical artifact.
 //
-// Per §7 the document is four top-level Y.Maps — `nodes`, `edges`, `context`,
-// `layout` — plus a `meta` map for flow-level scalars (id/name/theme) and, for
+// Per §7 the document is five top-level Y.Maps — `nodes`, `edges`, `context`,
+// `layout`, `edgeLayout` — plus a `meta` map for flow-level scalars (id/name/theme) and, for
 // now, the not-yet-canvas-edited `annotations` / `scenarios` carried opaquely
 // so a hydrate→read cycle is lossless. Node attributes are modeled as a nested
 // Y.Map (traits → Y.Array, fields → Y.Array<Y.Map>, predicate → Y.Map) rather
@@ -36,11 +36,14 @@ const NODES = 'nodes';
 const EDGES = 'edges';
 const CONTEXT = 'context';
 const LAYOUT = 'layout';
+const EDGE_LAYOUT = 'edgeLayout';
 const META = 'meta';
 
 export type Position = { x: number; y: number };
 /** Node id → canvas position. The `layout` map's plain-object view (E25 artifact). */
 export type LayoutPositions = Record<string, Position>;
+/** Edge id → optional bend waypoints (layout layer, not semantic). */
+export type EdgeRoutes = Record<string, Position[]>;
 
 // ─── Top-level accessors ─────────────────────────────────────────────────────
 
@@ -51,6 +54,7 @@ export function createDoc(): Y.Doc {
   doc.getMap(EDGES);
   doc.getMap(CONTEXT);
   doc.getMap(LAYOUT);
+  doc.getMap(EDGE_LAYOUT);
   doc.getMap(META);
   return doc;
 }
@@ -59,6 +63,7 @@ export const nodesMap = (doc: Y.Doc): Y.Map<Y.Map<unknown>> => doc.getMap(NODES)
 export const edgesMap = (doc: Y.Doc): Y.Map<Y.Map<unknown>> => doc.getMap(EDGES);
 export const contextMap = (doc: Y.Doc): Y.Map<Y.Map<unknown>> => doc.getMap(CONTEXT);
 export const layoutMap = (doc: Y.Doc): Y.Map<Position> => doc.getMap(LAYOUT);
+export const edgeLayoutMap = (doc: Y.Doc): Y.Map<Position[]> => doc.getMap(EDGE_LAYOUT);
 export const metaMap = (doc: Y.Doc): Y.Map<unknown> => doc.getMap(META);
 
 // ─── Node ⇄ Y.Map ────────────────────────────────────────────────────────────

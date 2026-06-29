@@ -6,18 +6,21 @@ import { hydrate } from './hydrate.ts';
 import { moveNode } from './ops.ts';
 import {
   docToArtifact,
+  type EdgeRoutes,
   extractLayout,
+  extractLayoutArtifact,
   findMatchingSidecar,
   isAuthprintFile,
   isLayoutSidecarFile,
   parseLayout,
+  parseLayoutBlock,
   resolveLayoutForImport,
   serializeBundle,
   serializeLayout,
   serializeSemantic,
   serializeSidecar,
 } from './persist.ts';
-import { type LayoutPositions, layoutMap } from './schema.ts';
+import { edgeLayoutMap, type LayoutPositions, layoutMap } from './schema.ts';
 
 const DEMO_PATH = join(
   import.meta.dir,
@@ -100,9 +103,32 @@ describe('round-trip', () => {
 });
 
 describe('serializeLayout / parseLayout', () => {
-  test('round-trips a positions map through YAML', () => {
+  test('round-trips a positions map through YAML (nested nodes block)', () => {
     const layout: LayoutPositions = { entry: { x: 5, y: 6 }, s1: { x: 100, y: 200 } };
-    expect(parseLayout(yamlParse(serializeLayout(layout)))).toEqual(layout);
+    expect(parseLayoutBlock(yamlParse(serializeLayout(layout)))).toEqual({
+      nodes: layout,
+      edges: {},
+    });
+  });
+
+  test('legacy flat node map still parses', () => {
+    const layout: LayoutPositions = { entry: { x: 5, y: 6 }, s1: { x: 100, y: 200 } };
+    expect(parseLayoutBlock(layout)).toEqual({ nodes: layout, edges: {} });
+    expect(parseLayout(layout)).toEqual(layout);
+  });
+
+  test('nested layout block round-trips nodes and edge routes', () => {
+    const layout: LayoutPositions = { entry: { x: 5, y: 6 } };
+    const edgeLayout: EdgeRoutes = {
+      e1: [
+        { x: 100, y: 200 },
+        { x: 150, y: 250 },
+      ],
+    };
+    expect(parseLayoutBlock(yamlParse(serializeLayout(layout, edgeLayout)))).toEqual({
+      nodes: layout,
+      edges: edgeLayout,
+    });
   });
 
   test('rounds to integer pixels', () => {
@@ -119,6 +145,22 @@ describe('serializeLayout / parseLayout', () => {
     const b = serializeLayout({ a: { x: 2, y: 2 }, b: { x: 1, y: 1 } });
     expect(a).toBe(b);
     expect(a.indexOf('a:')).toBeLessThan(a.indexOf('b:'));
+  });
+
+  test('drops malformed edge route entries, never throws', () => {
+    const value = {
+      nodes: { good: { x: 1, y: 2 } },
+      edges: {
+        ok: [{ x: 10, y: 20 }],
+        empty: [],
+        badPoint: [{ x: 'nope', y: 3 }],
+        notArray: { x: 1, y: 2 },
+      },
+    };
+    expect(parseLayoutBlock(value)).toEqual({
+      nodes: { good: { x: 1, y: 2 } },
+      edges: { ok: [{ x: 10, y: 20 }] },
+    });
   });
 
   test('drops malformed entries, never throws', () => {
@@ -145,7 +187,8 @@ describe('serializeLayout / parseLayout', () => {
 function reload(bundle: string): ReturnType<typeof docToArtifact> {
   const { flow: parsed } = parse(bundle);
   if (!parsed) throw new Error('bundle did not parse');
-  return docToArtifact(hydrate(parsed, extractLayout(bundle)));
+  const { nodes, edges } = extractLayoutArtifact(bundle);
+  return docToArtifact(hydrate(parsed, nodes, edges));
 }
 
 describe('bundle round-trip', () => {
@@ -155,6 +198,22 @@ describe('bundle round-trip', () => {
     expect(new Set(out.flow.nodes.map((n) => n.id))).toEqual(new Set(flow.nodes.map((n) => n.id)));
     expect(new Set(out.flow.edges.map((e) => e.id))).toEqual(new Set(flow.edges.map((e) => e.id)));
     expect(out.layout).toEqual(layout);
+  });
+
+  test('edge routes survive bundle save → extract → hydrate', () => {
+    const layout: LayoutPositions = { entry: { x: 5, y: 6 } };
+    const edgeLayout: EdgeRoutes = {
+      e1: [{ x: 100, y: 200 }],
+      e2: [
+        { x: 50, y: 75 },
+        { x: 80, y: 90 },
+      ],
+    };
+    const artifact = { flow, layout, edgeLayout };
+    const out = reload(serializeBundle(artifact));
+    expect(out.layout).toEqual(layout);
+    expect(out.edgeLayout).toEqual(edgeLayout);
+    expect(edgeLayoutMap(hydrate(flow, layout, edgeLayout)).get('e2')).toEqual(edgeLayout.e2);
   });
 
   test('no manual positions → bundle is the plain semantic file (no layout: key)', () => {
@@ -207,12 +266,18 @@ describe('export packagings (US-065)', () => {
     const { semantic, layout: layoutYaml } = serializeSidecar(artifact);
     expect(semantic).toBe(serialize(flow));
     expect(semantic.includes('layout:')).toBe(false);
-    expect(parseLayout(yamlParse(layoutYaml))).toEqual(layout);
+    expect(parseLayoutBlock(yamlParse(layoutYaml))).toEqual({ nodes: layout, edges: {} });
   });
 
   test('serializeSidecar with empty layout still emits an empty sidecar', () => {
     const { layout: layoutYaml } = serializeSidecar({ flow, layout: {} });
-    expect(parseLayout(yamlParse(layoutYaml))).toEqual({});
+    expect(parseLayoutBlock(yamlParse(layoutYaml))).toEqual({ nodes: {}, edges: {} });
+  });
+
+  test('serializeSidecar carries edge routes in the sidecar', () => {
+    const edgeLayout: EdgeRoutes = { e1: [{ x: 10, y: 20 }] };
+    const { layout: layoutYaml } = serializeSidecar({ flow, layout, edgeLayout });
+    expect(parseLayoutBlock(yamlParse(layoutYaml))).toEqual({ nodes: layout, edges: edgeLayout });
   });
 
   test('bundled unchanged: still inline layout when positions exist', () => {
@@ -230,7 +295,8 @@ describe('import packaging detection (US-066)', () => {
   function reloadImport(authprintSource: string, sidecarSource?: string) {
     const { flow: parsed } = parse(authprintSource);
     if (!parsed) throw new Error('authprint did not parse');
-    return docToArtifact(hydrate(parsed, resolveLayoutForImport(authprintSource, sidecarSource)));
+    const { nodes, edges } = resolveLayoutForImport(authprintSource, sidecarSource);
+    return docToArtifact(hydrate(parsed, nodes, edges));
   }
 
   test('bundled import restores inline positions', () => {
@@ -252,7 +318,7 @@ describe('import packaging detection (US-066)', () => {
       flow,
       layout: { entry: { x: 1, y: 1 } },
     });
-    expect(resolveLayoutForImport(bundled, sidecarOnly)).toEqual(layout);
+    expect(resolveLayoutForImport(bundled, sidecarOnly)).toEqual({ nodes: layout, edges: {} });
   });
 
   test('authprintBasename pairs semantic and sidecar filenames', () => {

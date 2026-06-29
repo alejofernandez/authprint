@@ -18,6 +18,7 @@ import {
   buildNodeMap,
   buildPredicateMap,
   contextMap,
+  edgeLayoutMap,
   edgesMap,
   LOCAL_ORIGIN,
   layoutMap,
@@ -44,12 +45,16 @@ export function addNode(doc: Y.Doc, node: DslNode): OpResult {
   return ok;
 }
 
-/** Remove a node and cascade-delete its incident edges + layout entry. Idempotent. */
+/** Remove a node and cascade-delete its incident edges, their routes, and layout entry. */
 export function removeNode(doc: Y.Doc, nodeId: string): OpResult {
+  const edgeIds = incidentEdgeIds(doc, nodeId);
   doc.transact(() => {
     nodesMap(doc).delete(nodeId);
     layoutMap(doc).delete(nodeId);
-    for (const edgeId of incidentEdgeIds(doc, nodeId)) edgesMap(doc).delete(edgeId);
+    for (const edgeId of edgeIds) {
+      edgesMap(doc).delete(edgeId);
+      edgeLayoutMap(doc).delete(edgeId);
+    }
   }, LOCAL_ORIGIN);
   return ok;
 }
@@ -71,7 +76,17 @@ export function addEdge(doc: Y.Doc, edge: Edge): OpResult {
 }
 
 export function removeEdge(doc: Y.Doc, edgeId: string): OpResult {
-  doc.transact(() => edgesMap(doc).delete(edgeId), LOCAL_ORIGIN);
+  doc.transact(() => {
+    edgesMap(doc).delete(edgeId);
+    edgeLayoutMap(doc).delete(edgeId);
+  }, LOCAL_ORIGIN);
+  return ok;
+}
+
+/** Persist a manual edge route (waypoints). One transaction = one undo step. */
+export function setEdgeRoute(doc: Y.Doc, edgeId: string, points: Position[]): OpResult {
+  if (!edgesMap(doc).has(edgeId)) return fail(`edge '${edgeId}' does not exist`);
+  doc.transact(() => edgeLayoutMap(doc).set(edgeId, points), LOCAL_ORIGIN);
   return ok;
 }
 
