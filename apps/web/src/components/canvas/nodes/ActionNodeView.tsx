@@ -8,6 +8,7 @@ import type { ActionNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { HandlePlus } from './HandlePlus.tsx';
 import { NodeShellContent } from './NodeShell.tsx';
+import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
 import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
 import type { CanvasNodeData } from './shared.ts';
 
@@ -17,10 +18,13 @@ export function ActionNodeView({ data, selected }: ActionNodeProps) {
   const { node } = data;
   const connected = data.connectedHandles;
   return (
-    <div
-      className={`group relative rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 border-t-4 border-t-sky-500 dark:border-t-sky-400 ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
+    <CanvasNodeRoot
+      nodeId={node.id}
+      ariaLabel={data.ariaLabel ?? node.id}
       title={canvasNodeTitle(data.diagnostics, data.traceTooltip)}
+      className={`group relative rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 border-t-4 border-t-sky-500 dark:border-t-sky-400 ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
     >
+      <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />
       <NodeShellContent typeLabel="Action" name={node.name} id={node.id} kind={node.kind} />
       <Handle type="source" position={Position.Right} id="on-success" />
@@ -41,6 +45,6 @@ export function ActionNodeView({ data, selected }: ActionNodeProps) {
           anchored={data.pickerAnchorHandle === 'on-error'}
         />
       )}
-    </div>
+    </CanvasNodeRoot>
   );
 }

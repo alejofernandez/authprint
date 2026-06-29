@@ -8,6 +8,7 @@
 import type { DecisionNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { HandlePlus } from './HandlePlus.tsx';
+import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
 import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
 import type { CanvasNodeData } from './shared.ts';
 
@@ -17,10 +18,13 @@ export function DecisionNodeView({ data, selected }: DecisionNodeProps) {
   const { node } = data;
   const connected = data.connectedHandles;
   return (
-    <div
-      className={`group relative w-44 h-28 flex items-center justify-center ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
+    <CanvasNodeRoot
+      nodeId={node.id}
+      ariaLabel={data.ariaLabel ?? node.id}
       title={canvasNodeTitle(data.diagnostics, data.traceTooltip)}
+      className={`group relative w-44 h-28 flex items-center justify-center ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
     >
+      <ValidationCue diagnostics={data.diagnostics} />
       {/* Diamond background via clip-path on a rotated square. */}
       <div
         className="absolute inset-0 bg-violet-50 dark:bg-violet-950/40 border border-violet-400 dark:border-violet-700"
@@ -53,6 +57,6 @@ export function DecisionNodeView({ data, selected }: DecisionNodeProps) {
           anchored={data.pickerAnchorHandle === 'false'}
         />
       )}
-    </div>
+    </CanvasNodeRoot>
   );
 }

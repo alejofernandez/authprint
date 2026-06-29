@@ -46,6 +46,7 @@ import { NodeInspector } from './NodeInspector.tsx';
 import { NodeTypePicker, type NodeTypePickerPlacement } from './NodeTypePicker.tsx';
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
+import { NodeActivateProvider } from './nodes/nodeA11y.tsx';
 import { ProblemsPanel } from './ProblemsPanel.tsx';
 import { ContextPanel } from './scenario/ContextPanel.tsx';
 import { ScenarioControls } from './scenario/ScenarioControls.tsx';
@@ -830,6 +831,15 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
     setEditingId(node.id);
   }, []);
 
+  const onNodeActivate = useCallback(
+    (nodeId: string) => {
+      const target = flow.nodes.find((n) => n.id === nodeId);
+      if (!target || target.type === 'entry') return;
+      setEditingId(nodeId);
+    },
+    [flow.nodes],
+  );
+
   const editActions = useMemo<NodeEditActions>(
     () => ({
       setName: (id, v) => setNodeName(doc, id, v),
@@ -857,40 +867,42 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   return (
     // In scenario mode the `+` affordances vanish (HandlePlus renders nothing
     // without a create handler), reinforcing read-only.
-    <NodeCreateProvider value={readOnly ? null : openCreateMenu}>
-      <BoundCanvas
-        graph={graph}
-        nodesToDoc={nodesToDoc}
-        edgesToDoc={edgesToDoc}
-        onConnect={onConnect}
-        onConnectEnd={onConnectEnd}
-        isValidConnection={isValidConnection}
-        onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
-        readOnly={readOnly}
-      />
-      <ProblemsPanel
-        validation={validation}
-        showOutlines={showOutlines}
-        onToggleOutlines={() => setShowOutlines((v) => !v)}
-      />
-      {!readOnly && pickerPlacement && (
-        <NodeTypePicker
-          placement={pickerPlacement}
-          onPick={pickType}
-          onClose={() => setMenu(null)}
+    <NodeActivateProvider value={readOnly ? null : onNodeActivate}>
+      <NodeCreateProvider value={readOnly ? null : openCreateMenu}>
+        <BoundCanvas
+          graph={graph}
+          nodesToDoc={nodesToDoc}
+          edgesToDoc={edgesToDoc}
+          onConnect={onConnect}
+          onConnectEnd={onConnectEnd}
+          isValidConnection={isValidConnection}
+          onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
+          readOnly={readOnly}
         />
-      )}
-      {!readOnly && editingId && editingNode && (
-        <NodeInspector
-          key={editingId}
-          nodeId={editingId}
-          node={editingNode}
-          onClose={() => setEditingId(null)}
-        >
-          <NodeInlineEditor node={editingNode} context={flow.context} actions={editActions} />
-        </NodeInspector>
-      )}
-    </NodeCreateProvider>
+        <ProblemsPanel
+          validation={validation}
+          showOutlines={showOutlines}
+          onToggleOutlines={() => setShowOutlines((v) => !v)}
+        />
+        {!readOnly && pickerPlacement && (
+          <NodeTypePicker
+            placement={pickerPlacement}
+            onPick={pickType}
+            onClose={() => setMenu(null)}
+          />
+        )}
+        {!readOnly && editingId && editingNode && (
+          <NodeInspector
+            key={editingId}
+            nodeId={editingId}
+            node={editingNode}
+            onClose={() => setEditingId(null)}
+          >
+            <NodeInlineEditor node={editingNode} context={flow.context} actions={editActions} />
+          </NodeInspector>
+        )}
+      </NodeCreateProvider>
+    </NodeActivateProvider>
   );
 }
 

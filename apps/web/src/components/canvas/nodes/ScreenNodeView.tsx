@@ -7,6 +7,7 @@
 import type { ScreenNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { HandlePlus } from './HandlePlus.tsx';
+import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
 import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
 import { ScreenFidelityView } from './screen/ScreenFidelityView.tsx';
 import { screenThemeClass } from './screen/screenTheme.ts';
@@ -24,10 +25,13 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
   // A second interaction off an already-wired handle is added via drag-from-
   // handle (US-050), not by stacking another `+` on a connected handle.
   return (
-    <div
-      className={`group relative ${isCardTier ? 'rounded-xl' : 'rounded-lg'} ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
+    <CanvasNodeRoot
+      nodeId={node.id}
+      ariaLabel={data.ariaLabel ?? node.id}
       title={canvasNodeTitle(data.diagnostics, data.traceTooltip)}
+      className={`group relative ${isCardTier ? 'rounded-xl' : 'rounded-lg'} ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
     >
+      <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />
       <div className={screenThemeClass(data.screenTheme ?? 'light')}>
         <ScreenFidelityView node={node} />
@@ -50,6 +54,6 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
           anchored={data.pickerAnchorHandle === 'alt'}
         />
       )}
-    </div>
+    </CanvasNodeRoot>
   );
 }

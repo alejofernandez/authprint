@@ -32,6 +32,7 @@ describe('flowToReactFlow — validation attachment (E33)', () => {
     );
     expect(nodes.find((n) => n.id === 'a1')?.data.diagnostics).toHaveLength(1);
     expect(nodes.find((n) => n.id === 'entry')?.data.diagnostics).toBeUndefined();
+    expect(nodes.find((n) => n.id === 'a1')?.data.ariaLabel).toContain('Action node: A');
 
     const edge = edges.find((e) => e.id === 'e1');
     expect(edge?.style?.stroke).toBe('#ef4444'); // red for error

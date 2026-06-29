@@ -8,6 +8,7 @@ import type { Diagnostic, Node as DslNode, Flow, Trigger } from '@authprint/dsl'
 import { MarkerType, type Edge as RfEdge, type Node as RfNode } from '@xyflow/react';
 import type { Theme } from '@/components/theme';
 import type { CanvasNodeData } from './nodes/index.ts';
+import { buildNodeAriaLabel } from './nodes/nodeAriaLabel.ts';
 import { resolveScreenTheme } from './nodes/screen/screenTheme.ts';
 import type { TraceAttachment } from './scenario/scenarioTrace.ts';
 
@@ -146,6 +147,7 @@ export function flowToReactFlow(
     initialHeight: nodeSize(node).height,
     data: {
       node,
+      ariaLabel: buildNodeAriaLabel(flow, node.id),
       connectedHandles: connectedHandles.get(node.id),
       diagnostics: validation?.byNode.get(node.id),
       ...(node.type === 'screen' && {

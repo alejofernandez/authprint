@@ -46,7 +46,7 @@ export function CommandPalette({
     >
       <Command.Input
         placeholder="Type a command or search…"
-        className="w-full border-zinc-200 border-b bg-transparent px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 dark:border-zinc-800 dark:text-zinc-100"
+        className="w-full border-zinc-200 border-b bg-transparent px-4 py-3 text-sm text-zinc-900 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-400 placeholder:text-zinc-400 dark:border-zinc-800 dark:text-zinc-100"
       />
       <Command.List className="max-h-[min(50vh,360px)] overflow-y-auto p-2">
         <Command.Empty className="px-3 py-6 text-center text-sm text-zinc-400">
@@ -68,7 +68,7 @@ export function CommandPalette({
                   onOpenChange(false);
                   command.run();
                 }}
-                className={`flex items-center rounded-md px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 ${
+                className={`flex items-center rounded-md px-3 py-2 text-sm text-zinc-700 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-400 dark:text-zinc-200 ${
                   command.disabled
                     ? 'cursor-not-allowed opacity-40'
                     : 'cursor-pointer data-[selected=true]:bg-indigo-50 data-[selected=true]:text-indigo-900 dark:data-[selected=true]:bg-indigo-950/60 dark:data-[selected=true]:text-indigo-100'

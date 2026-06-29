@@ -60,7 +60,7 @@ function defaultValueFor(slot: ContextSlot | undefined): unknown {
 
 const labelCls = 'text-[10px] font-medium uppercase tracking-wider text-zinc-400';
 const inputCls =
-  'w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 outline-none focus:border-indigo-400 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100';
+  'w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 outline-none focus:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-1 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus-visible:ring-offset-zinc-900';
 
 const KIND_OPTIONS = {
   screen: SCREEN_KINDS_BUILTIN,

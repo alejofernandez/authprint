@@ -145,7 +145,7 @@ export function NodeInspector({
         <button
           type="button"
           aria-label="Close"
-          className="shrink-0 rounded p-0.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+          className="shrink-0 rounded p-0.5 text-zinc-400 outline-none hover:bg-zinc-100 hover:text-zinc-600 focus-visible:ring-2 focus-visible:ring-indigo-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
           onClick={onClose}
         >
           ✕

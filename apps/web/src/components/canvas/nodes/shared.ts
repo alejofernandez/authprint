@@ -25,4 +25,6 @@ export type CanvasNodeData<TNode extends Node = Node> = {
   connectedHandles?: ReadonlySet<string>;
   /** Handle whose `+` opened the type picker — keeps that button visible (UF-002). */
   pickerAnchorHandle?: string | null;
+  /** Screen-reader label (US-077). Computed in flowToReactFlow. */
+  ariaLabel?: string;
 };

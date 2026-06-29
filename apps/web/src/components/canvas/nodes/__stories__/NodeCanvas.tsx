@@ -3,6 +3,7 @@ import '@xyflow/react/dist/style.css';
 import type { Node as DslNode, FlowTheme } from '@authprint/dsl';
 import { ReactFlow, ReactFlowProvider, type Node as RfNode } from '@xyflow/react';
 import { nodeTypes } from '../index.ts';
+import { buildNodeAriaLabel } from '../nodeAriaLabel.ts';
 import { resolveScreenTheme } from '../screen/screenTheme.ts';
 
 export type NodeCanvasProps = {
@@ -38,6 +39,19 @@ export function NodeCanvas({
       position: { x: 56, y: 52 },
       data: {
         node,
+        ariaLabel: buildNodeAriaLabel(
+          {
+            nodes: [node],
+            edges: [],
+            id: 'story',
+            name: 'Story',
+            theme: 'light',
+            context: {},
+            annotations: [],
+            scenarios: [],
+          },
+          node.id,
+        ),
         ...(node.type === 'screen' && {
           screenTheme: resolveScreenTheme(flowTheme, theme),
         }),

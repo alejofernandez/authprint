@@ -11,6 +11,7 @@
 
 import { useNodeId } from '@xyflow/react';
 import { createContext, useContext } from 'react';
+import { HANDLE_PLUS_FOCUS_VISIBLE } from './nodeA11y.tsx';
 
 /** Open the node-type picker for a `+` clicked on `sourceId`'s `sourceHandle`. */
 export type OpenCreateMenu = (
@@ -58,7 +59,7 @@ export function HandlePlus({
     <button
       type="button"
       // `nodrag`/`nopan` keep React Flow from treating the click as a node drag.
-      className={`nodrag nopan absolute grid h-5 w-5 place-items-center rounded-full border border-zinc-300 bg-white text-zinc-500 text-xs leading-none shadow-sm transition-opacity hover:border-indigo-400 hover:text-indigo-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-indigo-400 ${SIDE[position]} ${anchored ? 'z-[60]' : 'z-10'} ${visible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+      className={`nodrag nopan absolute grid h-5 w-5 place-items-center rounded-full border border-zinc-300 bg-white text-zinc-500 text-xs leading-none shadow-sm transition-opacity hover:border-indigo-400 hover:text-indigo-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-indigo-400 ${HANDLE_PLUS_FOCUS_VISIBLE} ${SIDE[position]} ${anchored ? 'z-[60]' : 'z-10'} ${visible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
       aria-label="Add connected node"
       onClick={(e) => {
         e.stopPropagation();
