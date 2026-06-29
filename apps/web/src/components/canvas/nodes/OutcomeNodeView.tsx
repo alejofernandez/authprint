@@ -4,7 +4,6 @@
 
 import type { OutcomeNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
-import { NodeShellContent } from './NodeShell.tsx';
 import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
 import type { CanvasNodeData } from './shared.ts';
 
@@ -18,7 +17,14 @@ export function OutcomeNodeView({ data }: OutcomeNodeProps) {
       title={canvasNodeTitle(data.diagnostics, data.traceTooltip)}
     >
       <Handle type="target" position={Position.Left} />
-      <NodeShellContent typeLabel="Outcome" name={node.name} id={node.id} kind={node.kind} />
+      <div className="px-4 py-2 min-w-44 text-center">
+        <div className="text-[10px] uppercase tracking-wider font-medium text-zinc-500 dark:text-zinc-500">
+          Outcome
+        </div>
+        <div className="mt-0.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+          {node.name ?? node.kind}
+        </div>
+      </div>
     </div>
   );
 }

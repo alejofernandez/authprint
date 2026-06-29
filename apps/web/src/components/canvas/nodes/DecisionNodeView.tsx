@@ -33,7 +33,6 @@ export function DecisionNodeView({ data, selected }: DecisionNodeProps) {
         <div className="mt-0.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
           {node.name ?? node.kind}
         </div>
-        <div className="mt-0.5 text-[10px] text-zinc-500 font-mono">{node.id}</div>
       </div>
       <Handle type="target" position={Position.Left} />
       <Handle type="source" position={Position.Right} id="true" />
