@@ -32,7 +32,15 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import { useTranslations } from 'next-intl';
-import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type DragEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type * as Y from 'yjs';
 import { track } from '@/analytics';
 import { useTheme } from '@/components/theme';
@@ -50,6 +58,7 @@ import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx'
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
 import { NodeActivateProvider } from './nodes/nodeA11y.tsx';
 import { ProblemsPanel } from './ProblemsPanel.tsx';
+import { reconcileFlowEdges, reconcileFlowNodes } from './reconcileFlowState.ts';
 import { ContextPanel } from './scenario/ContextPanel.tsx';
 import { ScenarioControls } from './scenario/ScenarioControls.tsx';
 import { ScenarioModeProvider, useScenarioMode } from './scenario/ScenarioModeContext.tsx';
@@ -954,10 +963,14 @@ function BoundCanvas({
   const [nodes, setNodes, onNodesChangeLocal] = useNodesState(graph.nodes);
   const [edges, setEdges, onEdgesChangeLocal] = useEdgesState(graph.edges);
 
-  // Reconcile when the Y.Doc-derived graph changes (a committed drag, a delete,
-  // a remote edit). Steady state is stable refs, so this doesn't loop.
-  useEffect(() => setNodes(graph.nodes), [graph.nodes, setNodes]);
-  useEffect(() => setEdges(graph.edges), [graph.edges, setEdges]);
+  // Reconcile before paint so a layout-only graph refresh (edge route commit,
+  // node drag end) doesn't replace every node object and remeasure handles.
+  useLayoutEffect(() => {
+    setNodes((current) => reconcileFlowNodes(current, graph.nodes));
+  }, [graph.nodes, setNodes]);
+  useLayoutEffect(() => {
+    setEdges((current) => reconcileFlowEdges(current, graph.edges));
+  }, [graph.edges, setEdges]);
 
   const onNodesChange = useCallback<OnNodesChange<RfNode<CanvasNodeData>>>(
     (changes) => {

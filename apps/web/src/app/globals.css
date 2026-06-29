@@ -31,3 +31,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Routable edge labels render in EdgeLabelRenderer (above edges in DOM).
+   Keep them under nodes — spine drag handles interaction; labels need not
+   float over shapes. */
+.react-flow__edgelabel-renderer {
+  z-index: 0;
+}
+.react-flow .react-flow__nodes {
+  z-index: 1;
+}
