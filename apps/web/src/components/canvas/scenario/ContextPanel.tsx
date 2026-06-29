@@ -17,7 +17,7 @@ export function ContextPanel({
   const entries = Object.entries(initialContext).sort(([a], [b]) => a.localeCompare(b));
 
   return (
-    <div className="absolute bottom-6 left-4 z-30 w-56 rounded-lg border border-zinc-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/95">
+    <div className="absolute top-16 left-4 z-30 w-56 rounded-lg border border-zinc-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/95">
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
         Context
       </div>
