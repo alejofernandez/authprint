@@ -25,6 +25,7 @@ import {
   SLOT_TYPES,
   TRAIT_IDS,
 } from '@authprint/dsl';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 export type NodeEditActions = {
@@ -82,6 +83,7 @@ function KindSelect({
   value: string;
   onChange: (kind: string) => void;
 }) {
+  const t = useTranslations('inspector.kind');
   const options = KIND_OPTIONS[nodeType];
   const [custom, setCustom] = useState(false);
 
@@ -102,7 +104,7 @@ function KindSelect({
           className="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
           onClick={() => setCustom(false)}
         >
-          Choose from list
+          {t('chooseFromList')}
         </button>
       </div>
     );
@@ -122,13 +124,13 @@ function KindSelect({
         if (e.target.value !== '__current__') onChange(e.target.value);
       }}
     >
-      {!inList && <option value="__current__">{`${value} (custom)`}</option>}
+      {!inList && <option value="__current__">{t('customValue', { value })}</option>}
       {options.map((k) => (
         <option key={k} value={k}>
           {k}
         </option>
       ))}
-      <option value="__custom__">Custom…</option>
+      <option value="__custom__">{t('customOption')}</option>
     </select>
   );
 }
@@ -151,15 +153,16 @@ export function NodeInlineEditor({
   context: Context;
   actions: NodeEditActions;
 }) {
+  const t = useTranslations('inspector');
   const screen = node.type === 'screen' ? node : null;
   const decision = node.type === 'decision' ? node : null;
 
   return (
     <div className="space-y-4">
-      <Section title="General">
+      <Section title={t('sections.general')}>
         {'name' in node && (
           <label className="block space-y-1">
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">Name</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('labels.name')}</span>
             <input
               className={inputCls}
               defaultValue={node.name ?? ''}
@@ -175,7 +178,7 @@ export function NodeInlineEditor({
 
         {'kind' in node && node.type in KIND_OPTIONS && (
           <label className="block space-y-1" htmlFor={`kind-${node.id}`}>
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">Kind</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('labels.kind')}</span>
             <KindSelect
               id={`kind-${node.id}`}
               key={node.id}
@@ -188,7 +191,7 @@ export function NodeInlineEditor({
 
         {screen && (
           <label className="block space-y-1">
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">Fidelity</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('labels.fidelity')}</span>
             <select
               className={inputCls}
               defaultValue={screen.fidelity}
@@ -207,7 +210,7 @@ export function NodeInlineEditor({
       </Section>
 
       {screen && (
-        <Section title="Traits">
+        <Section title={t('sections.traits')}>
           <div className="flex flex-wrap gap-1">
             {TRAIT_IDS.map((trait) => {
               const on = screen.traits.includes(trait);
@@ -236,7 +239,7 @@ export function NodeInlineEditor({
       )}
 
       {screen && (
-        <Section title="Fields">
+        <Section title={t('sections.fields')}>
           <FieldsEditor
             key={node.id}
             fields={screen.fields}
@@ -246,7 +249,7 @@ export function NodeInlineEditor({
       )}
 
       {decision && (
-        <Section title="Predicate">
+        <Section title={t('sections.predicate')}>
           <PredicateEditor
             predicate={decision.predicate}
             context={context}
@@ -270,6 +273,7 @@ function PredicateEditor({
   onChange: (p: Predicate) => void;
   onDeclareSlot: (name: string, slot: ContextSlot) => void;
 }) {
+  const t = useTranslations('inspector');
   const [addingSlot, setAddingSlot] = useState(false);
   const slotNames = Object.keys(context);
   const slot = context[predicate.slot];
@@ -290,13 +294,17 @@ function PredicateEditor({
           update({ slot: e.target.value, op: 'equals', value: defaultValueFor(next) });
         }}
       >
-        {!declared && <option value={predicate.slot}>{predicate.slot} (undeclared)</option>}
+        {!declared && (
+          <option value={predicate.slot}>
+            {t('predicate.undeclaredSlot', { slot: predicate.slot })}
+          </option>
+        )}
         {slotNames.map((n) => (
           <option key={n} value={n}>
             {n}
           </option>
         ))}
-        <option value="__new__">+ New slot…</option>
+        <option value="__new__">{t('predicate.newSlot')}</option>
       </select>
 
       {addingSlot && (
@@ -336,6 +344,7 @@ function ValueInput({
   value: unknown;
   onChange: (value: unknown) => void;
 }) {
+  const t = useTranslations('inspector.value');
   if (slot?.type === 'boolean') {
     return (
       <select
@@ -343,8 +352,8 @@ function ValueInput({
         value={String(value)}
         onChange={(e) => onChange(e.target.value === 'true')}
       >
-        <option value="true">true</option>
-        <option value="false">false</option>
+        <option value="true">{t('true')}</option>
+        <option value="false">{t('false')}</option>
       </select>
     );
   }
@@ -372,7 +381,7 @@ function ValueInput({
   return (
     <input
       className={inputCls}
-      placeholder="value"
+      placeholder={t('placeholder')}
       defaultValue={typeof value === 'string' ? value : String(value ?? '')}
       onBlur={(e) => onChange(e.target.value)}
     />
@@ -386,6 +395,7 @@ function NewSlotForm({
   onAdd: (name: string, slot: ContextSlot) => void;
   onCancel: () => void;
 }) {
+  const t = useTranslations('inspector.slot');
   const [name, setName] = useState('');
   const [type, setType] = useState<SlotType>('boolean');
   const [values, setValues] = useState('');
@@ -394,7 +404,7 @@ function NewSlotForm({
     <div className="space-y-1 rounded border border-zinc-200 p-2 dark:border-zinc-700">
       <input
         className={inputCls}
-        placeholder="slot name (e.g. risk.level)"
+        placeholder={t('namePlaceholder')}
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
@@ -412,7 +422,7 @@ function NewSlotForm({
       {type === 'enum' && (
         <input
           className={inputCls}
-          placeholder="values, comma-separated"
+          placeholder={t('enumValuesPlaceholder')}
           value={values}
           onChange={(e) => setValues(e.target.value)}
         />
@@ -430,10 +440,10 @@ function NewSlotForm({
             onAdd(name.trim(), type === 'enum' ? { type, values: enumValues } : { type });
           }}
         >
-          Add slot
+          {t('add')}
         </button>
         <button type="button" className="px-2 py-1 text-xs text-zinc-500" onClick={onCancel}>
-          Cancel
+          {t('cancel')}
         </button>
       </div>
     </div>
@@ -512,7 +522,7 @@ function FieldsEditor({
   onChange: (fields: Field[]) => void;
 }) {
   const [rowKeys, setRowKeys] = useState(() => fields.map(() => crypto.randomUUID()));
-
+  const t = useTranslations('inspector.fields');
   const update = (i: number, patch: Partial<Field>) =>
     onChange(fields.map((f, j) => (j === i ? { ...f, ...patch } : f)));
 
@@ -568,7 +578,7 @@ function FieldsEditor({
           </div>
           <input
             className={`${inputCls} min-w-0 flex-1`}
-            placeholder="name"
+            placeholder={t('namePlaceholder')}
             defaultValue={field.name}
             onBlur={(e) => update(i, { name: e.target.value })}
           />
@@ -581,13 +591,13 @@ function FieldsEditor({
           </div>
           <input
             type="checkbox"
-            aria-label="required"
+            aria-label={t('required')}
             checked={field.required}
             onChange={(e) => update(i, { required: e.target.checked })}
           />
           <button
             type="button"
-            aria-label="Remove field"
+            aria-label={t('remove')}
             className="px-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
             onClick={() => remove(i)}
           >
@@ -600,7 +610,7 @@ function FieldsEditor({
         className="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
         onClick={add}
       >
-        + Add field
+        {t('add')}
       </button>
     </div>
   );

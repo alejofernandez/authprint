@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { NextIntlClientProvider } from 'next-intl';
 import { DevBuildOverlay } from '@/components/dev-build-overlay';
 import { InlineScript } from '@/components/inline-script';
 import { ThemeProvider } from '@/components/theme';
@@ -40,10 +41,12 @@ export default function RootLayout({
         <InlineScript html={THEME_INIT_SCRIPT} />
       </head>
       <body className="flex min-h-full flex-col">
-        <ThemeProvider>
-          {children}
-          {process.env.NODE_ENV === 'development' && <DevBuildOverlay />}
-        </ThemeProvider>
+        <NextIntlClientProvider>
+          <ThemeProvider>
+            {children}
+            {process.env.NODE_ENV === 'development' && <DevBuildOverlay />}
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

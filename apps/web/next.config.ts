@@ -1,4 +1,7 @@
 import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
   // React Compiler is disabled: React Flow 12.x ships no `'use no memo'` opt-out
@@ -47,4 +50,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

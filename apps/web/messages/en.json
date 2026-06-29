@@ -1,0 +1,86 @@
+{
+  "palette": {
+    "groups": {
+      "edit": "Edit",
+      "file": "File",
+      "export": "Export",
+      "examples": "Examples",
+      "view": "View",
+      "appearance": "Appearance",
+      "scenario": "Scenario"
+    },
+    "commands": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "openFile": "Open .authprint file…",
+      "saveFlow": "Save flow",
+      "exportSemantic": "Export semantic only…",
+      "exportSidecar": "Export with layout sidecar…",
+      "exportBundled": "Export bundled (inline layout)…",
+      "openExample": "Open example: {name}",
+      "fitView": "Fit flow to screen",
+      "theme": "Theme: {name}{mark}",
+      "runScenario": "Run scenario: {name}",
+      "noScenarios": "No scenarios in this flow",
+      "exitScenario": "Exit scenario: {name}"
+    },
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "searchButton": "Search & commands",
+    "openPalette": "Open command palette",
+    "dropOverlay": "Drop a .authprint file to load it",
+    "dismiss": "Dismiss"
+  },
+  "notices": {
+    "parseFailed": "Couldn't parse {label}",
+    "loadedWithIssues": "Loaded {label} with {count} issue(s)",
+    "sidecarNeedsMatch": "{name} needs a matching .authprint file",
+    "layoutFileFallback": "Layout file",
+    "noFileSelected": "No .authprint file selected",
+    "fileTooLarge": "{name} is too large to load"
+  },
+  "inspector": {
+    "sections": {
+      "general": "General",
+      "traits": "Traits",
+      "fields": "Fields",
+      "predicate": "Predicate"
+    },
+    "labels": {
+      "name": "Name",
+      "kind": "Kind",
+      "fidelity": "Fidelity"
+    },
+    "kind": {
+      "chooseFromList": "Choose from list",
+      "chooseKind": "Choose kind…",
+      "customValue": "{value} (custom)",
+      "customOption": "Custom…"
+    },
+    "predicate": {
+      "undeclaredSlot": "{slot} (undeclared)",
+      "newSlot": "+ New slot…"
+    },
+    "slot": {
+      "namePlaceholder": "slot name (e.g. risk.level)",
+      "enumValuesPlaceholder": "values, comma-separated",
+      "add": "Add slot",
+      "cancel": "Cancel"
+    },
+    "value": {
+      "placeholder": "value",
+      "true": "true",
+      "false": "false"
+    },
+    "fields": {
+      "namePlaceholder": "name",
+      "typePlaceholder": "type",
+      "required": "required",
+      "remove": "Remove field",
+      "add": "+ Add field"
+    }
+  }
+}

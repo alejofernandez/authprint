@@ -31,10 +31,11 @@ import {
   useNodesState,
   useReactFlow,
 } from '@xyflow/react';
+import { useTranslations } from 'next-intl';
 import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type * as Y from 'yjs';
 import { track } from '@/analytics';
-import { type Theme, useTheme } from '@/components/theme';
+import { useTheme } from '@/components/theme';
 import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { elkLayoutReady } from './elkLayoutReady.ts';
 import { flowFromSource } from './flowFromSource.ts';
@@ -106,8 +107,6 @@ const MIME = 'application/vnd.authprint+yaml';
 const LAYOUT_MIME = 'application/vnd.authprint.layout+yaml';
 const MAX_BYTES = 2_000_000; // generous guard; real flows are a few KB
 
-const THEME_LABELS: Record<Theme, string> = { light: 'Light', dark: 'Dark', system: 'System' };
-
 // Flow name → safe file stem; never empty.
 function slugify(name: string): string {
   const slug = name
@@ -155,6 +154,8 @@ function EditorShell({
   examples: ExampleFlow[];
   patterns: PatternFlow[];
 }) {
+  const tPalette = useTranslations('palette');
+  const tNotices = useTranslations('notices');
   // The Y.Doc is the editable runtime model (§7). It's built from the parsed
   // Flow and rebuilt wholesale on each load — a fresh document per flow is
   // simpler than diffing one doc into another, and load is a deliberate reset.
@@ -181,7 +182,7 @@ function EditorShell({
     (authprintSource: string, label: string, sidecarSource?: string): boolean => {
       const { flow: parsed, diagnostics } = flowFromSource(authprintSource);
       if (!parsed) {
-        setNotice({ kind: 'error', title: `Couldn’t parse ${label}`, diagnostics });
+        setNotice({ kind: 'error', title: tNotices('parseFailed', { label }), diagnostics });
         return false;
       }
       setDoc(hydrate(parsed, resolveLayoutForImport(authprintSource, sidecarSource)));
@@ -190,14 +191,14 @@ function EditorShell({
         diagnostics.length
           ? {
               kind: 'info',
-              title: `Loaded ${label} with ${diagnostics.length} issue(s)`,
+              title: tNotices('loadedWithIssues', { label, count: diagnostics.length }),
               diagnostics,
             }
           : null,
       );
       return true;
     },
-    [],
+    [tNotices],
   );
 
   const applySource = useCallback(
@@ -216,14 +217,16 @@ function EditorShell({
         if (sidecars.length > 0) {
           setNotice({
             kind: 'error',
-            title: `${sidecars[0]?.name ?? 'Layout file'} needs a matching ${FILE_EXT} file`,
+            title: tNotices('sidecarNeedsMatch', {
+              name: sidecars[0]?.name ?? tNotices('layoutFileFallback'),
+            }),
             diagnostics: [],
           });
           return;
         }
         setNotice({
           kind: 'error',
-          title: `No ${FILE_EXT} file selected`,
+          title: tNotices('noFileSelected'),
           diagnostics: [],
         });
         return;
@@ -235,7 +238,7 @@ function EditorShell({
       if (primary.size > MAX_BYTES) {
         setNotice({
           kind: 'error',
-          title: `${primary.name} is too large to load`,
+          title: tNotices('fileTooLarge', { name: primary.name }),
           diagnostics: [],
         });
         return;
@@ -250,7 +253,7 @@ function EditorShell({
       if (sidecar && sidecar.size > MAX_BYTES) {
         setNotice({
           kind: 'error',
-          title: `${sidecar.name} is too large to load`,
+          title: tNotices('fileTooLarge', { name: sidecar.name }),
           diagnostics: [],
         });
         return;
@@ -263,7 +266,7 @@ function EditorShell({
         track('flow_opened', { fileName: primary.name, hasSidecar: Boolean(sidecar) });
       }
     },
-    [applyImport],
+    [applyImport, tNotices],
   );
 
   const openFilePicker = useCallback(() => {
@@ -350,31 +353,31 @@ function EditorShell({
     () => [
       {
         id: 'undo',
-        group: 'Edit',
-        label: 'Undo',
+        group: tPalette('groups.edit'),
+        label: tPalette('commands.undo'),
         keywords: 'revert back cmd z ctrl',
         disabled: !canUndo,
         run: undo,
       },
       {
         id: 'redo',
-        group: 'Edit',
-        label: 'Redo',
+        group: tPalette('groups.edit'),
+        label: tPalette('commands.redo'),
         keywords: 'restore forward cmd shift z ctrl y',
         disabled: !canRedo,
         run: redo,
       },
       {
         id: 'open-file',
-        group: 'File',
-        label: 'Open .authprint file…',
+        group: tPalette('groups.file'),
+        label: tPalette('commands.openFile'),
         keywords: 'load import',
         run: openFilePicker,
       },
       {
         id: 'save-file',
-        group: 'File',
-        label: 'Save flow',
+        group: tPalette('groups.file'),
+        label: tPalette('commands.saveFlow'),
         keywords: 'export download write',
         run: () => {
           const artifact = docToArtifact(doc);
@@ -388,8 +391,8 @@ function EditorShell({
       },
       {
         id: 'export-semantic',
-        group: 'Export',
-        label: 'Export semantic only…',
+        group: tPalette('groups.export'),
+        label: tPalette('commands.exportSemantic'),
         keywords: 'download git clean layout-free diff codegen',
         run: () => {
           const artifact = docToArtifact(doc);
@@ -402,8 +405,8 @@ function EditorShell({
       },
       {
         id: 'export-sidecar',
-        group: 'Export',
-        label: 'Export with layout sidecar…',
+        group: tPalette('groups.export'),
+        label: tPalette('commands.exportSidecar'),
         keywords: 'download two files positions layout sidecar',
         run: () => {
           const artifact = docToArtifact(doc);
@@ -415,8 +418,8 @@ function EditorShell({
       },
       {
         id: 'export-bundled',
-        group: 'Export',
-        label: 'Export bundled (inline layout)…',
+        group: tPalette('groups.export'),
+        label: tPalette('commands.exportBundled'),
         keywords: 'download save default single file bundle',
         run: () => {
           const artifact = docToArtifact(doc);
@@ -438,8 +441,8 @@ function EditorShell({
       })),
       ...examples.map((example) => ({
         id: `example-${example.id}`,
-        group: 'Examples',
-        label: `Open example: ${example.name}`,
+        group: tPalette('groups.examples'),
+        label: tPalette('commands.openExample', { name: example.name }),
         keywords: example.id,
         run: () => {
           track('example_opened', { exampleId: example.id });
@@ -448,15 +451,18 @@ function EditorShell({
       })),
       {
         id: 'fit-view',
-        group: 'View',
-        label: 'Fit flow to screen',
+        group: tPalette('groups.view'),
+        label: tPalette('commands.fitView'),
         keywords: 'zoom center reset',
         run: () => fitView(FIT_VIEW_OPTIONS),
       },
       ...(['light', 'dark', 'system'] as const).map((option) => ({
         id: `theme-${option}`,
-        group: 'Appearance',
-        label: `Theme: ${THEME_LABELS[option]}${theme === option ? '  ✓' : ''}`,
+        group: tPalette('groups.appearance'),
+        label: tPalette('commands.theme', {
+          name: tPalette(`themes.${option}`),
+          mark: theme === option ? '  ✓' : '',
+        }),
         keywords: `dark light system appearance ${option}`,
         run: () => setTheme(option),
       })),
@@ -466,8 +472,8 @@ function EditorShell({
       ...(scenarios.length > 0
         ? scenarios.map((sc) => ({
             id: `run-scenario-${sc.id}`,
-            group: 'Scenario',
-            label: `Run scenario: ${sc.name}`,
+            group: tPalette('groups.scenario'),
+            label: tPalette('commands.runScenario', { name: sc.name }),
             keywords: `play walk-through simulate trace test ${sc.id}`,
             run: () =>
               scenario.enter(runScenario(docToArtifact(doc).flow, sc), sc.name, sc.initialContext),
@@ -475,8 +481,8 @@ function EditorShell({
         : [
             {
               id: 'no-scenarios',
-              group: 'Scenario',
-              label: 'No scenarios in this flow',
+              group: tPalette('groups.scenario'),
+              label: tPalette('commands.noScenarios'),
               keywords: 'run play walk-through simulate',
               disabled: true,
               run: () => {},
@@ -486,8 +492,8 @@ function EditorShell({
         ? [
             {
               id: 'exit-scenario',
-              group: 'Scenario',
-              label: `Exit scenario: ${scenario.session.name}`,
+              group: tPalette('groups.scenario'),
+              label: tPalette('commands.exitScenario', { name: scenario.session.name }),
               keywords: 'stop close edit mode esc',
               run: scenario.exit,
             },
@@ -509,6 +515,7 @@ function EditorShell({
       canRedo,
       scenarios,
       scenario,
+      tPalette,
     ],
   );
 
@@ -539,10 +546,10 @@ function EditorShell({
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
-          aria-label="Open command palette"
+          aria-label={tPalette('openPalette')}
           className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-md border border-zinc-300 bg-white/80 py-1.5 pr-2 pl-3 text-sm text-zinc-600 shadow-sm backdrop-blur transition-colors hover:bg-white dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-900"
         >
-          Search & commands
+          {tPalette('searchButton')}
           <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
             ⌘K
           </kbd>
@@ -551,7 +558,7 @@ function EditorShell({
         {dragging && (
           <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-indigo-500/10 backdrop-blur-sm">
             <div className="rounded-xl border-2 border-indigo-400 border-dashed bg-white/90 px-8 py-6 font-medium text-indigo-700 dark:bg-zinc-900/90 dark:text-indigo-300">
-              Drop a {FILE_EXT} file to load it
+              {tPalette('dropOverlay')}
             </div>
           </div>
         )}
@@ -575,6 +582,7 @@ function EditorShell({
 }
 
 function NoticeToast({ notice, onDismiss }: { notice: Notice; onDismiss: () => void }) {
+  const tPalette = useTranslations('palette');
   // Warm = error (per the aesthetic: warm colors signal state); indigo = info.
   const isError = notice.kind === 'error';
   return (
@@ -594,7 +602,7 @@ function NoticeToast({ notice, onDismiss }: { notice: Notice; onDismiss: () => v
         <button
           type="button"
           onClick={onDismiss}
-          aria-label="Dismiss"
+          aria-label={tPalette('dismiss')}
           className="text-sm text-zinc-400 leading-none hover:text-zinc-600 dark:hover:text-zinc-200"
         >
           ✕
