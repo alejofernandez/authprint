@@ -48,6 +48,7 @@ import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { EdgeRouteProvider } from './edges/edgeRouteContext.tsx';
 import { RoutableEdge } from './edges/RoutableEdge.tsx';
 import { elkLayoutReady } from './elkLayoutReady.ts';
+import type { ExampleFlow, PatternFlow } from './flowCatalog.ts';
 import { flowFromSource } from './flowFromSource.ts';
 import { flowToReactFlow, NODE_SIZE, type NodePositionsMap } from './flowToReactFlow.ts';
 import { layoutFlow } from './layout.ts';
@@ -59,7 +60,10 @@ import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx'
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
 import { NodeActivateProvider } from './nodes/nodeA11y.tsx';
 import { ProblemsPanel } from './ProblemsPanel.tsx';
+import type { RecentFlowEntry } from './recentFlows/store.ts';
+import { useRecentFlowAutosave } from './recentFlows/useRecentFlowAutosave.ts';
 import { reconcileFlowEdges, reconcileFlowNodes } from './reconcileFlowState.ts';
+import { StartScreen } from './StartScreen.tsx';
 import { ContextPanel } from './scenario/ContextPanel.tsx';
 import { ScenarioControls } from './scenario/ScenarioControls.tsx';
 import { ScenarioModeProvider, useScenarioMode } from './scenario/ScenarioModeContext.tsx';
@@ -96,8 +100,13 @@ import {
 import { shouldDeferUndoToField, useUndoManager } from './ydoc/useUndoManager.ts';
 import { useYDocFlow } from './ydoc/useYDocFlow.ts';
 
-export type ExampleFlow = { id: string; name: string; source: string };
-export type PatternFlow = ExampleFlow;
+export type { ExampleFlow, PatternFlow } from './flowCatalog.ts';
+
+type EditorPhase = 'not-started' | 'active';
+
+function newSessionId(): string {
+  return crypto.randomUUID();
+}
 
 const edgeTypes = { routable: RoutableEdge };
 
@@ -168,6 +177,8 @@ function EditorShell({
 }) {
   const tPalette = useTranslations('palette');
   const tNotices = useTranslations('notices');
+  const [phase, setPhase] = useState<EditorPhase>('not-started');
+  const [sessionId, setSessionId] = useState<string | null>(null);
   // The Y.Doc is the editable runtime model (§7). It's built from the parsed
   // Flow and rebuilt wholesale on each load — a fresh document per flow is
   // simpler than diffing one doc into another, and load is a deliberate reset.
@@ -187,19 +198,31 @@ function EditorShell({
   // Scenarios travel with the flow (carried opaquely in `meta`, E24). They don't
   // change during a session, so deriving them off `doc` identity is enough.
   const scenarios = useMemo(() => docToArtifact(doc).flow.scenarios ?? [], [doc]);
+  const flowName = useMemo(() => docToArtifact(doc).flow.name, [doc]);
+  useRecentFlowAutosave(sessionId ?? '', doc, flowName);
+
+  const activateLoadedDoc = useCallback((nextSessionId: string) => {
+    setSessionId(nextSessionId);
+    setRevision((r) => r + 1);
+    setPhase('active');
+  }, []);
 
   // Parse `.authprint` source (and optional layout sidecar) and swap the flow
   // on success; on failure the current flow stays and errors surface in the toast.
-  const applyImport = useCallback(
-    (authprintSource: string, label: string, sidecarSource?: string): boolean => {
+  const loadFlowFromSource = useCallback(
+    (
+      authprintSource: string,
+      label: string,
+      options?: { sidecarSource?: string; sessionId?: string; onOpened?: () => void },
+    ): boolean => {
       const { flow: parsed, diagnostics } = flowFromSource(authprintSource);
       if (!parsed) {
         setNotice({ kind: 'error', title: tNotices('parseFailed', { label }), diagnostics });
         return false;
       }
-      const { nodes, edges } = resolveLayoutForImport(authprintSource, sidecarSource);
+      const { nodes, edges } = resolveLayoutForImport(authprintSource, options?.sidecarSource);
       setDoc(hydrate(parsed, nodes, edges));
-      setRevision((r) => r + 1);
+      activateLoadedDoc(options?.sessionId ?? newSessionId());
       setNotice(
         diagnostics.length
           ? {
@@ -209,9 +232,17 @@ function EditorShell({
             }
           : null,
       );
+      options?.onOpened?.();
       return true;
     },
-    [tNotices],
+    [activateLoadedDoc, tNotices],
+  );
+
+  const applyImport = useCallback(
+    (authprintSource: string, label: string, sidecarSource?: string): boolean => {
+      return loadFlowFromSource(authprintSource, label, { sidecarSource });
+    },
+    [loadFlowFromSource],
   );
 
   const applySource = useCallback(
@@ -282,6 +313,27 @@ function EditorShell({
     [applyImport, tNotices],
   );
 
+  const onStartScreenDrop = useCallback(
+    (files: File[]) => {
+      const relevant = files.filter((f) => isAuthprintFile(f.name) || isLayoutSidecarFile(f.name));
+      if (relevant.length > 0) void loadFiles(relevant);
+    },
+    [loadFiles],
+  );
+
+  const startBlank = useCallback(() => {
+    setDoc(hydrate(initialFlow));
+    activateLoadedDoc(newSessionId());
+    setNotice(null);
+  }, [activateLoadedDoc, initialFlow]);
+
+  const resumeRecent = useCallback(
+    (entry: RecentFlowEntry) => {
+      loadFlowFromSource(entry.bundle, entry.name, { sessionId: entry.sessionId });
+    },
+    [loadFlowFromSource],
+  );
+
   const openFilePicker = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -335,6 +387,12 @@ function EditorShell({
     reset: resetScenario,
   } = scenario;
 
+  const goHome = useCallback(() => {
+    exitScenario();
+    setPhase('not-started');
+    setSessionId(null);
+  }, [exitScenario]);
+
   // Scenario-mode keyboard: Esc exits; ← / → walk the trace; R resets. The
   // visual step controls are US-062 — this keeps the mode usable + verifiable now.
   useEffect(() => {
@@ -364,6 +422,17 @@ function EditorShell({
 
   const commands = useMemo<PaletteCommand[]>(
     () => [
+      ...(phase === 'active'
+        ? [
+            {
+              id: 'home',
+              group: tPalette('groups.file'),
+              label: tPalette('commands.home'),
+              keywords: 'start landing home',
+              run: goHome,
+            },
+          ]
+        : []),
       {
         id: 'undo',
         group: tPalette('groups.edit'),
@@ -514,6 +583,8 @@ function EditorShell({
         : []),
     ],
     [
+      phase,
+      goHome,
       doc,
       examples,
       patterns,
@@ -540,56 +611,99 @@ function EditorShell({
     if (relevant.length > 0) loadFiles(relevant);
   };
 
+  const openExample = useCallback(
+    (example: ExampleFlow) => {
+      track('example_opened', { exampleId: example.id });
+      applySource(example.source, example.name);
+    },
+    [applySource],
+  );
+
+  const openPattern = useCallback(
+    (pattern: PatternFlow) => {
+      applySource(pattern.source, pattern.name);
+    },
+    [applySource],
+  );
+
   return (
     <ScenarioModeProvider value={scenario}>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: a file drop zone has no semantic role; the palette's "Open file" command is the keyboard-accessible equivalent. */}
-      <div
-        className="relative h-dvh w-full bg-bg-canvas"
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (!dragging) setDragging(true);
-        }}
-        onDragLeave={(e) => {
-          if (e.currentTarget === e.target) setDragging(false);
-        }}
-        onDrop={onDrop}
-      >
-        <FlowCanvas key={revision} doc={doc} />
-
-        <button
-          type="button"
-          onClick={() => setPaletteOpen(true)}
-          aria-label={tPalette('openPalette')}
-          className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-md border border-border-default bg-bg-panel/80 py-1.5 pr-2 pl-3 text-sm text-fg-muted shadow-sm backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-panel dark:hover:bg-bg-panel"
+      {phase === 'not-started' ? (
+        <>
+          <StartScreen
+            examples={examples}
+            patterns={patterns}
+            dragging={dragging}
+            onDragStateChange={setDragging}
+            onDropFiles={onStartScreenDrop}
+            onBlank={startBlank}
+            onPattern={openPattern}
+            onExample={openExample}
+            onOpenDisk={openFilePicker}
+            onResumeRecent={resumeRecent}
+          />
+          {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
+          <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
+        </>
+      ) : (
+        // biome-ignore lint/a11y/noStaticElementInteractions: a file drop zone has no semantic role; the palette's "Open file" command is the keyboard-accessible equivalent.
+        <div
+          className="relative h-dvh w-full bg-bg-canvas"
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (!dragging) setDragging(true);
+          }}
+          onDragLeave={(e) => {
+            if (e.currentTarget === e.target) setDragging(false);
+          }}
+          onDrop={onDrop}
         >
-          {tPalette('searchButton')}
-          <kbd className="rounded border border-border-default bg-bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-subtle">
-            ⌘K
-          </kbd>
-        </button>
+          <FlowCanvas key={revision} doc={doc} />
 
-        {dragging && (
-          <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-accent-primary/10 backdrop-blur-sm">
-            <div className="rounded-xl border-2 border-accent-primary-border border-dashed bg-bg-panel/90 px-8 py-6 font-medium text-accent-primary-fg">
-              {tPalette('dropOverlay')}
-            </div>
+          <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={goHome}
+              className="rounded-md border border-border-default bg-bg-panel/80 px-3 py-1.5 font-semibold text-fg-default text-sm shadow-sm backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border"
+            >
+              Authprint
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label={tPalette('openPalette')}
+              className="flex items-center gap-2 rounded-md border border-border-default bg-bg-panel/80 py-1.5 pr-2 pl-3 text-sm text-fg-muted shadow-sm backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-panel dark:hover:bg-bg-panel"
+            >
+              {tPalette('searchButton')}
+              <kbd className="rounded border border-border-default bg-bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-subtle">
+                ⌘K
+              </kbd>
+            </button>
           </div>
-        )}
 
-        {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
+          {dragging && (
+            <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-accent-primary/10 backdrop-blur-sm">
+              <div className="rounded-xl border-2 border-accent-primary-border border-dashed bg-bg-panel/90 px-8 py-6 font-medium text-accent-primary-fg">
+                {tPalette('dropOverlay')}
+              </div>
+            </div>
+          )}
 
-        {scenario.session && (
-          <>
-            <ContextPanel
-              initialContext={scenario.session.initialContext}
-              divergence={scenario.session.run.divergence}
-            />
-            <ScenarioControls scenario={scenario} />
-          </>
-        )}
+          {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
 
-        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
-      </div>
+          {scenario.session && (
+            <>
+              <ContextPanel
+                initialContext={scenario.session.initialContext}
+                divergence={scenario.session.run.divergence}
+              />
+              <ScenarioControls scenario={scenario} />
+            </>
+          )}
+
+          <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
+        </div>
+      )}
     </ScenarioModeProvider>
   );
 }

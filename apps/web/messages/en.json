@@ -22,7 +22,8 @@
       "theme": "Theme: {name}{mark}",
       "runScenario": "Run scenario: {name}",
       "noScenarios": "No scenarios in this flow",
-      "exitScenario": "Exit scenario: {name}"
+      "exitScenario": "Exit scenario: {name}",
+      "home": "Home"
     },
     "themes": {
       "light": "Light",
@@ -33,6 +34,25 @@
     "openPalette": "Open command palette",
     "dropOverlay": "Drop a .authprint file to load it",
     "dismiss": "Dismiss"
+  },
+  "startScreen": {
+    "tagline": "Design authentication flows on a canvas with a portable DSL underneath.",
+    "sections": {
+      "create": "Create",
+      "open": "Open from disk",
+      "recent": "Recent"
+    },
+    "blankFlow": "Blank flow",
+    "blankFlowHint": "Start with a single entry node",
+    "fromPattern": "From pattern",
+    "openExample": "Open example",
+    "openFromDisk": "Open .authprint file…",
+    "openFromDiskHint": "Browse or drop a file on this page",
+    "recentEmpty": "Flows you edit are saved here automatically.",
+    "clearAll": "Clear all",
+    "remove": "Remove",
+    "removeRecent": "Remove {name} from recent",
+    "dropOverlay": "Drop a .authprint file to open it"
   },
   "notices": {
     "parseFailed": "Couldn't parse {label}",
