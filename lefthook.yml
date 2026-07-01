@@ -13,6 +13,11 @@ pre-commit:
     gitleaks:
       run: scripts/gitleaks.sh git --staged --redact --no-banner
 
+pre-merge-commit:
+  commands:
+    guard-main-merge:
+      run: scripts/guard-main-merge.sh
+
 pre-push:
   commands:
     typecheck:
