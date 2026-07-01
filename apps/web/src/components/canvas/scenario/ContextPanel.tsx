@@ -17,12 +17,12 @@ export function ContextPanel({
   const entries = Object.entries(initialContext).sort(([a], [b]) => a.localeCompare(b));
 
   return (
-    <div className="absolute top-16 left-4 z-30 w-56 rounded-lg border border-zinc-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/95">
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+    <div className="absolute top-16 left-4 z-30 w-56 rounded-lg border border-border-subtle bg-bg-panel/95 p-3 shadow-lg backdrop-blur dark:border-border-default dark:bg-bg-panel/95">
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-subtle dark:text-fg-subtle">
         Context
       </div>
       {entries.length === 0 ? (
-        <p className="text-xs text-zinc-400 dark:text-zinc-500">No initial context</p>
+        <p className="text-xs text-fg-subtle">No initial context</p>
       ) : (
         <ul className="max-h-48 space-y-1.5 overflow-auto">
           {entries.map(([slot, value]) => (
@@ -30,16 +30,18 @@ export function ContextPanel({
               <span
                 className={
                   flagged.has(slot)
-                    ? 'font-semibold text-red-600 dark:text-red-400'
-                    : 'text-zinc-700 dark:text-zinc-300'
+                    ? 'font-semibold text-signal-danger dark:text-signal-danger-fg'
+                    : 'text-fg-secondary dark:text-fg-muted'
                 }
               >
                 {slot}
               </span>
-              <span className="text-zinc-400 dark:text-zinc-500"> = </span>
-              <span className="text-zinc-600 dark:text-zinc-400">{formatValue(value)}</span>
+              <span className="text-fg-subtle"> = </span>
+              <span className="text-fg-muted dark:text-fg-subtle">{formatValue(value)}</span>
               {flagged.has(slot) ? (
-                <span className="ml-1 text-[10px] text-red-500 dark:text-red-400">⚑</span>
+                <span className="ml-1 text-[10px] text-signal-danger-ring dark:text-signal-danger-fg">
+                  ⚑
+                </span>
               ) : null}
             </li>
           ))}

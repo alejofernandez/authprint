@@ -20,20 +20,16 @@ export type NodeShellProps = {
 export function NodeShellContent({ typeLabel, name, id, kind }: NodeShellProps) {
   return (
     <div className="px-3 py-2 min-w-44">
-      <div className="text-[10px] uppercase tracking-wider font-medium text-zinc-500 dark:text-zinc-500">
+      <div className="text-[10px] uppercase tracking-wider font-medium text-fg-subtle">
         {typeLabel}
       </div>
-      <div className="mt-0.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
-        {name ?? id}
-      </div>
+      <div className="mt-0.5 text-sm font-medium text-fg-default truncate">{name ?? id}</div>
       {kind ? (
-        <div className="mt-1 text-[11px] text-zinc-600 dark:text-zinc-400 font-mono truncate">
+        <div className="mt-1 text-[11px] text-fg-muted dark:text-fg-subtle font-mono truncate">
           {kind}
         </div>
       ) : (
-        <div className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-500 font-mono truncate">
-          {id}
-        </div>
+        <div className="mt-1 text-[11px] text-fg-subtle font-mono truncate">{id}</div>
       )}
     </div>
   );

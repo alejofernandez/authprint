@@ -27,14 +27,14 @@ export function DecisionNodeView({ data, selected }: DecisionNodeProps) {
       <ValidationCue diagnostics={data.diagnostics} />
       {/* Diamond background via clip-path on a rotated square. */}
       <div
-        className="absolute inset-0 bg-violet-50 dark:bg-violet-950/40 border border-violet-400 dark:border-violet-700"
+        className="absolute inset-0 bg-node-decision-bg border border-node-decision-border"
         style={{ clipPath: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)' }}
       />
       <div className="relative z-10 px-4 text-center">
-        <div className="text-[10px] uppercase tracking-wider font-medium text-violet-700 dark:text-violet-300">
+        <div className="text-[10px] uppercase tracking-wider font-medium text-node-decision-fg">
           Decision
         </div>
-        <div className="mt-0.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+        <div className="mt-0.5 text-sm font-medium text-fg-default truncate">
           {node.name ?? node.kind}
         </div>
       </div>

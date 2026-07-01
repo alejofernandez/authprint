@@ -39,8 +39,8 @@ export function ProblemsPanel({
       <div
         className={`flex items-center rounded-md border shadow-sm backdrop-blur ${
           total === 0
-            ? 'border-emerald-300 bg-emerald-50/80 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300'
-            : 'border-zinc-300 bg-white/80 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-200'
+            ? 'border-node-outcome-success-border bg-node-outcome-success-bg text-node-outcome-success-fg dark:border-node-outcome-success-border dark:bg-node-outcome-success-bg dark:text-node-outcome-success-fg'
+            : 'border-border-default bg-bg-panel/80 text-fg-secondary dark:border-border-default dark:bg-bg-panel/80 dark:text-fg-soft'
         }`}
       >
         <button
@@ -54,12 +54,16 @@ export function ProblemsPanel({
           ) : (
             <>
               {errorCount > 0 && (
-                <span className="text-red-600 dark:text-red-400">⛔ {errorCount}</span>
+                <span className="text-signal-danger dark:text-signal-danger-fg">
+                  ⛔ {errorCount}
+                </span>
               )}
               {warningCount > 0 && (
-                <span className="text-amber-600 dark:text-amber-400">⚠️ {warningCount}</span>
+                <span className="text-signal-warning dark:text-signal-warning-fg">
+                  ⚠️ {warningCount}
+                </span>
               )}
-              <span className="text-zinc-400 text-xs">Problems</span>
+              <span className="text-fg-subtle text-xs">Problems</span>
             </>
           )}
         </button>
@@ -73,8 +77,10 @@ export function ProblemsPanel({
                 ? 'Hide validation outlines on the canvas'
                 : 'Show validation outlines on the canvas'
             }
-            className={`border-zinc-300 border-l px-2 py-1.5 text-sm dark:border-zinc-700 ${
-              showOutlines ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-400 line-through'
+            className={`border-border-default border-l px-2 py-1.5 text-sm dark:border-border-default ${
+              showOutlines
+                ? 'text-accent-primary-solid dark:text-accent-primary'
+                : 'text-fg-subtle line-through'
             }`}
           >
             👁
@@ -83,7 +89,7 @@ export function ProblemsPanel({
       </div>
 
       {open && total > 0 && (
-        <div className="max-h-72 w-80 overflow-auto rounded-lg border border-zinc-200 bg-white p-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+        <div className="max-h-72 w-80 overflow-auto rounded-lg border border-border-subtle bg-bg-panel p-1 shadow-xl dark:border-border-default">
           {diagnostics.map((d, i) => (
             <button
               // biome-ignore lint/suspicious/noArrayIndexKey: diagnostics are a stable derived list for this render
@@ -93,12 +99,12 @@ export function ProblemsPanel({
               onClick={() => focus(d)}
               className={`flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-xs ${
                 d.target?.kind === 'node'
-                  ? 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                  ? 'cursor-pointer hover:bg-bg-canvas dark:hover:bg-bg-subtle'
                   : 'cursor-default'
               }`}
             >
               <span className="mt-px shrink-0">{d.severity === 'error' ? '⛔' : '⚠️'}</span>
-              <span className="text-zinc-700 dark:text-zinc-300">{d.message}</span>
+              <span className="text-fg-secondary dark:text-fg-muted">{d.message}</span>
             </button>
           ))}
         </div>

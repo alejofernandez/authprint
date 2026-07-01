@@ -58,9 +58,9 @@ function defaultValueFor(slot: ContextSlot | undefined): unknown {
   }
 }
 
-const labelCls = 'text-[10px] font-medium uppercase tracking-wider text-zinc-400';
+const labelCls = 'text-[10px] font-medium uppercase tracking-wider text-fg-subtle';
 const inputCls =
-  'w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 outline-none focus:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-1 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus-visible:ring-offset-zinc-900';
+  'w-full rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-fg-default outline-none focus:border-accent-primary-border focus-visible:ring-2 focus-visible:ring-accent-primary-border focus-visible:ring-offset-1 dark:focus-visible:ring-offset-bg-panel';
 
 const KIND_OPTIONS = {
   screen: SCREEN_KINDS_BUILTIN,
@@ -101,7 +101,7 @@ function KindSelect({
         />
         <button
           type="button"
-          className="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
+          className="text-xs text-accent-primary-solid hover:underline dark:text-accent-primary"
           onClick={() => setCustom(false)}
         >
           {t('chooseFromList')}
@@ -162,7 +162,7 @@ export function NodeInlineEditor({
       <Section title={t('sections.general')}>
         {'name' in node && (
           <label className="block space-y-1">
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('labels.name')}</span>
+            <span className="text-xs text-fg-subtle dark:text-fg-subtle">{t('labels.name')}</span>
             <input
               className={inputCls}
               defaultValue={node.name ?? ''}
@@ -178,7 +178,7 @@ export function NodeInlineEditor({
 
         {'kind' in node && node.type in KIND_OPTIONS && (
           <label className="block space-y-1" htmlFor={`kind-${node.id}`}>
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('labels.kind')}</span>
+            <span className="text-xs text-fg-subtle dark:text-fg-subtle">{t('labels.kind')}</span>
             <KindSelect
               id={`kind-${node.id}`}
               key={node.id}
@@ -191,7 +191,9 @@ export function NodeInlineEditor({
 
         {screen && (
           <label className="block space-y-1">
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('labels.fidelity')}</span>
+            <span className="text-xs text-fg-subtle dark:text-fg-subtle">
+              {t('labels.fidelity')}
+            </span>
             <select
               className={inputCls}
               defaultValue={screen.fidelity}
@@ -226,8 +228,8 @@ export function NodeInlineEditor({
                   }
                   className={`rounded-full border px-2 py-0.5 text-[11px] ${
                     on
-                      ? 'border-indigo-400 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-200'
-                      : 'border-zinc-300 text-zinc-500 dark:border-zinc-600 dark:text-zinc-400'
+                      ? 'border-accent-primary-border bg-accent-primary-bg text-accent-primary-fg dark:bg-accent-primary-bg/60 dark:text-accent-primary-fg-emphasis'
+                      : 'border-border-default text-fg-subtle dark:border-border-default dark:text-fg-subtle'
                   }`}
                 >
                   {trait}
@@ -401,7 +403,7 @@ function NewSlotForm({
   const [values, setValues] = useState('');
 
   return (
-    <div className="space-y-1 rounded border border-zinc-200 p-2 dark:border-zinc-700">
+    <div className="space-y-1 rounded border border-border-subtle p-2 dark:border-border-default">
       <input
         className={inputCls}
         placeholder={t('namePlaceholder')}
@@ -431,7 +433,7 @@ function NewSlotForm({
         <button
           type="button"
           disabled={name.trim().length === 0}
-          className="rounded bg-indigo-600 px-2 py-1 text-white text-xs disabled:opacity-50"
+          className="rounded bg-accent-primary-solid px-2 py-1 text-white text-xs disabled:opacity-50"
           onClick={() => {
             const enumValues = values
               .split(',')
@@ -442,7 +444,7 @@ function NewSlotForm({
         >
           {t('add')}
         </button>
-        <button type="button" className="px-2 py-1 text-xs text-zinc-500" onClick={onCancel}>
+        <button type="button" className="px-2 py-1 text-xs text-fg-subtle" onClick={onCancel}>
           {t('cancel')}
         </button>
       </div>
@@ -476,7 +478,7 @@ function FieldTypeSelect({
         />
         <button
           type="button"
-          className="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
+          className="text-xs text-accent-primary-solid hover:underline dark:text-accent-primary"
           onClick={() => setCustom(false)}
         >
           Choose from list
@@ -561,7 +563,7 @@ function FieldsEditor({
               type="button"
               aria-label="Move field up"
               disabled={i === 0}
-              className="px-0.5 text-[10px] leading-none text-zinc-400 hover:text-zinc-600 disabled:opacity-30 dark:hover:text-zinc-200"
+              className="px-0.5 text-[10px] leading-none text-fg-subtle hover:text-fg-muted disabled:opacity-30 dark:hover:text-fg-soft"
               onClick={() => move(i, i - 1)}
             >
               ↑
@@ -570,7 +572,7 @@ function FieldsEditor({
               type="button"
               aria-label="Move field down"
               disabled={i === fields.length - 1}
-              className="px-0.5 text-[10px] leading-none text-zinc-400 hover:text-zinc-600 disabled:opacity-30 dark:hover:text-zinc-200"
+              className="px-0.5 text-[10px] leading-none text-fg-subtle hover:text-fg-muted disabled:opacity-30 dark:hover:text-fg-soft"
               onClick={() => move(i, i + 1)}
             >
               ↓
@@ -598,7 +600,7 @@ function FieldsEditor({
           <button
             type="button"
             aria-label={t('remove')}
-            className="px-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+            className="px-1 text-fg-subtle hover:text-fg-muted dark:hover:text-fg-soft"
             onClick={() => remove(i)}
           >
             ✕
@@ -607,7 +609,7 @@ function FieldsEditor({
       ))}
       <button
         type="button"
-        className="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
+        className="text-xs text-accent-primary-solid hover:underline dark:text-accent-primary"
         onClick={add}
       >
         {t('add')}

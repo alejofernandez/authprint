@@ -17,15 +17,15 @@ export function OutcomeNodeView({ data }: OutcomeNodeProps) {
       nodeId={node.id}
       ariaLabel={data.ariaLabel ?? node.id}
       title={canvasNodeTitle(data.diagnostics, data.traceTooltip)}
-      className={`rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-400 dark:border-emerald-700 ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
+      className={`rounded-full bg-node-outcome-bg border border-node-outcome-border ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
     >
       <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />
       <div className="px-4 py-2 min-w-44 text-center">
-        <div className="text-[10px] uppercase tracking-wider font-medium text-zinc-500 dark:text-zinc-500">
+        <div className="text-[10px] uppercase tracking-wider font-medium text-node-outcome-fg">
           Outcome
         </div>
-        <div className="mt-0.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+        <div className="mt-0.5 text-sm font-medium text-fg-default truncate">
           {node.name ?? node.kind}
         </div>
       </div>

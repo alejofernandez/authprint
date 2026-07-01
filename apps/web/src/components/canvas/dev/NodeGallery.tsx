@@ -84,8 +84,8 @@ const rfNodes: RfNode[] = sampleNodes.map((n, i) => ({
 
 export function NodeGallery() {
   return (
-    <div className="h-dvh w-full bg-zinc-50 dark:bg-zinc-950">
-      <div className="absolute top-3 left-4 z-10 text-xs text-zinc-500 dark:text-zinc-500 font-mono pointer-events-none">
+    <div className="h-dvh w-full bg-bg-canvas">
+      <div className="absolute top-3 left-4 z-10 text-xs text-fg-subtle font-mono pointer-events-none">
         /dev/nodes — visual reference for the six structural-type node components
       </div>
       <ReactFlow nodes={rfNodes} edges={[]} nodeTypes={nodeTypes} fitView>

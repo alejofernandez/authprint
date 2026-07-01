@@ -12,16 +12,175 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Chrome */
+  --bg-canvas: #fafafa; /* zinc-50 */
+  --bg-panel: #ffffff;
+  --bg-subtle: #f4f4f5; /* zinc-100 — hover / inset chrome */
+  --border-default: #d4d4d8; /* zinc-300 */
+  --border-subtle: #e4e4e7; /* zinc-200 */
+  --fg-default: #18181b; /* zinc-900 */
+  --fg-muted: #52525b; /* zinc-600 */
+  --fg-subtle: #71717a; /* zinc-500 */
+  --fg-secondary: #3f3f46; /* zinc-700 */
+  --fg-soft: #3f3f46; /* zinc-700 — pairs with lighter dark counterpart at call sites */
+
+  /* Accent (indigo / violet family per §7) */
+  --accent-primary: #6366f1; /* indigo-500 */
+  --accent-primary-solid: #4f46e5; /* indigo-600 — filled buttons */
+  --accent-primary-bg: #eef2ff; /* indigo-50 */
+  --accent-primary-fg: #4338ca; /* indigo-700 */
+  --accent-primary-fg-emphasis: #312e81; /* indigo-900 */
+  --accent-primary-fg-on-bg: #e0e7ff; /* indigo-100 — selected row on dark bg */
+  --accent-primary-border: #818cf8; /* indigo-400 — focus rings, strong borders */
+  --accent-primary-border-muted: #a5b4fc; /* indigo-300 — toast / panel borders */
+
+  /* Signal — warm-as-signal (§7); amber for toast errors, red kept for validation */
+  --signal-error: #78350f; /* amber-900 */
+  --signal-error-label: #78350f; /* amber-900 — emphasis labels on warm surfaces */
+  --signal-error-bg: #fffbeb; /* amber-50 */
+  --signal-error-fg: #fde68a; /* amber-200 */
+  --signal-error-border: #fcd34d; /* amber-300 */
+  --signal-error-border-strong: #92400e; /* amber-800 */
+  --signal-error-bg-muted: color-mix(in srgb, #451a03 60%, transparent); /* amber-950/60 */
+  --signal-warning: #d97706; /* amber-600 */
+  --signal-warning-fg: #fbbf24; /* amber-400 */
+  --signal-warning-ring: #f59e0b; /* amber-500 */
+  --signal-danger: #dc2626; /* red-600 — validation / divergence */
+  --signal-danger-fg: #f87171; /* red-400 */
+  --signal-danger-ring: #ef4444; /* red-500 */
+
+  /* Node identity */
+  --node-decision-bg: #f5f3ff; /* violet-50 */
+  --node-decision-border: #a78bfa; /* violet-400 */
+  --node-decision-fg: #6d28d9; /* violet-700 */
+  --node-decision-ring: #c4b5fd; /* violet-300 */
+  --node-decision-accent: #8b5cf6; /* violet-500 — type dots, selection rings */
+  --node-outcome-bg: #ecfdf5; /* emerald-50 */
+  --node-outcome-border: #34d399; /* emerald-400 */
+  --node-outcome-fg: #71717a; /* zinc-500 — shared label tone */
+  --node-outcome-border-strong: #047857; /* emerald-700 */
+  --node-outcome-success-border: #6ee7b7; /* emerald-300 */
+  --node-outcome-success-fg: #047857; /* emerald-700 */
+  --node-outcome-success-bg: color-mix(in srgb, #ecfdf5 80%, transparent); /* emerald-50/80 */
+  --node-outcome-accent: #10b981; /* emerald-500 — type dots */
+  --node-entry-bg: #e4e4e7; /* zinc-200 */
+  --node-entry-border: #a1a1aa; /* zinc-400 */
+  --node-entry-fg: #3f3f46; /* zinc-700 */
+
+  /* Overlay scrim */
+  --overlay-scrim: color-mix(in srgb, #09090b 40%, transparent); /* zinc-950/40 */
 }
 
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+
+  --bg-canvas: #09090b; /* zinc-950 */
+  --bg-panel: #18181b; /* zinc-900 */
+  --bg-subtle: #27272a; /* zinc-800 */
+  --border-default: #3f3f46; /* zinc-700 */
+  --border-subtle: #27272a; /* zinc-800 */
+  --fg-default: #f4f4f5; /* zinc-100 */
+  --fg-muted: #d4d4d8; /* zinc-300 */
+  --fg-subtle: #a1a1aa; /* zinc-400 */
+  --fg-secondary: #d4d4d8; /* zinc-300 */
+  --fg-soft: #e4e4e7; /* zinc-200 */
+
+  --accent-primary: #818cf8; /* indigo-400 */
+  --accent-primary-solid: #818cf8;
+  --accent-primary-bg: #1e1b4b; /* indigo-950 — use /60 for muted fills */
+  --accent-primary-fg: #a5b4fc; /* indigo-300 → closest to indigo-400 call sites */
+  --accent-primary-fg-emphasis: #e0e7ff; /* indigo-200 */
+  --accent-primary-fg-on-bg: #e0e7ff; /* indigo-100 */
+  --accent-primary-border: #818cf8;
+  --accent-primary-border-muted: #3730a3; /* indigo-800 */
+
+  --signal-error: #fde68a; /* amber-200 */
+  --signal-error-label: #fef3c7; /* amber-100 */
+  --signal-error-bg: color-mix(in srgb, #451a03 60%, transparent); /* amber-950/60 */
+  --signal-error-fg: #fde68a;
+  --signal-error-border: #92400e; /* amber-800 */
+  --signal-error-border-strong: #92400e;
+  --signal-error-bg-muted: color-mix(in srgb, #451a03 80%, transparent); /* amber-950/80 */
+  --signal-warning: #fbbf24;
+  --signal-warning-fg: #fbbf24;
+  --signal-warning-ring: #f59e0b;
+  --signal-danger: #f87171;
+  --signal-danger-fg: #f87171;
+  --signal-danger-ring: #ef4444;
+
+  --node-decision-bg: color-mix(in srgb, #2e1065 40%, transparent); /* violet-950/40 */
+  --node-decision-border: #6d28d9; /* violet-700 */
+  --node-decision-fg: #c4b5fd; /* violet-300 */
+  --node-decision-ring: #6d28d9;
+  --node-decision-accent: #8b5cf6;
+  --node-outcome-bg: color-mix(in srgb, #022c22 40%, transparent); /* emerald-950/40 */
+  --node-outcome-border: #047857;
+  --node-outcome-fg: #71717a;
+  --node-outcome-border-strong: #047857;
+  --node-outcome-success-border: #065f46; /* emerald-800 */
+  --node-outcome-success-fg: #6ee7b7; /* emerald-300 */
+  --node-outcome-success-bg: color-mix(in srgb, #022c22 50%, transparent); /* emerald-950/50 */
+  --node-outcome-accent: #10b981;
+  --node-entry-bg: #27272a;
+  --node-entry-border: #52525b; /* zinc-600 */
+  --node-entry-fg: #d4d4d8; /* zinc-300 */
+
+  --overlay-scrim: color-mix(in srgb, #09090b 40%, transparent);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-bg-canvas: var(--bg-canvas);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-fg-default: var(--fg-default);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-secondary: var(--fg-secondary);
+  --color-fg-soft: var(--fg-soft);
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-primary-solid: var(--accent-primary-solid);
+  --color-accent-primary-bg: var(--accent-primary-bg);
+  --color-accent-primary-fg: var(--accent-primary-fg);
+  --color-accent-primary-fg-emphasis: var(--accent-primary-fg-emphasis);
+  --color-accent-primary-fg-on-bg: var(--accent-primary-fg-on-bg);
+  --color-accent-primary-border: var(--accent-primary-border);
+  --color-accent-primary-border-muted: var(--accent-primary-border-muted);
+  --color-signal-error: var(--signal-error);
+  --color-signal-error-label: var(--signal-error-label);
+  --color-signal-error-bg: var(--signal-error-bg);
+  --color-signal-error-fg: var(--signal-error-fg);
+  --color-signal-error-border: var(--signal-error-border);
+  --color-signal-error-border-strong: var(--signal-error-border-strong);
+  --color-signal-error-bg-muted: var(--signal-error-bg-muted);
+  --color-signal-warning: var(--signal-warning);
+  --color-signal-warning-fg: var(--signal-warning-fg);
+  --color-signal-warning-ring: var(--signal-warning-ring);
+  --color-signal-danger: var(--signal-danger);
+  --color-signal-danger-fg: var(--signal-danger-fg);
+  --color-signal-danger-ring: var(--signal-danger-ring);
+  --color-node-decision-bg: var(--node-decision-bg);
+  --color-node-decision-border: var(--node-decision-border);
+  --color-node-decision-fg: var(--node-decision-fg);
+  --color-node-decision-ring: var(--node-decision-ring);
+  --color-node-decision-accent: var(--node-decision-accent);
+  --color-node-outcome-bg: var(--node-outcome-bg);
+  --color-node-outcome-border: var(--node-outcome-border);
+  --color-node-outcome-fg: var(--node-outcome-fg);
+  --color-node-outcome-border-strong: var(--node-outcome-border-strong);
+  --color-node-outcome-success-border: var(--node-outcome-success-border);
+  --color-node-outcome-success-fg: var(--node-outcome-success-fg);
+  --color-node-outcome-success-bg: var(--node-outcome-success-bg);
+  --color-node-outcome-accent: var(--node-outcome-accent);
+  --color-node-entry-bg: var(--node-entry-bg);
+  --color-node-entry-border: var(--node-entry-border);
+  --color-node-entry-fg: var(--node-entry-fg);
+  --color-overlay-scrim: var(--overlay-scrim);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

@@ -18,11 +18,11 @@ import {
 import { CREATABLE_TYPES, type CreatableType } from './ydoc/create.ts';
 
 const TYPE_META: Record<CreatableType, { label: string; dot: string }> = {
-  screen: { label: 'Screen', dot: 'bg-indigo-500' },
-  decision: { label: 'Decision', dot: 'bg-violet-500' },
-  action: { label: 'Action', dot: 'bg-sky-500' },
-  external: { label: 'External', dot: 'bg-teal-500' },
-  outcome: { label: 'Outcome', dot: 'bg-emerald-500' },
+  screen: { label: 'Screen', dot: 'bg-accent-primary' },
+  decision: { label: 'Decision', dot: 'bg-node-decision-accent' },
+  action: { label: 'Action', dot: 'bg-fg-subtle' },
+  external: { label: 'External', dot: 'bg-fg-subtle' },
+  outcome: { label: 'Outcome', dot: 'bg-node-outcome-accent' },
 };
 
 const PANEL_WIDTH = 160;
@@ -109,10 +109,10 @@ export function NodeTypePicker({
         tabIndex={-1}
         role="listbox"
         aria-label="Node type"
-        className="fixed z-50 w-40 overflow-hidden rounded-lg border border-zinc-200 bg-white p-1 shadow-xl outline-none dark:border-zinc-700 dark:bg-zinc-900"
+        className="fixed z-50 w-40 overflow-hidden rounded-lg border border-border-subtle bg-bg-panel p-1 shadow-xl outline-none dark:border-border-default"
         style={{ left: position.left, top: position.top }}
       >
-        <div className="px-2 py-1 text-[10px] font-medium text-zinc-400 uppercase tracking-wider">
+        <div className="px-2 py-1 text-[10px] font-medium text-fg-subtle uppercase tracking-wider">
           Add node
         </div>
         {CREATABLE_TYPES.map((type, i) => (
@@ -125,8 +125,8 @@ export function NodeTypePicker({
             onClick={() => onPick(type)}
             className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm ${
               i === active
-                ? 'bg-indigo-50 text-indigo-900 dark:bg-indigo-950/60 dark:text-indigo-100'
-                : 'text-zinc-700 dark:text-zinc-300'
+                ? 'bg-accent-primary-bg text-accent-primary-fg-emphasis dark:bg-accent-primary-bg/60 dark:text-accent-primary-fg-on-bg'
+                : 'text-fg-secondary dark:text-fg-muted'
             }`}
           >
             <span className={`h-2.5 w-2.5 rounded-full ${TYPE_META[type].dot}`} />

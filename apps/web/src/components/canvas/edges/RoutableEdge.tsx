@@ -327,8 +327,8 @@ export function RoutableEdge({
               className={[
                 'nodrag nopan pointer-events-none absolute select-none text-[10px] leading-none',
                 labelShowBg !== false &&
-                  'rounded-sm bg-[var(--xy-edge-label-background-color,var(--xy-edge-label-background-color-default,#fff))] px-1 py-0.5 shadow-sm dark:bg-zinc-900',
-                selected && 'ring-2 ring-violet-300 dark:ring-violet-700',
+                  'rounded-sm bg-[var(--xy-edge-label-background-color,var(--xy-edge-label-background-color-default,#fff))] px-1 py-0.5 shadow-sm dark:bg-bg-panel',
+                selected && 'ring-2 ring-node-decision-ring dark:ring-node-decision-border',
               ]
                 .filter(Boolean)
                 .join(' ')}

@@ -15,8 +15,8 @@ export function ScenarioControls({ scenario }: { scenario: ScenarioModeValue }) 
     <div
       className={`absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border px-2 py-1.5 shadow-lg backdrop-blur ${
         diverged
-          ? 'border-amber-300 bg-amber-50/95 text-amber-900 dark:border-amber-800 dark:bg-amber-950/80 dark:text-amber-100'
-          : 'border-indigo-300 bg-white/95 text-indigo-900 dark:border-indigo-800 dark:bg-zinc-900/90 dark:text-indigo-100'
+          ? 'border-signal-error-border bg-signal-error-bg/95 text-signal-error-label dark:border-signal-error-border-strong dark:bg-signal-error-bg-muted dark:text-signal-error-label'
+          : 'border-accent-primary-border-muted bg-bg-panel/95 text-accent-primary-fg-emphasis dark:border-accent-primary-border-muted dark:bg-bg-panel/90 dark:text-accent-primary-fg-on-bg'
       }`}
     >
       <span className="max-w-40 truncate px-2 text-sm font-medium">{name}</span>

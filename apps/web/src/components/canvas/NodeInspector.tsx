@@ -10,11 +10,11 @@ import { type ReactNode, useCallback, useLayoutEffect, useMemo, useRef, useState
 import { nodeScreenRect, PANEL_MAX_HEIGHT, placeFloatingPanel } from './floatingPanelPlacement.ts';
 
 const TYPE_META: Record<Exclude<DslNode['type'], 'entry'>, { label: string; dot: string }> = {
-  screen: { label: 'Screen', dot: 'bg-indigo-500' },
-  decision: { label: 'Decision', dot: 'bg-violet-500' },
-  action: { label: 'Action', dot: 'bg-sky-500' },
-  external: { label: 'External', dot: 'bg-teal-500' },
-  outcome: { label: 'Outcome', dot: 'bg-emerald-500' },
+  screen: { label: 'Screen', dot: 'bg-accent-primary' },
+  decision: { label: 'Decision', dot: 'bg-node-decision-accent' },
+  action: { label: 'Action', dot: 'bg-fg-subtle' },
+  external: { label: 'External', dot: 'bg-fg-subtle' },
+  outcome: { label: 'Outcome', dot: 'bg-node-outcome-accent' },
 };
 
 const PANEL_WIDTH = 288;
@@ -121,7 +121,7 @@ export function NodeInspector({
       ref={panelRef}
       role="dialog"
       aria-labelledby="node-inspector-title"
-      className="fixed z-50 flex w-72 flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
+      className="fixed z-50 flex w-72 flex-col overflow-hidden rounded-lg border border-border-subtle bg-bg-panel shadow-2xl dark:border-border-default"
       style={{
         left: position.left,
         top: position.top,
@@ -129,7 +129,7 @@ export function NodeInspector({
       }}
     >
       <div
-        className="flex cursor-grab items-center gap-1.5 border-zinc-200 border-b px-2.5 py-1 active:cursor-grabbing dark:border-zinc-700"
+        className="flex cursor-grab items-center gap-1.5 border-border-subtle border-b px-2.5 py-1 active:cursor-grabbing dark:border-border-default"
         onPointerDown={onHeaderPointerDown}
         onPointerMove={onHeaderPointerMove}
         onPointerUp={onHeaderPointerUp}
@@ -138,14 +138,14 @@ export function NodeInspector({
         <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
         <span
           id="node-inspector-title"
-          className="min-w-0 flex-1 text-sm font-medium text-zinc-900 dark:text-zinc-100"
+          className="min-w-0 flex-1 text-sm font-medium text-fg-default"
         >
           {meta.label}
         </span>
         <button
           type="button"
           aria-label="Close"
-          className="shrink-0 rounded p-0.5 text-zinc-400 outline-none hover:bg-zinc-100 hover:text-zinc-600 focus-visible:ring-2 focus-visible:ring-indigo-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+          className="shrink-0 rounded p-0.5 text-fg-subtle outline-none hover:bg-bg-subtle hover:text-fg-muted focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:hover:bg-bg-subtle dark:hover:text-fg-soft"
           onClick={onClose}
         >
           ✕

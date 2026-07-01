@@ -9,8 +9,8 @@ import type { TraceNodeState } from '../scenario/scenarioTrace.ts';
 import { traceOpacity, traceRing } from '../scenario/scenarioTrace.ts';
 
 const RING = {
-  error: 'ring-2 ring-red-500 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-950',
-  warning: 'ring-2 ring-amber-500 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-950',
+  error: 'ring-2 ring-signal-danger-ring ring-offset-2 ring-offset-bg-canvas',
+  warning: 'ring-2 ring-signal-warning-ring ring-offset-2 ring-offset-bg-canvas',
 } as const;
 
 /** Tailwind ring classes for a node's diagnostics, or '' when clean. */

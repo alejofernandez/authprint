@@ -12,7 +12,7 @@ const meta = {
   render: ({ theme = 'light', ...panelProps }) => (
     <div
       data-testid="context-panel-canvas"
-      className={`relative h-72 w-96 ${theme === 'dark' ? 'dark ' : ''}bg-zinc-50 dark:bg-zinc-950`}
+      className={`relative h-72 w-96 ${theme === 'dark' ? 'dark ' : ''}bg-bg-canvas`}
     >
       <ContextPanel {...panelProps} />
     </div>

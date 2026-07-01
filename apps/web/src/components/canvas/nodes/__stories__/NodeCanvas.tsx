@@ -65,7 +65,7 @@ export function NodeCanvas({
   return (
     <div
       data-testid="node-canvas"
-      className={`${theme === 'dark' ? 'dark ' : ''}bg-zinc-50 dark:bg-zinc-950`}
+      className={`${theme === 'dark' ? 'dark ' : ''}bg-bg-canvas`}
       style={{ width, height }}
     >
       <ReactFlowProvider>

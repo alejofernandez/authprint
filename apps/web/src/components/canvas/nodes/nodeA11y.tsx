@@ -8,10 +8,10 @@ import { validationTitle } from './nodeValidation.ts';
 
 /** Visible focus ring for tabbable canvas chrome (nodes, handle `+`). */
 export const NODE_FOCUS_VISIBLE =
-  'outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50 dark:focus-visible:ring-offset-zinc-950';
+  'outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-canvas';
 
 export const HANDLE_PLUS_FOCUS_VISIBLE =
-  'outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1';
+  'outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-1';
 
 const NodeActivateContext = createContext<((nodeId: string) => void) | null>(null);
 
@@ -64,7 +64,7 @@ export function ValidationCue({ diagnostics }: { diagnostics?: Diagnostic[] }) {
   const isError = diagnostics.some((d) => d.severity === 'error');
   return (
     <span
-      className="pointer-events-none absolute top-0 right-0 z-20 flex h-4 w-4 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full bg-white text-[10px] leading-none shadow-sm dark:bg-zinc-900"
+      className="pointer-events-none absolute top-0 right-0 z-20 flex h-4 w-4 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full bg-bg-panel text-[10px] leading-none shadow-sm"
       aria-hidden
       title={validationTitle(diagnostics)}
     >

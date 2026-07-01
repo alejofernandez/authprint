@@ -14,10 +14,8 @@ export type TraceAttachment = {
   tooltips: Map<string, string>;
 };
 
-const ACTIVE_RING =
-  'ring-2 ring-indigo-500 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-950';
-const DIVERGED_RING =
-  'ring-2 ring-red-500 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-950';
+const ACTIVE_RING = 'ring-2 ring-accent-primary ring-offset-2 ring-offset-bg-canvas';
+const DIVERGED_RING = 'ring-2 ring-signal-danger-ring ring-offset-2 ring-offset-bg-canvas';
 
 export function traceRing(state: TraceNodeState | undefined): string {
   if (state === 'active') return ACTIVE_RING;

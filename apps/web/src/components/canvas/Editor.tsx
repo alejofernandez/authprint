@@ -545,7 +545,7 @@ function EditorShell({
     <ScenarioModeProvider value={scenario}>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: a file drop zone has no semantic role; the palette's "Open file" command is the keyboard-accessible equivalent. */}
       <div
-        className="relative h-dvh w-full bg-zinc-50 dark:bg-zinc-950"
+        className="relative h-dvh w-full bg-bg-canvas"
         onDragOver={(e) => {
           e.preventDefault();
           if (!dragging) setDragging(true);
@@ -561,17 +561,17 @@ function EditorShell({
           type="button"
           onClick={() => setPaletteOpen(true)}
           aria-label={tPalette('openPalette')}
-          className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-md border border-zinc-300 bg-white/80 py-1.5 pr-2 pl-3 text-sm text-zinc-600 shadow-sm backdrop-blur transition-colors hover:bg-white dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-md border border-border-default bg-bg-panel/80 py-1.5 pr-2 pl-3 text-sm text-fg-muted shadow-sm backdrop-blur transition-colors hover:bg-bg-panel dark:hover:bg-bg-panel"
         >
           {tPalette('searchButton')}
-          <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+          <kbd className="rounded border border-border-default bg-bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-subtle">
             ⌘K
           </kbd>
         </button>
 
         {dragging && (
-          <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-indigo-500/10 backdrop-blur-sm">
-            <div className="rounded-xl border-2 border-indigo-400 border-dashed bg-white/90 px-8 py-6 font-medium text-indigo-700 dark:bg-zinc-900/90 dark:text-indigo-300">
+          <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-accent-primary/10 backdrop-blur-sm">
+            <div className="rounded-xl border-2 border-accent-primary-border border-dashed bg-bg-panel/90 px-8 py-6 font-medium text-accent-primary-fg">
               {tPalette('dropOverlay')}
             </div>
           </div>
@@ -603,13 +603,13 @@ function NoticeToast({ notice, onDismiss }: { notice: Notice; onDismiss: () => v
     <div
       className={`absolute top-4 left-1/2 z-30 w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg border p-3 shadow-lg ${
         isError
-          ? 'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/60'
-          : 'border-indigo-300 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-950/60'
+          ? 'border-signal-error-border bg-signal-error-bg dark:border-signal-error-border-strong dark:bg-signal-error-bg'
+          : 'border-accent-primary-border-muted bg-accent-primary-bg dark:border-accent-primary-border-muted dark:bg-accent-primary-bg/60'
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <p
-          className={`font-medium text-sm ${isError ? 'text-amber-900 dark:text-amber-200' : 'text-indigo-900 dark:text-indigo-200'}`}
+          className={`font-medium text-sm ${isError ? 'text-signal-error dark:text-signal-error-fg' : 'text-accent-primary-fg-emphasis'}`}
         >
           {notice.title}
         </p>
@@ -617,13 +617,13 @@ function NoticeToast({ notice, onDismiss }: { notice: Notice; onDismiss: () => v
           type="button"
           onClick={onDismiss}
           aria-label={tPalette('dismiss')}
-          className="text-sm text-zinc-400 leading-none hover:text-zinc-600 dark:hover:text-zinc-200"
+          className="text-sm text-fg-subtle leading-none hover:text-fg-muted dark:hover:text-fg-soft"
         >
           ✕
         </button>
       </div>
       {notice.diagnostics.length > 0 && (
-        <ul className="mt-2 max-h-40 space-y-1 overflow-auto font-mono text-xs text-zinc-600 dark:text-zinc-400">
+        <ul className="mt-2 max-h-40 space-y-1 overflow-auto font-mono text-xs text-fg-muted dark:text-fg-subtle">
           {notice.diagnostics.map((d, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: static, never-reordered diagnostics list
             <li key={i}>

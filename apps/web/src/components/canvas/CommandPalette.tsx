@@ -40,23 +40,23 @@ export function CommandPalette({
       open={open}
       onOpenChange={onOpenChange}
       label="Command palette"
-      overlayClassName="fixed inset-0 z-40 bg-zinc-950/40 backdrop-blur-sm"
+      overlayClassName="fixed inset-0 z-40 bg-overlay-scrim backdrop-blur-sm"
       contentClassName="fixed left-1/2 top-[18vh] z-50 w-[min(640px,90vw)] -translate-x-1/2 focus:outline-none"
-      className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-900"
+      className="overflow-hidden rounded-xl border border-border-subtle bg-bg-panel shadow-2xl dark:border-border-subtle"
     >
       <Command.Input
         placeholder="Type a command or search…"
-        className="w-full border-zinc-200 border-b bg-transparent px-4 py-3 text-sm text-zinc-900 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-400 placeholder:text-zinc-400 dark:border-zinc-800 dark:text-zinc-100"
+        className="w-full border-border-subtle border-b bg-transparent px-4 py-3 text-sm text-fg-default outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-primary-border placeholder:text-fg-subtle dark:border-border-subtle"
       />
       <Command.List className="max-h-[min(50vh,360px)] overflow-y-auto p-2">
-        <Command.Empty className="px-3 py-6 text-center text-sm text-zinc-400">
+        <Command.Empty className="px-3 py-6 text-center text-sm text-fg-subtle">
           No results.
         </Command.Empty>
         {groups.map((group) => (
           <Command.Group
             key={group.name}
             heading={group.name}
-            className="text-xs text-zinc-400 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:font-medium"
+            className="text-xs text-fg-subtle [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:font-medium"
           >
             {group.items.map((command) => (
               <Command.Item
@@ -68,10 +68,10 @@ export function CommandPalette({
                   onOpenChange(false);
                   command.run();
                 }}
-                className={`flex items-center rounded-md px-3 py-2 text-sm text-zinc-700 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-400 dark:text-zinc-200 ${
+                className={`flex items-center rounded-md px-3 py-2 text-sm text-fg-secondary outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-primary-border dark:text-fg-soft ${
                   command.disabled
                     ? 'cursor-not-allowed opacity-40'
-                    : 'cursor-pointer data-[selected=true]:bg-indigo-50 data-[selected=true]:text-indigo-900 dark:data-[selected=true]:bg-indigo-950/60 dark:data-[selected=true]:text-indigo-100'
+                    : 'cursor-pointer data-[selected=true]:bg-accent-primary-bg data-[selected=true]:text-accent-primary-fg-emphasis dark:data-[selected=true]:bg-accent-primary-bg/60 dark:data-[selected=true]:text-accent-primary-fg-on-bg'
                 }`}
               >
                 {command.label}
