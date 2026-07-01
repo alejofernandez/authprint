@@ -6,8 +6,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useTranslations } from 'next-intl';
 
-/** Pre-publication placeholder — update when the repo goes public. */
-const GITHUB_REPO = 'https://github.com/authprint/authprint';
+const GITHUB_REPO = 'https://github.com/alejofernandez/authprint';
 
 /** Runtime deps from apps/web/package.json (verified 2026-07-01). */
 const BUILT_WITH = [

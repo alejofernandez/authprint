@@ -46,6 +46,8 @@
   --signal-warning: #d97706; /* amber-600 */
   --signal-warning-fg: #fbbf24; /* amber-400 */
   --signal-warning-ring: #f59e0b; /* amber-500 */
+  --signal-warning-bg: #fffbeb; /* amber-50 */
+  --signal-warning-border: #fcd34d; /* amber-300 */
   --signal-danger: #dc2626; /* red-600 — validation / divergence */
   --signal-danger-fg: #f87171; /* red-400 */
   --signal-danger-ring: #ef4444; /* red-500 */
@@ -111,6 +113,8 @@
   --signal-warning: #fbbf24;
   --signal-warning-fg: #fbbf24;
   --signal-warning-ring: #f59e0b;
+  --signal-warning-bg: color-mix(in srgb, #451a03 60%, transparent); /* amber-950/60 */
+  --signal-warning-border: #92400e; /* amber-800 */
   --signal-danger: #f87171;
   --signal-danger-fg: #f87171;
   --signal-danger-ring: #ef4444;
@@ -166,6 +170,8 @@
   --color-signal-warning: var(--signal-warning);
   --color-signal-warning-fg: var(--signal-warning-fg);
   --color-signal-warning-ring: var(--signal-warning-ring);
+  --color-signal-warning-bg: var(--signal-warning-bg);
+  --color-signal-warning-border: var(--signal-warning-border);
   --color-signal-danger: var(--signal-danger);
   --color-signal-danger-fg: var(--signal-danger-fg);
   --color-signal-danger-ring: var(--signal-danger-ring);

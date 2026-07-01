@@ -7,6 +7,7 @@
 import { FLOW_THEMES, type FlowTheme } from '@authprint/dsl';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 
 const inputCls =
   'w-full rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-fg-default outline-none focus:border-accent-primary-border focus-visible:ring-2 focus-visible:ring-accent-primary-border focus-visible:ring-offset-1 dark:focus-visible:ring-offset-bg-panel';
@@ -27,9 +28,29 @@ export function DocumentPreferencesModal({
   onFlowThemeChange: (theme: FlowTheme) => void;
 }) {
   const t = useTranslations('docPrefs');
+  // Controlled draft, committed on close (not blur) — Radix's focus trap can
+  // redirect focus before a native blur reaches React's synthetic handler,
+  // so "commit on blur" silently drops the edit inside this dialog. Closing
+  // is the one lifecycle event Radix guarantees regardless of dismiss path
+  // (Done, Esc, backdrop click), so it's the reliable place to commit.
+  const [nameDraft, setNameDraft] = useState(flowName);
+  // Reset the draft when the dialog transitions to open, without an effect
+  // (react.dev "adjust state during render" pattern for prop-driven resets).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setNameDraft(flowName);
+  }
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next && nameDraft.trim() && nameDraft !== flowName) {
+      onFlowNameChange(nameDraft);
+    }
+    onOpenChange(next);
+  };
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-overlay-scrim backdrop-blur-sm transition-opacity duration-[var(--duration-base)] ease-standard data-[state=open]:opacity-100 data-[state=closed]:opacity-0" />
         <Dialog.Content
@@ -44,15 +65,11 @@ export function DocumentPreferencesModal({
             <label className="block space-y-1">
               <span className="text-fg-subtle text-xs">{t('flowName')}</span>
               <input
-                key={flowName}
                 className={inputCls}
-                defaultValue={flowName}
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
                 // biome-ignore lint/a11y/noAutofocus: name is the primary field when opening preferences
                 autoFocus
-                onBlur={(e) => {
-                  const next = e.target.value;
-                  if (next !== flowName) onFlowNameChange(next);
-                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') e.currentTarget.blur();
                 }}
