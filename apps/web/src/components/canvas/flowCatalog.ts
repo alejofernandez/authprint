@@ -1,2 +1,7 @@
-export type ExampleFlow = { id: string; name: string; source: string };
-export type PatternFlow = ExampleFlow;
+export type PatternFlow = {
+  id: string;
+  name: string;
+  source: string;
+  /** Flagship demo — UI subtitles it "Demo" instead of "From pattern." */
+  isDemo?: boolean;
+};

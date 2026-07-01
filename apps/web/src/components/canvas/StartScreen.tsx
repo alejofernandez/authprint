@@ -4,7 +4,7 @@
 
 import { useTranslations } from 'next-intl';
 import { type DragEvent, useEffect, useState } from 'react';
-import type { ExampleFlow, PatternFlow } from './flowCatalog.ts';
+import type { PatternFlow } from './flowCatalog.ts';
 import { formatRelativeTime } from './formatRelativeTime.ts';
 import {
   clearRecentFlows,
@@ -15,14 +15,12 @@ import {
 import { FlowTileArtwork, type TileVisual } from './startScreen/FlowTileArtwork.tsx';
 
 type StartScreenProps = {
-  examples: ExampleFlow[];
   patterns: PatternFlow[];
   dragging: boolean;
   onDragStateChange: (dragging: boolean) => void;
   onDropFiles: (files: File[]) => void;
   onBlank: () => void;
   onPattern: (pattern: PatternFlow) => void;
-  onExample: (example: ExampleFlow) => void;
   onOpenDisk: () => void;
   onResumeRecent: (entry: RecentFlowEntry) => void;
 };
@@ -106,14 +104,12 @@ function RecentTile({
 }
 
 export function StartScreen({
-  examples,
   patterns,
   dragging,
   onDragStateChange,
   onDropFiles,
   onBlank,
   onPattern,
-  onExample,
   onOpenDisk,
   onResumeRecent,
 }: StartScreenProps) {
@@ -194,18 +190,9 @@ export function StartScreen({
                 <SquareTile
                   key={pattern.id}
                   title={pattern.name}
-                  subtitle={t('fromPattern')}
+                  subtitle={pattern.isDemo ? t('demo') : t('fromPattern')}
                   visual={{ kind: 'flow', source: pattern.source }}
                   onClick={() => onPattern(pattern)}
-                />
-              ))}
-              {examples.map((example) => (
-                <SquareTile
-                  key={example.id}
-                  title={example.name}
-                  subtitle={t('openExample')}
-                  visual={{ kind: 'flow', source: example.source }}
-                  onClick={() => onExample(example)}
                 />
               ))}
             </div>

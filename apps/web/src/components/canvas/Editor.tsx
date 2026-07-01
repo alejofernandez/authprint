@@ -48,7 +48,7 @@ import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { EdgeRouteProvider } from './edges/edgeRouteContext.tsx';
 import { RoutableEdge } from './edges/RoutableEdge.tsx';
 import { elkLayoutReady } from './elkLayoutReady.ts';
-import type { ExampleFlow, PatternFlow } from './flowCatalog.ts';
+import type { PatternFlow } from './flowCatalog.ts';
 import { flowFromSource } from './flowFromSource.ts';
 import { flowToReactFlow, NODE_SIZE, type NodePositionsMap } from './flowToReactFlow.ts';
 import { layoutFlow } from './layout.ts';
@@ -102,7 +102,7 @@ import {
 import { shouldDeferUndoToField, useUndoManager } from './ydoc/useUndoManager.ts';
 import { useYDocFlow } from './ydoc/useYDocFlow.ts';
 
-export type { ExampleFlow, PatternFlow } from './flowCatalog.ts';
+export type { PatternFlow } from './flowCatalog.ts';
 
 type EditorPhase = 'not-started' | 'active';
 
@@ -150,33 +150,17 @@ function downloadText(filename: string, content: string, mime: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function Editor({
-  initialFlow,
-  examples,
-  patterns,
-}: {
-  initialFlow: Flow;
-  examples: ExampleFlow[];
-  patterns: PatternFlow[];
-}) {
+export function Editor({ initialFlow, patterns }: { initialFlow: Flow; patterns: PatternFlow[] }) {
   // ReactFlowProvider hoists the store above the canvas so the palette (a
   // sibling of the canvas) can drive it — e.g. the "Fit view" command.
   return (
     <ReactFlowProvider>
-      <EditorShell initialFlow={initialFlow} examples={examples} patterns={patterns} />
+      <EditorShell initialFlow={initialFlow} patterns={patterns} />
     </ReactFlowProvider>
   );
 }
 
-function EditorShell({
-  initialFlow,
-  examples,
-  patterns,
-}: {
-  initialFlow: Flow;
-  examples: ExampleFlow[];
-  patterns: PatternFlow[];
-}) {
+function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: PatternFlow[] }) {
   const tPalette = useTranslations('palette');
   const tNotices = useTranslations('notices');
   const [phase, setPhase] = useState<EditorPhase>('not-started');
@@ -574,16 +558,6 @@ function EditorShell({
           applySource(pattern.source, pattern.name);
         },
       })),
-      ...examples.map((example) => ({
-        id: `example-${example.id}`,
-        group: tPalette('groups.examples'),
-        label: tPalette('commands.openExample', { name: example.name }),
-        keywords: example.id,
-        run: () => {
-          track('example_opened', { exampleId: example.id });
-          applySource(example.source, example.name);
-        },
-      })),
       {
         id: 'fit-view',
         group: tPalette('groups.view'),
@@ -648,7 +622,6 @@ function EditorShell({
       goHome,
       resumeEditing,
       doc,
-      examples,
       patterns,
       openFilePicker,
       saveFlow,
@@ -674,14 +647,6 @@ function EditorShell({
     if (relevant.length > 0) loadFiles(relevant);
   };
 
-  const openExample = useCallback(
-    (example: ExampleFlow) => {
-      track('example_opened', { exampleId: example.id });
-      applySource(example.source, example.name);
-    },
-    [applySource],
-  );
-
   const openPattern = useCallback(
     (pattern: PatternFlow) => {
       applySource(pattern.source, pattern.name);
@@ -694,14 +659,12 @@ function EditorShell({
       {phase === 'not-started' ? (
         <>
           <StartScreen
-            examples={examples}
             patterns={patterns}
             dragging={dragging}
             onDragStateChange={setDragging}
             onDropFiles={onStartScreenDrop}
             onBlank={startBlank}
             onPattern={openPattern}
-            onExample={openExample}
             onOpenDisk={openFilePicker}
             onResumeRecent={resumeRecent}
           />
