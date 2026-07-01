@@ -43,6 +43,7 @@ import {
 import type * as Y from 'yjs';
 import { track } from '@/analytics';
 import { useTheme } from '@/components/theme';
+import { AboutModal } from './AboutModal.tsx';
 import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { EdgeRouteProvider } from './edges/edgeRouteContext.tsx';
 import { RoutableEdge } from './edges/RoutableEdge.tsx';
@@ -190,6 +191,7 @@ function EditorShell({
   const [notice, setNotice] = useState<Notice | null>(null);
   const [dragging, setDragging] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const { fitView } = useReactFlow();
   const { theme, setTheme } = useTheme();
   const { undo, redo, canUndo, canRedo } = useUndoManager(doc);
@@ -632,6 +634,13 @@ function EditorShell({
             },
           ]
         : []),
+      {
+        id: 'about',
+        group: tPalette('groups.help'),
+        label: tPalette('commands.about'),
+        keywords: 'about credits license mit react flow attribution',
+        run: () => setAboutOpen(true),
+      },
     ],
     [
       phase,
@@ -744,6 +753,7 @@ function EditorShell({
           </div>
         </div>
       )}
+      <AboutModal open={aboutOpen} onOpenChange={setAboutOpen} />
     </ScenarioModeProvider>
   );
 }
