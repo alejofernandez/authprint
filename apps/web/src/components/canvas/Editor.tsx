@@ -390,6 +390,7 @@ function EditorShell({
   const goHome = useCallback(() => {
     exitScenario();
     setPaletteOpen(false);
+    setNotice(null);
     setPhase('not-started');
   }, [exitScenario]);
 
