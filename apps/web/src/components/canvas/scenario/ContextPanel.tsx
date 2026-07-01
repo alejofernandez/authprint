@@ -4,6 +4,7 @@
 // `initialContext` slots + values; slots referenced by a divergence are marked.
 
 import type { Divergence } from '@authprint/dsl';
+import { TOPBAR_HEIGHT_PX } from '../Topbar.tsx';
 import { divergenceContextSlots } from './scenarioTrace.ts';
 
 export function ContextPanel({
@@ -17,7 +18,10 @@ export function ContextPanel({
   const entries = Object.entries(initialContext).sort(([a], [b]) => a.localeCompare(b));
 
   return (
-    <div className="absolute top-16 left-4 z-30 w-56 rounded-lg border border-border-subtle bg-bg-panel/95 p-3 shadow-lg backdrop-blur dark:border-border-default dark:bg-bg-panel/95">
+    <div
+      className="absolute left-4 z-30 w-56 rounded-lg border border-border-subtle bg-bg-panel/95 p-3 shadow-lg backdrop-blur dark:border-border-default dark:bg-bg-panel/95"
+      style={{ top: TOPBAR_HEIGHT_PX + 8 }}
+    >
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-subtle dark:text-fg-subtle">
         Context
       </div>

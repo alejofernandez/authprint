@@ -69,6 +69,7 @@ import { ScenarioControls } from './scenario/ScenarioControls.tsx';
 import { ScenarioModeProvider, useScenarioMode } from './scenario/ScenarioModeContext.tsx';
 import { buildTraceAttachment } from './scenario/scenarioTrace.ts';
 import { useScenarioRun } from './scenario/useScenarioRun.ts';
+import { Topbar } from './Topbar.tsx';
 import { useValidation } from './useValidation.ts';
 import {
   type CreatableType,
@@ -676,62 +677,48 @@ function EditorShell({
           <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
         </>
       ) : (
-        // biome-ignore lint/a11y/noStaticElementInteractions: a file drop zone has no semantic role; the palette's "Open file" command is the keyboard-accessible equivalent.
-        <div
-          className="relative h-dvh w-full bg-bg-canvas"
-          onDragOver={(e) => {
-            e.preventDefault();
-            if (!dragging) setDragging(true);
-          }}
-          onDragLeave={(e) => {
-            if (e.currentTarget === e.target) setDragging(false);
-          }}
-          onDrop={onDrop}
-        >
-          <FlowCanvas key={revision} doc={doc} />
+        <div className="flex h-dvh w-full flex-col bg-bg-canvas">
+          <Topbar
+            flowName={flowName}
+            onGoHome={goHome}
+            onOpenPalette={() => setPaletteOpen(true)}
+          />
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: file drop zone; palette "Open file" is the keyboard equivalent. */}
+          <div
+            className="relative h-full min-h-0 flex-1"
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!dragging) setDragging(true);
+            }}
+            onDragLeave={(e) => {
+              if (e.currentTarget === e.target) setDragging(false);
+            }}
+            onDrop={onDrop}
+          >
+            <FlowCanvas key={revision} doc={doc} />
 
-          <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={goHome}
-              className="rounded-md border border-border-default bg-bg-panel/80 px-3 py-1.5 font-semibold text-fg-default text-sm shadow-sm backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border"
-            >
-              Authprint
-            </button>
-            <button
-              type="button"
-              onClick={() => setPaletteOpen(true)}
-              aria-label={tPalette('openPalette')}
-              className="flex items-center gap-2 rounded-md border border-border-default bg-bg-panel/80 py-1.5 pr-2 pl-3 text-sm text-fg-muted shadow-sm backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-panel dark:hover:bg-bg-panel"
-            >
-              {tPalette('searchButton')}
-              <kbd className="rounded border border-border-default bg-bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-subtle">
-                ⌘K
-              </kbd>
-            </button>
-          </div>
-
-          {dragging && (
-            <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-accent-primary/10 backdrop-blur-sm">
-              <div className="rounded-xl border-2 border-accent-primary-border border-dashed bg-bg-panel/90 px-8 py-6 font-medium text-accent-primary-fg">
-                {tPalette('dropOverlay')}
+            {dragging && (
+              <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-accent-primary/10 backdrop-blur-sm">
+                <div className="rounded-xl border-2 border-accent-primary-border border-dashed bg-bg-panel/90 px-8 py-6 font-medium text-accent-primary-fg">
+                  {tPalette('dropOverlay')}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
+            {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
 
-          {scenario.session && (
-            <>
-              <ContextPanel
-                initialContext={scenario.session.initialContext}
-                divergence={scenario.session.run.divergence}
-              />
-              <ScenarioControls scenario={scenario} />
-            </>
-          )}
+            {scenario.session && (
+              <>
+                <ContextPanel
+                  initialContext={scenario.session.initialContext}
+                  divergence={scenario.session.run.divergence}
+                />
+                <ScenarioControls scenario={scenario} />
+              </>
+            )}
 
-          <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
+            <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
+          </div>
         </div>
       )}
     </ScenarioModeProvider>
@@ -1090,6 +1077,7 @@ function BoundCanvas({
 
   return (
     <ReactFlow
+      className="h-full w-full"
       nodes={nodes}
       edges={edges}
       onNodesChange={onNodesChange}
