@@ -59,7 +59,7 @@ export function HandlePlus({
     <button
       type="button"
       // `nodrag`/`nopan` keep React Flow from treating the click as a node drag.
-      className={`nodrag nopan absolute grid h-5 w-5 place-items-center rounded-full border border-border-default bg-bg-panel text-fg-subtle text-xs leading-none shadow-sm transition-opacity hover:border-accent-primary-border hover:text-accent-primary-solid dark:text-fg-muted dark:hover:border-accent-primary-border ${HANDLE_PLUS_FOCUS_VISIBLE} ${SIDE[position]} ${anchored ? 'z-[60]' : 'z-10'} ${visible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+      className={`nodrag nopan absolute grid h-5 w-5 place-items-center rounded-full border border-border-default bg-bg-panel text-fg-subtle text-xs leading-none shadow-sm transition-opacity duration-fast ease-standard hover:border-accent-primary-border hover:text-accent-primary-solid dark:text-fg-muted dark:hover:border-accent-primary-border ${HANDLE_PLUS_FOCUS_VISIBLE} ${SIDE[position]} ${anchored ? 'z-[60]' : 'z-10'} ${visible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
       aria-label="Add connected node"
       onClick={(e) => {
         e.stopPropagation();

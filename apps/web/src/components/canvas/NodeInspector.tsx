@@ -18,6 +18,8 @@ const TYPE_META: Record<Exclude<DslNode['type'], 'entry'>, { label: string; dot:
 };
 
 const PANEL_WIDTH = 288;
+/** Matches globals.css --duration-base (200ms). */
+const MOTION_DURATION_BASE_MS = 200;
 
 export function NodeInspector({
   nodeId,
@@ -36,6 +38,8 @@ export function NodeInspector({
   const panelRef = useRef<HTMLDivElement>(null);
   const [panelHeight, setPanelHeight] = useState(320);
   const [dragPos, setDragPos] = useState<{ left: number; top: number } | null>(null);
+  const [shown, setShown] = useState(false);
+  const closingRef = useRef(false);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -56,6 +60,19 @@ export function NodeInspector({
 
   const position = dragPos ?? autoPos;
 
+  // Enter on mount; exit before calling onClose so the panel doesn't pop off.
+  useLayoutEffect(() => {
+    const frame = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const closeAnimated = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    setShown(false);
+    window.setTimeout(onClose, MOTION_DURATION_BASE_MS);
+  }, [onClose]);
+
   useLayoutEffect(() => {
     const el = panelRef.current;
     if (!el) return;
@@ -70,10 +87,10 @@ export function NodeInspector({
   // Esc closes; click outside closes (commit-on-change — nothing lost).
   useLayoutEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') closeAnimated();
     };
     const onDown = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose();
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) closeAnimated();
     };
     document.addEventListener('keydown', onKey);
     document.addEventListener('mousedown', onDown);
@@ -81,7 +98,7 @@ export function NodeInspector({
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('mousedown', onDown);
     };
-  }, [onClose]);
+  }, [closeAnimated]);
 
   const onHeaderPointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -121,7 +138,7 @@ export function NodeInspector({
       ref={panelRef}
       role="dialog"
       aria-labelledby="node-inspector-title"
-      className="fixed z-50 flex w-72 flex-col overflow-hidden rounded-lg border border-border-subtle bg-bg-panel shadow-2xl dark:border-border-default"
+      className={`fixed z-50 flex w-72 flex-col overflow-hidden rounded-lg border border-border-subtle bg-bg-panel shadow-2xl transition-[opacity,transform] duration-base ease-standard dark:border-border-default ${shown ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}
       style={{
         left: position.left,
         top: position.top,
@@ -146,7 +163,7 @@ export function NodeInspector({
           type="button"
           aria-label="Close"
           className="shrink-0 rounded p-0.5 text-fg-subtle outline-none hover:bg-bg-subtle hover:text-fg-muted focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:hover:bg-bg-subtle dark:hover:text-fg-soft"
-          onClick={onClose}
+          onClick={closeAnimated}
         >
           ✕
         </button>

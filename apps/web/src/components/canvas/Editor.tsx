@@ -561,7 +561,7 @@ function EditorShell({
           type="button"
           onClick={() => setPaletteOpen(true)}
           aria-label={tPalette('openPalette')}
-          className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-md border border-border-default bg-bg-panel/80 py-1.5 pr-2 pl-3 text-sm text-fg-muted shadow-sm backdrop-blur transition-colors hover:bg-bg-panel dark:hover:bg-bg-panel"
+          className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-md border border-border-default bg-bg-panel/80 py-1.5 pr-2 pl-3 text-sm text-fg-muted shadow-sm backdrop-blur transition-colors duration-fast ease-standard hover:bg-bg-panel dark:hover:bg-bg-panel"
         >
           {tPalette('searchButton')}
           <kbd className="rounded border border-border-default bg-bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-subtle">

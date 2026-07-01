@@ -70,6 +70,11 @@
 
   /* Overlay scrim */
   --overlay-scrim: color-mix(in srgb, #09090b 40%, transparent); /* zinc-950/40 */
+
+  /* Motion (§7 — subtle, fast; 150–250ms, no bounce) */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark {
@@ -183,6 +188,9 @@
   --color-overlay-scrim: var(--overlay-scrim);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body {
