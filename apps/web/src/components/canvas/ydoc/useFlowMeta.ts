@@ -1,0 +1,50 @@
+// Live flow-level meta (name, theme) for chrome that sits outside FlowCanvas.
+// metaMap mutations don't change the Y.Doc reference, so a plain useMemo on
+// `doc` would go stale — same useSyncExternalStore pattern as useYDocFlow.
+
+import type { Flow } from '@authprint/dsl';
+import { useCallback, useRef, useSyncExternalStore } from 'react';
+import type * as Y from 'yjs';
+import { metaMap } from './schema.ts';
+
+export type FlowMetaView = { name: string; theme: Flow['theme'] };
+
+function readMeta(doc: Y.Doc): FlowMetaView {
+  const meta = metaMap(doc);
+  return {
+    name: meta.get('name') as string,
+    theme: meta.get('theme') as Flow['theme'],
+  };
+}
+
+export function useFlowMeta(doc: Y.Doc): FlowMetaView {
+  const cache = useRef<{ doc: Y.Doc; value: FlowMetaView } | null>(null);
+
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const meta = metaMap(doc);
+      const handler = () => {
+        cache.current = null;
+        onChange();
+      };
+      meta.observe(handler);
+      return () => meta.unobserve(handler);
+    },
+    [doc],
+  );
+
+  const getSnapshot = useCallback((): FlowMetaView => {
+    const value = readMeta(doc);
+    if (
+      cache.current?.doc === doc &&
+      cache.current.value.name === value.name &&
+      cache.current.value.theme === value.theme
+    ) {
+      return cache.current.value;
+    }
+    cache.current = { doc, value };
+    return value;
+  }, [doc]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}

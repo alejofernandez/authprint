@@ -110,5 +110,16 @@
     "repoLink": "View source on GitHub",
     "builtWith": "Built with",
     "close": "Close"
+  },
+  "docPrefs": {
+    "title": "Document preferences",
+    "flowName": "Flow name",
+    "screenTheme": "Screen theme",
+    "done": "Done",
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "both": "Follow editor"
+    }
   }
 }

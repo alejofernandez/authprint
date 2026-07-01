@@ -11,13 +11,15 @@ import {
   removeNode,
   setDecisionPredicate,
   setEdgeRoute,
+  setFlowName,
+  setFlowTheme,
   setNodeKind,
   setNodeName,
   setScreenFidelity,
   setScreenFields,
   setScreenTraits,
 } from './ops.ts';
-import { edgeLayoutMap, edgesMap, layoutMap, nodesMap } from './schema.ts';
+import { edgeLayoutMap, edgesMap, layoutMap, metaMap, nodesMap } from './schema.ts';
 
 // Minimal flow: entry → screen → (decision) → outcome, decision has both branches.
 function base() {
@@ -218,6 +220,18 @@ describe('attribute edits', () => {
     expect(declareContextSlot(doc, 'risk.level', { type: 'number' })).toEqual({ ok: true });
     expect(readFlow(doc).context['risk.level']).toEqual({ type: 'number' });
     expect(declareContextSlot(doc, '', { type: 'boolean' }).ok).toBe(false);
+  });
+});
+
+describe('flow meta edits', () => {
+  test('setFlowName / setFlowTheme write through metaMap and round-trip', () => {
+    const doc = base();
+    setFlowName(doc, 'Renamed flow');
+    setFlowTheme(doc, 'dark');
+    expect(metaMap(doc).get('name')).toBe('Renamed flow');
+    expect(metaMap(doc).get('theme')).toBe('dark');
+    expect(readFlow(doc).name).toBe('Renamed flow');
+    expect(readFlow(doc).theme).toBe('dark');
   });
 });
 

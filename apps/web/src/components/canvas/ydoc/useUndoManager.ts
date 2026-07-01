@@ -1,4 +1,4 @@
-// Y.UndoManager wiring for E27 / US-053. Tracks the five editable maps, scoped
+// Y.UndoManager wiring for E27 / US-053. Tracks the six editable maps, scoped
 // to LOCAL_ORIGIN so v2 remote edits never land on the local undo stack.
 // Construct the manager only after hydrate — the loaded baseline is not undoable.
 
@@ -11,6 +11,7 @@ import {
   edgesMap,
   LOCAL_ORIGIN,
   layoutMap,
+  metaMap,
   nodesMap,
 } from './schema.ts';
 
@@ -32,7 +33,14 @@ export function shouldDeferUndoToField(target: EventTarget | null): boolean {
 /** Headless-friendly factory — also used by the React hook. */
 export function createUndoManager(doc: Y.Doc): UndoManager {
   return new UndoManager(
-    [nodesMap(doc), edgesMap(doc), contextMap(doc), layoutMap(doc), edgeLayoutMap(doc)],
+    [
+      nodesMap(doc),
+      edgesMap(doc),
+      contextMap(doc),
+      layoutMap(doc),
+      edgeLayoutMap(doc),
+      metaMap(doc),
+    ],
     {
       trackedOrigins: new Set([LOCAL_ORIGIN]),
       captureTimeout: 0,

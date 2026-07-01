@@ -45,6 +45,7 @@ import { track } from '@/analytics';
 import { useTheme } from '@/components/theme';
 import { AboutModal } from './AboutModal.tsx';
 import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
+import { DocumentPreferencesModal } from './DocumentPreferencesModal.tsx';
 import { EdgeRouteProvider } from './edges/edgeRouteContext.tsx';
 import { RoutableEdge } from './edges/RoutableEdge.tsx';
 import { elkLayoutReady } from './elkLayoutReady.ts';
@@ -83,6 +84,8 @@ import {
   declareContextSlot,
   setDecisionPredicate,
   setEdgeRoute,
+  setFlowName,
+  setFlowTheme,
   setNodeKind,
   setNodeName,
   setScreenFidelity,
@@ -99,6 +102,7 @@ import {
   serializeSemantic,
   serializeSidecar,
 } from './ydoc/persist.ts';
+import { useFlowMeta } from './ydoc/useFlowMeta.ts';
 import { shouldDeferUndoToField, useUndoManager } from './ydoc/useUndoManager.ts';
 import { useYDocFlow } from './ydoc/useYDocFlow.ts';
 
@@ -176,6 +180,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   const [dragging, setDragging] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [docPrefsOpen, setDocPrefsOpen] = useState(false);
   const { fitView } = useReactFlow();
   const { theme, setTheme } = useTheme();
   const { undo, redo, canUndo, canRedo } = useUndoManager(doc);
@@ -185,7 +190,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   // Scenarios travel with the flow (carried opaquely in `meta`, E24). They don't
   // change during a session, so deriving them off `doc` identity is enough.
   const scenarios = useMemo(() => docToArtifact(doc).flow.scenarios ?? [], [doc]);
-  const flowName = useMemo(() => docToArtifact(doc).flow.name, [doc]);
+  const { name: flowName, theme: flowTheme } = useFlowMeta(doc);
   useRecentFlowAutosave(sessionId ?? '', doc, flowName);
 
   const activateLoadedDoc = useCallback((nextSessionId: string) => {
@@ -677,6 +682,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
             flowName={flowName}
             onGoHome={goHome}
             onOpenPalette={() => setPaletteOpen(true)}
+            onFlowNameClick={() => setDocPrefsOpen(true)}
           />
           {/* biome-ignore lint/a11y/noStaticElementInteractions: file drop zone; palette "Open file" is the keyboard equivalent. */}
           <div
@@ -713,6 +719,14 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
             )}
 
             <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
+            <DocumentPreferencesModal
+              open={docPrefsOpen}
+              onOpenChange={setDocPrefsOpen}
+              flowName={flowName}
+              flowTheme={flowTheme}
+              onFlowNameChange={(name) => setFlowName(doc, name)}
+              onFlowThemeChange={(theme) => setFlowTheme(doc, theme)}
+            />
           </div>
         </div>
       )}

@@ -14,7 +14,7 @@ export function Topbar({
   flowName: string;
   onGoHome: () => void;
   onOpenPalette: () => void;
-  /** Stub for US-092 — document preferences modal behind flow-name click. */
+  /** Opens document preferences (US-092). */
   onFlowNameClick?: () => void;
 }) {
   const tPalette = useTranslations('palette');

@@ -9,7 +9,14 @@
 // internally consistent (no duplicate ids, no edges to nonexistent nodes, no
 // dangling edges after a node delete).
 
-import type { ContextSlot, Node as DslNode, Edge, Field, Predicate } from '@authprint/dsl';
+import type {
+  ContextSlot,
+  Node as DslNode,
+  Edge,
+  Field,
+  FlowTheme,
+  Predicate,
+} from '@authprint/dsl';
 import * as Y from 'yjs';
 import {
   buildContextSlotMap,
@@ -22,6 +29,7 @@ import {
   edgesMap,
   LOCAL_ORIGIN,
   layoutMap,
+  metaMap,
   nodesMap,
   type Position,
 } from './schema.ts';
@@ -145,5 +153,17 @@ export function setDecisionPredicate(doc: Y.Doc, id: string, predicate: Predicat
 export function declareContextSlot(doc: Y.Doc, name: string, slot: ContextSlot): OpResult {
   if (name.length === 0) return fail('slot name is required');
   doc.transact(() => contextMap(doc).set(name, buildContextSlotMap(slot)), LOCAL_ORIGIN);
+  return ok;
+}
+
+// ─── Flow-level meta edits (E43 / US-092) ─────────────────────────────────────
+
+export function setFlowName(doc: Y.Doc, name: string): OpResult {
+  doc.transact(() => metaMap(doc).set('name', name), LOCAL_ORIGIN);
+  return ok;
+}
+
+export function setFlowTheme(doc: Y.Doc, theme: FlowTheme): OpResult {
+  doc.transact(() => metaMap(doc).set('theme', theme), LOCAL_ORIGIN);
   return ok;
 }

@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { emptyFlow } from '../emptyFlow.ts';
 import { createConnectedNode } from './create.ts';
 import { hydrate } from './hydrate.ts';
-import { moveNode, removeNode, setNodeName } from './ops.ts';
-import { edgesMap, layoutMap, nodesMap } from './schema.ts';
+import { moveNode, removeNode, setFlowName, setFlowTheme, setNodeName } from './ops.ts';
+import { edgesMap, layoutMap, metaMap, nodesMap } from './schema.ts';
 import { createUndoManager } from './useUndoManager.ts';
 
 function entryDoc() {
@@ -135,6 +135,22 @@ describe('createUndoManager', () => {
 
     manager.undo();
     expect(nodesMap(doc).get('s1')?.get('name')).toBe('S');
+
+    manager.destroy();
+  });
+
+  test('setFlowName and setFlowTheme undo independently', () => {
+    const doc = wiredDoc();
+    const manager = createUndoManager(doc);
+    setFlowName(doc, 'New title');
+    setFlowTheme(doc, 'both');
+    expect(metaMap(doc).get('name')).toBe('New title');
+    expect(metaMap(doc).get('theme')).toBe('both');
+
+    manager.undo();
+    expect(metaMap(doc).get('theme')).toBe('light');
+    manager.undo();
+    expect(metaMap(doc).get('name')).toBe('F');
 
     manager.destroy();
   });
