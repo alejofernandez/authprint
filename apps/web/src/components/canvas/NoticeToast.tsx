@@ -35,7 +35,7 @@ export function NoticeToast({ notice, onDismiss }: { notice: Notice; onDismiss: 
 
   return (
     <div
-      className={`absolute top-4 left-1/2 z-30 w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg border p-3 shadow-lg transition-[opacity,transform] duration-fast ease-standard ${
+      className={`absolute top-4 left-1/2 z-30 w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg border p-3 shadow-lg transition-[opacity,transform] duration-[var(--duration-fast)] ease-standard ${
         shown ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
       } ${
         isError

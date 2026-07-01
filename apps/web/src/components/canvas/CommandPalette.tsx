@@ -40,8 +40,8 @@ export function CommandPalette({
       open={open}
       onOpenChange={onOpenChange}
       label="Command palette"
-      overlayClassName="fixed inset-0 z-40 bg-overlay-scrim backdrop-blur-sm transition-opacity duration-base ease-standard data-[state=open]:opacity-100 data-[state=closed]:opacity-0"
-      contentClassName="fixed left-1/2 top-[18vh] z-50 w-[min(640px,90vw)] -translate-x-1/2 origin-top focus:outline-none transition-[opacity,transform] duration-base ease-standard data-[state=open]:scale-100 data-[state=open]:opacity-100 data-[state=closed]:scale-[0.98] data-[state=closed]:opacity-0"
+      overlayClassName="fixed inset-0 z-40 bg-overlay-scrim backdrop-blur-sm transition-opacity duration-[var(--duration-base)] ease-standard data-[state=open]:opacity-100 data-[state=closed]:opacity-0"
+      contentClassName="fixed left-1/2 top-[18vh] z-50 w-[min(640px,90vw)] -translate-x-1/2 origin-top focus:outline-none transition-[opacity,transform] duration-[var(--duration-base)] ease-standard data-[state=open]:scale-100 data-[state=open]:opacity-100 data-[state=closed]:scale-[0.98] data-[state=closed]:opacity-0"
       className="overflow-hidden rounded-xl border border-border-subtle bg-bg-panel shadow-2xl dark:border-border-subtle"
     >
       <Command.Input
