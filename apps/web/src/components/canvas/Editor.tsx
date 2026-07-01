@@ -389,9 +389,25 @@ function EditorShell({
 
   const goHome = useCallback(() => {
     exitScenario();
+    setPaletteOpen(false);
     setPhase('not-started');
-    setSessionId(null);
   }, [exitScenario]);
+
+  const resumeEditing = useCallback(() => {
+    setPhase('active');
+  }, []);
+
+  // Esc on the start screen returns to the in-memory session (after Home).
+  useEffect(() => {
+    if (phase !== 'not-started' || !sessionId) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || paletteOpen) return;
+      event.preventDefault();
+      resumeEditing();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [phase, sessionId, paletteOpen, resumeEditing]);
 
   // Scenario-mode keyboard: Esc exits; ← / → walk the trace; R resets. The
   // visual step controls are US-062 — this keeps the mode usable + verifiable now.
@@ -422,6 +438,17 @@ function EditorShell({
 
   const commands = useMemo<PaletteCommand[]>(
     () => [
+      ...(phase === 'not-started' && sessionId
+        ? [
+            {
+              id: 'continue-editing',
+              group: tPalette('groups.file'),
+              label: tPalette('commands.continueEditing'),
+              keywords: 'resume canvas esc return graph',
+              run: resumeEditing,
+            },
+          ]
+        : []),
       ...(phase === 'active'
         ? [
             {
@@ -584,7 +611,9 @@ function EditorShell({
     ],
     [
       phase,
+      sessionId,
       goHome,
+      resumeEditing,
       doc,
       examples,
       patterns,

@@ -127,6 +127,9 @@ export function useRecentFlowAutosave(sessionId: string, doc: Y.Doc, flowName: s
   useEffect(() => {
     if (!sessionId) return;
     const autosave = createRecentFlowAutosave(sessionId, doc, flowName);
-    return () => autosave.destroy();
+    return () => {
+      void autosave.flush();
+      autosave.destroy();
+    };
   }, [sessionId, doc, flowName]);
 }
