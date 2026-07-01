@@ -66,7 +66,7 @@ import { useRecentFlowAutosave } from './recentFlows/useRecentFlowAutosave.ts';
 import { useUnexportedChanges } from './recentFlows/useUnexportedChanges.ts';
 import { reconcileFlowEdges, reconcileFlowNodes } from './reconcileFlowState.ts';
 import { StartScreen } from './StartScreen.tsx';
-import { StatusCluster, UnexportedIndicator } from './StatusCluster.tsx';
+import { StatusCluster } from './StatusCluster.tsx';
 import { ContextPanel } from './scenario/ContextPanel.tsx';
 import { ScenarioControls } from './scenario/ScenarioControls.tsx';
 import { ScenarioModeProvider, useScenarioMode } from './scenario/ScenarioModeContext.tsx';
@@ -736,8 +736,8 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
           <Topbar
             flowName={flowName}
             onGoHome={goHome}
-            onOpenPalette={() => setPaletteOpen(true)}
             onFlowNameClick={() => setDocPrefsOpen(true)}
+            hasUnexportedChanges={hasUnexportedChanges}
           />
           {/* biome-ignore lint/a11y/noStaticElementInteractions: file drop zone; palette "Open file" is the keyboard equivalent. */}
           <div
@@ -751,7 +751,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
             }}
             onDrop={onDrop}
           >
-            <FlowCanvas key={revision} doc={doc} showUnexportedIndicator={hasUnexportedChanges} />
+            <FlowCanvas key={revision} doc={doc} />
 
             {dragging && (
               <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-accent-primary/10 backdrop-blur-sm">
@@ -762,6 +762,18 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
             )}
 
             {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
+
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label={tPalette('openPalette')}
+              className="absolute bottom-4 left-14 z-20 flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-panel/95 px-2.5 py-1.5 text-fg-muted text-sm shadow-lg backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default dark:bg-bg-panel/95"
+            >
+              {tPalette('searchButton')}
+              <kbd className="rounded border border-border-default bg-bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-subtle">
+                ⌘K
+              </kbd>
+            </button>
 
             {scenario.session && (
               <>
@@ -884,13 +896,7 @@ function alignedNodePosition(
     : { x: x + sw, y: y + sh + NEW_NODE_GAP };
 }
 
-function FlowCanvas({
-  doc,
-  showUnexportedIndicator,
-}: {
-  doc: Y.Doc;
-  showUnexportedIndicator: boolean;
-}) {
+function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const {
     flow,
     layout,
@@ -1072,9 +1078,7 @@ function FlowCanvas({
             onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
             readOnly={readOnly}
           />
-          <StatusCluster
-            unexportedIndicator={<UnexportedIndicator visible={showUnexportedIndicator} />}
-          >
+          <StatusCluster>
             <ProblemsPanel
               validation={validation}
               showOutlines={showOutlines}

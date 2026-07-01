@@ -8,19 +8,20 @@ export const TOPBAR_HEIGHT_PX = 48;
 export function Topbar({
   flowName,
   onGoHome,
-  onOpenPalette,
   onFlowNameClick,
+  hasUnexportedChanges,
 }: {
   flowName: string;
   onGoHome: () => void;
-  onOpenPalette: () => void;
   /** Opens document preferences (US-092). */
   onFlowNameClick?: () => void;
+  /** Saved locally but not exported as a file yet (US-094). */
+  hasUnexportedChanges?: boolean;
 }) {
-  const tPalette = useTranslations('palette');
+  const t = useTranslations('unexportedChanges');
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-3 border-border-subtle border-b bg-bg-panel px-4">
+    <header className="relative flex h-12 shrink-0 items-center border-border-subtle border-b bg-bg-panel px-4">
       <button
         type="button"
         onClick={onGoHome}
@@ -32,20 +33,17 @@ export function Topbar({
         type="button"
         id="topbar-flow-name"
         onClick={onFlowNameClick}
-        className="max-w-xs truncate text-fg-default text-sm transition-colors duration-[var(--duration-fast)] ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border"
+        className="-translate-x-1/2 absolute left-1/2 flex max-w-xs items-center gap-1.5 text-fg-default text-sm transition-colors duration-[var(--duration-fast)] ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border"
       >
-        {flowName}
-      </button>
-      <button
-        type="button"
-        onClick={onOpenPalette}
-        aria-label={tPalette('openPalette')}
-        className="flex items-center gap-2 rounded-md border border-border-default py-1 pr-2 pl-2.5 text-fg-muted text-sm transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border"
-      >
-        {tPalette('searchButton')}
-        <kbd className="rounded border border-border-default bg-bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-subtle">
-          ⌘K
-        </kbd>
+        <span className="truncate">{flowName}</span>
+        {hasUnexportedChanges && (
+          <span
+            role="status"
+            className="size-1.5 shrink-0 rounded-full bg-signal-warning"
+            title={t('indicatorTitle')}
+            aria-label={t('indicatorLabel')}
+          />
+        )}
       </button>
     </header>
   );
