@@ -121,5 +121,13 @@
       "dark": "Dark",
       "both": "Follow editor"
     }
+  },
+  "unexportedChanges": {
+    "confirmTitle": "Replace this flow?",
+    "confirmMessage": "This flow has changes that are saved locally but not exported as a file yet. You can still resume it from Recent after continuing.",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "indicatorLabel": "Not exported",
+    "indicatorTitle": "Saved locally — not exported as a file yet"
   }
 }

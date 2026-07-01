@@ -63,15 +63,17 @@ import { NodeActivateProvider } from './nodes/nodeA11y.tsx';
 import { ProblemsPanel } from './ProblemsPanel.tsx';
 import type { RecentFlowEntry } from './recentFlows/store.ts';
 import { useRecentFlowAutosave } from './recentFlows/useRecentFlowAutosave.ts';
+import { useUnexportedChanges } from './recentFlows/useUnexportedChanges.ts';
 import { reconcileFlowEdges, reconcileFlowNodes } from './reconcileFlowState.ts';
 import { StartScreen } from './StartScreen.tsx';
-import { StatusCluster } from './StatusCluster.tsx';
+import { StatusCluster, UnexportedIndicator } from './StatusCluster.tsx';
 import { ContextPanel } from './scenario/ContextPanel.tsx';
 import { ScenarioControls } from './scenario/ScenarioControls.tsx';
 import { ScenarioModeProvider, useScenarioMode } from './scenario/ScenarioModeContext.tsx';
 import { buildTraceAttachment } from './scenario/scenarioTrace.ts';
 import { useScenarioRun } from './scenario/useScenarioRun.ts';
 import { Topbar } from './Topbar.tsx';
+import { UnexportedChangesConfirmDialog } from './UnexportedChangesConfirmDialog.tsx';
 import { useValidation } from './useValidation.ts';
 import {
   type CreatableType,
@@ -181,6 +183,8 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [docPrefsOpen, setDocPrefsOpen] = useState(false);
+  const [replaceConfirmOpen, setReplaceConfirmOpen] = useState(false);
+  const pendingReplaceRef = useRef<(() => void) | null>(null);
   const { fitView } = useReactFlow();
   const { theme, setTheme } = useTheme();
   const { undo, redo, canUndo, canRedo } = useUndoManager(doc);
@@ -192,6 +196,29 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   const scenarios = useMemo(() => docToArtifact(doc).flow.scenarios ?? [], [doc]);
   const { name: flowName, theme: flowTheme } = useFlowMeta(doc);
   useRecentFlowAutosave(sessionId ?? '', doc, flowName);
+  const { hasUnexportedChanges, markExported } = useUnexportedChanges(doc);
+
+  const needsReplaceConfirm = useCallback(
+    () => hasUnexportedChanges && phase === 'active',
+    [hasUnexportedChanges, phase],
+  );
+
+  const guardedReplace = useCallback(
+    (action: () => void) => {
+      if (!needsReplaceConfirm()) {
+        action();
+        return;
+      }
+      pendingReplaceRef.current = action;
+      setReplaceConfirmOpen(true);
+    },
+    [needsReplaceConfirm],
+  );
+
+  const confirmReplace = useCallback(() => {
+    pendingReplaceRef.current?.();
+    pendingReplaceRef.current = null;
+  }, []);
 
   const activateLoadedDoc = useCallback((nextSessionId: string) => {
     setSessionId(nextSessionId);
@@ -237,14 +264,21 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     [loadFlowFromSource],
   );
 
-  const applySource = useCallback(
+  const applySourceInner = useCallback(
     (source: string, label: string) => {
       applyImport(source, label);
     },
     [applyImport],
   );
 
-  const loadFiles = useCallback(
+  const applySource = useCallback(
+    (source: string, label: string) => {
+      guardedReplace(() => applySourceInner(source, label));
+    },
+    [guardedReplace, applySourceInner],
+  );
+
+  const loadFilesInner = useCallback(
     async (files: File[]) => {
       const authprints = files.filter((f) => isAuthprintFile(f.name));
       const sidecars = files.filter((f) => isLayoutSidecarFile(f.name));
@@ -300,9 +334,17 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
       const label = sidecar ? `${primary.name} + ${sidecar.name}` : primary.name;
       if (applyImport(authprintSource, label, sidecarSource)) {
         track('flow_opened', { fileName: primary.name, hasSidecar: Boolean(sidecar) });
+        markExported();
       }
     },
-    [applyImport, tNotices],
+    [applyImport, markExported, tNotices],
+  );
+
+  const loadFiles = useCallback(
+    (files: File[]) => {
+      guardedReplace(() => void loadFilesInner(files));
+    },
+    [guardedReplace, loadFilesInner],
   );
 
   const onStartScreenDrop = useCallback(
@@ -313,11 +355,15 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     [loadFiles],
   );
 
-  const startBlank = useCallback(() => {
+  const startBlankInner = useCallback(() => {
     setDoc(hydrate(initialFlow));
     activateLoadedDoc(newSessionId());
     setNotice(null);
   }, [activateLoadedDoc, initialFlow]);
+
+  const startBlank = useCallback(() => {
+    guardedReplace(startBlankInner);
+  }, [guardedReplace, startBlankInner]);
 
   const resumeRecent = useCallback(
     (entry: RecentFlowEntry) => {
@@ -326,17 +372,21 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     [loadFlowFromSource],
   );
 
-  const openFilePicker = useCallback(() => {
+  const openFilePickerInner = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = `${FILE_EXT},${LAYOUT_EXT}`;
     input.multiple = true;
     input.addEventListener('change', () => {
       const selected = input.files ? [...input.files] : [];
-      if (selected.length > 0) loadFiles(selected);
+      if (selected.length > 0) void loadFilesInner(selected);
     });
     input.click();
-  }, [loadFiles]);
+  }, [loadFilesInner]);
+
+  const openFilePicker = useCallback(() => {
+    guardedReplace(openFilePickerInner);
+  }, [guardedReplace, openFilePickerInner]);
 
   // Cmd/Ctrl+K toggles the palette from anywhere.
   useEffect(() => {
@@ -390,7 +440,8 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     const artifact = docToArtifact(doc);
     track('flow_saved', { flowName: artifact.flow.name });
     downloadText(`${slugify(artifact.flow.name)}${FILE_EXT}`, serializeBundle(artifact), MIME);
-  }, [doc]);
+    markExported();
+  }, [doc, markExported]);
 
   // ⌘O open, ⌘S save (active only), ⌘⇧H home — same actions as the palette.
   useEffect(() => {
@@ -525,6 +576,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
             serializeSemantic(artifact),
             MIME,
           );
+          markExported();
         },
       },
       {
@@ -538,6 +590,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
           const { semantic, layout } = serializeSidecar(artifact);
           downloadText(`${base}${FILE_EXT}`, semantic, MIME);
           downloadText(`${base}${LAYOUT_EXT}`, layout, LAYOUT_MIME);
+          markExported();
         },
       },
       {
@@ -552,6 +605,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
             serializeBundle(artifact),
             MIME,
           );
+          markExported();
         },
       },
       ...patterns.map((pattern) => ({
@@ -641,6 +695,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
       scenarios,
       scenario,
       tPalette,
+      markExported,
     ],
   );
 
@@ -696,7 +751,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
             }}
             onDrop={onDrop}
           >
-            <FlowCanvas key={revision} doc={doc} />
+            <FlowCanvas key={revision} doc={doc} showUnexportedIndicator={hasUnexportedChanges} />
 
             {dragging && (
               <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-accent-primary/10 backdrop-blur-sm">
@@ -731,6 +786,11 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
         </div>
       )}
       <AboutModal open={aboutOpen} onOpenChange={setAboutOpen} />
+      <UnexportedChangesConfirmDialog
+        open={replaceConfirmOpen}
+        onOpenChange={setReplaceConfirmOpen}
+        onConfirm={confirmReplace}
+      />
     </ScenarioModeProvider>
   );
 }
@@ -824,7 +884,13 @@ function alignedNodePosition(
     : { x: x + sw, y: y + sh + NEW_NODE_GAP };
 }
 
-function FlowCanvas({ doc }: { doc: Y.Doc }) {
+function FlowCanvas({
+  doc,
+  showUnexportedIndicator,
+}: {
+  doc: Y.Doc;
+  showUnexportedIndicator: boolean;
+}) {
   const {
     flow,
     layout,
@@ -1006,7 +1072,9 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
             onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
             readOnly={readOnly}
           />
-          <StatusCluster>
+          <StatusCluster
+            unexportedIndicator={<UnexportedIndicator visible={showUnexportedIndicator} />}
+          >
             <ProblemsPanel
               validation={validation}
               showOutlines={showOutlines}
