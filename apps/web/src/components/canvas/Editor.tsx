@@ -10,7 +10,7 @@
 
 import '@xyflow/react/dist/style.css';
 
-import { type Diagnostic, type Flow, runScenario } from '@authprint/dsl';
+import { type Flow, runScenario } from '@authprint/dsl';
 import {
   Background,
   type Connection,
@@ -54,6 +54,7 @@ import { layoutFlow } from './layout.ts';
 import { type NodeEditActions, NodeInlineEditor } from './NodeInlineEditor.tsx';
 import { NodeInspector } from './NodeInspector.tsx';
 import { NodeTypePicker, type NodeTypePickerPlacement } from './NodeTypePicker.tsx';
+import { type Notice, NoticeToast } from './NoticeToast.tsx';
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
 import { NodeActivateProvider } from './nodes/nodeA11y.tsx';
@@ -137,8 +138,6 @@ function downloadText(filename: string, content: string, mime: string): void {
   a.click();
   URL.revokeObjectURL(url);
 }
-
-type Notice = { kind: 'error' | 'info'; title: string; diagnostics: Diagnostic[] };
 
 export function Editor({
   initialFlow,
@@ -592,48 +591,6 @@ function EditorShell({
         <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
       </div>
     </ScenarioModeProvider>
-  );
-}
-
-function NoticeToast({ notice, onDismiss }: { notice: Notice; onDismiss: () => void }) {
-  const tPalette = useTranslations('palette');
-  // Warm = error (per the aesthetic: warm colors signal state); indigo = info.
-  const isError = notice.kind === 'error';
-  return (
-    <div
-      className={`absolute top-4 left-1/2 z-30 w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg border p-3 shadow-lg ${
-        isError
-          ? 'border-signal-error-border bg-signal-error-bg dark:border-signal-error-border-strong dark:bg-signal-error-bg'
-          : 'border-accent-primary-border-muted bg-accent-primary-bg dark:border-accent-primary-border-muted dark:bg-accent-primary-bg/60'
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <p
-          className={`font-medium text-sm ${isError ? 'text-signal-error dark:text-signal-error-fg' : 'text-accent-primary-fg-emphasis'}`}
-        >
-          {notice.title}
-        </p>
-        <button
-          type="button"
-          onClick={onDismiss}
-          aria-label={tPalette('dismiss')}
-          className="text-sm text-fg-subtle leading-none hover:text-fg-muted dark:hover:text-fg-soft"
-        >
-          ✕
-        </button>
-      </div>
-      {notice.diagnostics.length > 0 && (
-        <ul className="mt-2 max-h-40 space-y-1 overflow-auto font-mono text-xs text-fg-muted dark:text-fg-subtle">
-          {notice.diagnostics.map((d, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static, never-reordered diagnostics list
-            <li key={i}>
-              {d.path ? `${d.path} — ` : ''}
-              {d.message}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }
 
