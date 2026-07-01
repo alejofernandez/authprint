@@ -395,6 +395,36 @@ function EditorShell({
     setPhase('not-started');
   }, [exitScenario]);
 
+  const saveFlow = useCallback(() => {
+    const artifact = docToArtifact(doc);
+    track('flow_saved', { flowName: artifact.flow.name });
+    downloadText(`${slugify(artifact.flow.name)}${FILE_EXT}`, serializeBundle(artifact), MIME);
+  }, [doc]);
+
+  // ⌘O open, ⌘S save (active only), ⌘⇧H home — same actions as the palette.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      if (shouldDeferUndoToField(event.target)) return;
+
+      const key = event.key.toLowerCase();
+      if (key === 'o' && !event.shiftKey && !event.altKey) {
+        event.preventDefault();
+        openFilePicker();
+      } else if (key === 's' && !event.shiftKey && !event.altKey) {
+        if (phase !== 'active') return;
+        event.preventDefault();
+        saveFlow();
+      } else if (key === 'h' && event.shiftKey && !event.altKey) {
+        if (phase !== 'active') return;
+        event.preventDefault();
+        goHome();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [phase, openFilePicker, saveFlow, goHome]);
+
   const resumeEditing = useCallback(() => {
     setPhase('active');
   }, []);
@@ -490,15 +520,7 @@ function EditorShell({
         group: tPalette('groups.file'),
         label: tPalette('commands.saveFlow'),
         keywords: 'export download write',
-        run: () => {
-          const artifact = docToArtifact(doc);
-          track('flow_saved', { flowName: artifact.flow.name });
-          downloadText(
-            `${slugify(artifact.flow.name)}${FILE_EXT}`,
-            serializeBundle(artifact),
-            MIME,
-          );
-        },
+        run: saveFlow,
       },
       {
         id: 'export-semantic',
@@ -620,6 +642,7 @@ function EditorShell({
       examples,
       patterns,
       openFilePicker,
+      saveFlow,
       applySource,
       fitView,
       theme,
