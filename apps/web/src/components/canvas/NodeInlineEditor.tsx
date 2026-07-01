@@ -61,6 +61,7 @@ function defaultValueFor(slot: ContextSlot | undefined): unknown {
 const labelCls = 'text-[10px] font-medium uppercase tracking-wider text-fg-subtle';
 const inputCls =
   'w-full rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-fg-default outline-none focus:border-accent-primary-border focus-visible:ring-2 focus-visible:ring-accent-primary-border focus-visible:ring-offset-1 dark:focus-visible:ring-offset-bg-panel';
+const identifierInputCls = `${inputCls} font-mono`;
 
 const KIND_OPTIONS = {
   screen: SCREEN_KINDS_BUILTIN,
@@ -92,7 +93,7 @@ function KindSelect({
       <div className="space-y-1">
         <input
           id={id}
-          className={inputCls}
+          className={identifierInputCls}
           defaultValue={value}
           onBlur={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
@@ -114,7 +115,7 @@ function KindSelect({
   return (
     <select
       id={id}
-      className={inputCls}
+      className={identifierInputCls}
       value={inList ? value : '__current__'}
       onChange={(e) => {
         if (e.target.value === '__custom__') {
@@ -226,7 +227,7 @@ export function NodeInlineEditor({
                       on ? screen.traits.filter((t) => t !== trait) : [...screen.traits, trait],
                     )
                   }
-                  className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                  className={`rounded-full border px-2 py-0.5 font-mono text-[11px] ${
                     on
                       ? 'border-accent-primary-border bg-accent-primary-bg text-accent-primary-fg dark:bg-accent-primary-bg/60 dark:text-accent-primary-fg-emphasis'
                       : 'border-border-default text-fg-subtle dark:border-border-default dark:text-fg-subtle'
@@ -285,7 +286,7 @@ function PredicateEditor({
   return (
     <div className="space-y-2">
       <select
-        className={inputCls}
+        className={identifierInputCls}
         value={predicate.slot}
         onChange={(e) => {
           if (e.target.value === '__new__') {
@@ -321,7 +322,7 @@ function PredicateEditor({
       )}
 
       <select
-        className={inputCls}
+        className={identifierInputCls}
         value={predicate.op}
         onChange={(e) => update({ op: e.target.value as PredicateOp })}
       >
@@ -350,7 +351,7 @@ function ValueInput({
   if (slot?.type === 'boolean') {
     return (
       <select
-        className={inputCls}
+        className={identifierInputCls}
         value={String(value)}
         onChange={(e) => onChange(e.target.value === 'true')}
       >
@@ -363,7 +364,7 @@ function ValueInput({
     return (
       <input
         type="number"
-        className={inputCls}
+        className={identifierInputCls}
         defaultValue={typeof value === 'number' ? value : 0}
         onBlur={(e) => onChange(e.target.valueAsNumber)}
       />
@@ -371,7 +372,11 @@ function ValueInput({
   }
   if (slot?.type === 'enum') {
     return (
-      <select className={inputCls} value={String(value)} onChange={(e) => onChange(e.target.value)}>
+      <select
+        className={identifierInputCls}
+        value={String(value)}
+        onChange={(e) => onChange(e.target.value)}
+      >
         {(slot.values ?? []).map((v) => (
           <option key={v} value={v}>
             {v}
@@ -382,7 +387,7 @@ function ValueInput({
   }
   return (
     <input
-      className={inputCls}
+      className={identifierInputCls}
       placeholder={t('placeholder')}
       defaultValue={typeof value === 'string' ? value : String(value ?? '')}
       onBlur={(e) => onChange(e.target.value)}
@@ -405,13 +410,13 @@ function NewSlotForm({
   return (
     <div className="space-y-1 rounded border border-border-subtle p-2 dark:border-border-default">
       <input
-        className={inputCls}
+        className={identifierInputCls}
         placeholder={t('namePlaceholder')}
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
       <select
-        className={inputCls}
+        className={identifierInputCls}
         value={type}
         onChange={(e) => setType(e.target.value as SlotType)}
       >
@@ -423,7 +428,7 @@ function NewSlotForm({
       </select>
       {type === 'enum' && (
         <input
-          className={inputCls}
+          className={identifierInputCls}
           placeholder={t('enumValuesPlaceholder')}
           value={values}
           onChange={(e) => setValues(e.target.value)}
@@ -469,7 +474,7 @@ function FieldTypeSelect({
       <div className="space-y-1">
         <input
           id={id}
-          className={inputCls}
+          className={identifierInputCls}
           defaultValue={value}
           onBlur={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
@@ -491,7 +496,7 @@ function FieldTypeSelect({
   return (
     <select
       id={id}
-      className={inputCls}
+      className={identifierInputCls}
       value={inList ? value : '__current__'}
       onChange={(e) => {
         if (e.target.value === '__custom__') {
@@ -579,7 +584,7 @@ function FieldsEditor({
             </button>
           </div>
           <input
-            className={`${inputCls} min-w-0 flex-1`}
+            className={`${identifierInputCls} min-w-0 flex-1`}
             placeholder={t('namePlaceholder')}
             defaultValue={field.name}
             onBlur={(e) => update(i, { name: e.target.value })}

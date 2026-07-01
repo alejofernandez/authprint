@@ -12,7 +12,7 @@ export function ScreenLoFi({ node }: { node: ScreenNode }) {
         {node.kind}
       </div>
       {node.fields.length > 0 ? (
-        <ul className="mt-2 space-y-0.5 text-[11px] text-zinc-600 flow-dark:text-zinc-400">
+        <ul className="mt-2 space-y-0.5 font-mono text-[11px] text-zinc-600 flow-dark:text-zinc-400">
           {node.fields.map((field) => (
             <li key={field.name}>{humanize(field.name)}</li>
           ))}
