@@ -18,7 +18,6 @@ import {
   type FinalConnectionState,
   type IsValidConnection,
   MarkerType,
-  MiniMap,
   type NodeMouseHandler,
   type OnConnect,
   type OnConnectEnd,
@@ -64,6 +63,7 @@ import type { RecentFlowEntry } from './recentFlows/store.ts';
 import { useRecentFlowAutosave } from './recentFlows/useRecentFlowAutosave.ts';
 import { reconcileFlowEdges, reconcileFlowNodes } from './reconcileFlowState.ts';
 import { StartScreen } from './StartScreen.tsx';
+import { StatusCluster } from './StatusCluster.tsx';
 import { ContextPanel } from './scenario/ContextPanel.tsx';
 import { ScenarioControls } from './scenario/ScenarioControls.tsx';
 import { ScenarioModeProvider, useScenarioMode } from './scenario/ScenarioModeContext.tsx';
@@ -996,11 +996,13 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
             onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
             readOnly={readOnly}
           />
-          <ProblemsPanel
-            validation={validation}
-            showOutlines={showOutlines}
-            onToggleOutlines={() => setShowOutlines((v) => !v)}
-          />
+          <StatusCluster>
+            <ProblemsPanel
+              validation={validation}
+              showOutlines={showOutlines}
+              onToggleOutlines={() => setShowOutlines((v) => !v)}
+            />
+          </StatusCluster>
           {!readOnly && pickerPlacement && (
             <NodeTypePicker
               placement={pickerPlacement}
@@ -1101,7 +1103,6 @@ function BoundCanvas({
     >
       <Background gap={24} size={1} />
       <Controls position="bottom-left" showInteractive={false} />
-      <MiniMap position="bottom-right" pannable zoomable />
     </ReactFlow>
   );
 }

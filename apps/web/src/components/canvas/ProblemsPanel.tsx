@@ -35,12 +35,34 @@ export function ProblemsPanel({
   };
 
   return (
-    <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-1">
+    <div className="relative">
+      {open && total > 0 && (
+        <div className="absolute right-0 bottom-full z-10 mb-1 max-h-72 w-80 overflow-auto rounded-lg border border-border-subtle bg-bg-panel p-1 shadow-xl dark:border-border-default">
+          {diagnostics.map((d, i) => (
+            <button
+              // biome-ignore lint/suspicious/noArrayIndexKey: diagnostics are a stable derived list for this render
+              key={i}
+              type="button"
+              disabled={d.target?.kind !== 'node'}
+              onClick={() => focus(d)}
+              className={`flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-xs ${
+                d.target?.kind === 'node'
+                  ? 'cursor-pointer hover:bg-bg-canvas dark:hover:bg-bg-subtle'
+                  : 'cursor-default'
+              }`}
+            >
+              <span className="mt-px shrink-0">{d.severity === 'error' ? '⛔' : '⚠️'}</span>
+              <span className="text-fg-secondary dark:text-fg-muted">{d.message}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div
-        className={`flex items-center rounded-md border shadow-sm backdrop-blur ${
+        className={`flex items-center rounded-md border shadow-sm ${
           total === 0
             ? 'border-node-outcome-success-border bg-node-outcome-success-bg text-node-outcome-success-fg dark:border-node-outcome-success-border dark:bg-node-outcome-success-bg dark:text-node-outcome-success-fg'
-            : 'border-border-default bg-bg-panel/80 text-fg-secondary dark:border-border-default dark:bg-bg-panel/80 dark:text-fg-soft'
+            : 'border-border-default bg-bg-subtle/80 text-fg-secondary dark:border-border-default dark:bg-bg-subtle/80 dark:text-fg-soft'
         }`}
       >
         <button
@@ -87,28 +109,6 @@ export function ProblemsPanel({
           </button>
         )}
       </div>
-
-      {open && total > 0 && (
-        <div className="max-h-72 w-80 overflow-auto rounded-lg border border-border-subtle bg-bg-panel p-1 shadow-xl dark:border-border-default">
-          {diagnostics.map((d, i) => (
-            <button
-              // biome-ignore lint/suspicious/noArrayIndexKey: diagnostics are a stable derived list for this render
-              key={i}
-              type="button"
-              disabled={d.target?.kind !== 'node'}
-              onClick={() => focus(d)}
-              className={`flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-xs ${
-                d.target?.kind === 'node'
-                  ? 'cursor-pointer hover:bg-bg-canvas dark:hover:bg-bg-subtle'
-                  : 'cursor-default'
-              }`}
-            >
-              <span className="mt-px shrink-0">{d.severity === 'error' ? '⛔' : '⚠️'}</span>
-              <span className="text-fg-secondary dark:text-fg-muted">{d.message}</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
