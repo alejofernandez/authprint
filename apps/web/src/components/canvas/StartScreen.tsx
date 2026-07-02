@@ -4,6 +4,7 @@
 
 import { useTranslations } from 'next-intl';
 import { type DragEvent, useEffect, useState } from 'react';
+import { Logo } from '@/components/Logo';
 import type { PatternFlow } from './flowCatalog.ts';
 import { formatRelativeTime } from './formatRelativeTime.ts';
 import {
@@ -162,9 +163,12 @@ export function StartScreen({
     >
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-6 py-8 lg:px-8 lg:py-12">
         <header className="mb-8 max-w-prose lg:mb-10">
-          <h1 className="font-semibold text-2xl text-fg-default tracking-tight lg:text-3xl">
-            Authprint
-          </h1>
+          <div className="flex items-center gap-3">
+            <Logo variant="color" size={36} />
+            <h1 className="font-semibold text-2xl text-fg-default tracking-tight lg:text-3xl">
+              Authprint
+            </h1>
+          </div>
           <p className="mt-1.5 text-fg-muted text-sm leading-relaxed lg:text-base">
             {t('tagline')}
           </p>

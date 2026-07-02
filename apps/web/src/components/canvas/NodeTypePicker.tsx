@@ -125,7 +125,7 @@ export function NodeTypePicker({
             onClick={() => onPick(type)}
             className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm ${
               i === active
-                ? 'bg-accent-primary-bg text-accent-primary-fg-emphasis dark:bg-accent-primary-bg/60 dark:text-accent-primary-fg-on-bg'
+                ? 'bg-accent-primary-selected-bg text-accent-primary-selected-fg'
                 : 'text-fg-secondary dark:text-fg-muted'
             }`}
           >

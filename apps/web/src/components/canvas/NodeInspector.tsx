@@ -17,7 +17,7 @@ const TYPE_META: Record<Exclude<DslNode['type'], 'entry'>, { label: string; dot:
   outcome: { label: 'Outcome', dot: 'bg-node-outcome-accent' },
 };
 
-const PANEL_WIDTH = 288;
+const PANEL_WIDTH = 384;
 /** Matches globals.css --duration-base (200ms). */
 const MOTION_DURATION_BASE_MS = 200;
 
@@ -138,7 +138,7 @@ export function NodeInspector({
       ref={panelRef}
       role="dialog"
       aria-labelledby="node-inspector-title"
-      className={`fixed z-50 flex w-72 flex-col overflow-hidden rounded-lg border border-border-subtle bg-bg-panel shadow-2xl transition-[opacity,transform] duration-[var(--duration-base)] ease-standard dark:border-border-default ${shown ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}
+      className={`fixed z-50 flex w-96 flex-col overflow-hidden rounded-lg border border-border-subtle bg-bg-panel shadow-2xl transition-[opacity,transform] duration-[var(--duration-base)] ease-standard dark:border-border-default ${shown ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}
       style={{
         left: position.left,
         top: position.top,

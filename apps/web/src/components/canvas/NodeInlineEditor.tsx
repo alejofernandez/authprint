@@ -229,7 +229,7 @@ export function NodeInlineEditor({
                   }
                   className={`rounded-full border px-2 py-0.5 font-mono text-[11px] ${
                     on
-                      ? 'border-accent-primary-border bg-accent-primary-bg text-accent-primary-fg dark:bg-accent-primary-bg/60 dark:text-accent-primary-fg-emphasis'
+                      ? 'border-accent-primary-border bg-accent-primary-selected-bg text-accent-primary-selected-fg'
                       : 'border-border-default text-fg-subtle dark:border-border-default dark:text-fg-subtle'
                   }`}
                 >
@@ -561,23 +561,32 @@ function FieldsEditor({
 
   return (
     <div className="space-y-1">
+      {fields.length > 0 && (
+        <div className="flex items-center gap-1 px-0.5">
+          <span className="w-4 shrink-0" aria-hidden />
+          <span className={`min-w-0 flex-1 ${labelCls}`}>{t('nameHeader')}</span>
+          <span className={`w-28 shrink-0 ${labelCls}`}>{t('typeHeader')}</span>
+          <span className={`w-9 shrink-0 text-center ${labelCls}`}>{t('requiredHeader')}</span>
+          <span className="w-5 shrink-0" aria-hidden />
+        </div>
+      )}
       {fields.map((field, i) => (
         <div key={rowKeys[i]} className="flex items-center gap-1">
-          <div className="flex shrink-0 flex-col gap-0.5">
+          <div className="flex w-4 shrink-0 flex-col gap-0.5">
             <button
               type="button"
-              aria-label="Move field up"
+              aria-label={t('moveUp')}
               disabled={i === 0}
-              className="px-0.5 text-[10px] leading-none text-fg-subtle hover:text-fg-muted disabled:opacity-30 dark:hover:text-fg-soft"
+              className="flex h-3.5 w-3.5 items-center justify-center rounded text-fg-subtle text-xs leading-none hover:bg-bg-subtle hover:text-fg-muted disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-bg-subtle dark:hover:text-fg-soft"
               onClick={() => move(i, i - 1)}
             >
               ↑
             </button>
             <button
               type="button"
-              aria-label="Move field down"
+              aria-label={t('moveDown')}
               disabled={i === fields.length - 1}
-              className="px-0.5 text-[10px] leading-none text-fg-subtle hover:text-fg-muted disabled:opacity-30 dark:hover:text-fg-soft"
+              className="flex h-3.5 w-3.5 items-center justify-center rounded text-fg-subtle text-xs leading-none hover:bg-bg-subtle hover:text-fg-muted disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-bg-subtle dark:hover:text-fg-soft"
               onClick={() => move(i, i + 1)}
             >
               ↓
@@ -596,20 +605,24 @@ function FieldsEditor({
               onChange={(type) => update(i, { type })}
             />
           </div>
-          <input
-            type="checkbox"
-            aria-label={t('required')}
-            checked={field.required}
-            onChange={(e) => update(i, { required: e.target.checked })}
-          />
-          <button
-            type="button"
-            aria-label={t('remove')}
-            className="px-1 text-fg-subtle hover:text-fg-muted dark:hover:text-fg-soft"
-            onClick={() => remove(i)}
-          >
-            ✕
-          </button>
+          <div className="flex w-9 shrink-0 justify-center">
+            <input
+              type="checkbox"
+              aria-label={t('required')}
+              checked={field.required}
+              onChange={(e) => update(i, { required: e.target.checked })}
+            />
+          </div>
+          <div className="flex w-5 shrink-0 justify-center">
+            <button
+              type="button"
+              aria-label={t('remove')}
+              className="px-1 text-fg-subtle hover:text-fg-muted dark:hover:text-fg-soft"
+              onClick={() => remove(i)}
+            >
+              ✕
+            </button>
+          </div>
         </div>
       ))}
       <button

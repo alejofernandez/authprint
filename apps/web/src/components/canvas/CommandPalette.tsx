@@ -46,7 +46,7 @@ export function CommandPalette({
     >
       <Command.Input
         placeholder="Type a command or search…"
-        className="w-full border-border-subtle border-b bg-transparent px-4 py-3 text-sm text-fg-default outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-primary-border placeholder:text-fg-subtle dark:border-border-subtle"
+        className="w-full rounded-t-[11px] appearance-none border-border-subtle border-b bg-transparent px-4 py-3 text-sm text-fg-default outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-primary-border placeholder:text-fg-subtle dark:border-border-subtle"
       />
       <Command.List className="max-h-[min(50vh,360px)] overflow-y-auto p-2">
         <Command.Empty className="px-3 py-6 text-center text-sm text-fg-subtle">
@@ -71,7 +71,7 @@ export function CommandPalette({
                 className={`flex items-center rounded-md px-3 py-2 text-sm text-fg-secondary outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-primary-border dark:text-fg-soft ${
                   command.disabled
                     ? 'cursor-not-allowed opacity-40'
-                    : 'cursor-pointer data-[selected=true]:bg-accent-primary-bg data-[selected=true]:text-accent-primary-fg-emphasis dark:data-[selected=true]:bg-accent-primary-bg/60 dark:data-[selected=true]:text-accent-primary-fg-on-bg'
+                    : 'cursor-pointer data-[selected=true]:bg-accent-primary-selected-bg data-[selected=true]:text-accent-primary-selected-fg'
                 }`}
               >
                 {command.label}

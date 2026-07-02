@@ -35,6 +35,12 @@
   --accent-primary-border: #818cf8; /* indigo-400 — focus rings, strong borders */
   --accent-primary-border-muted: #a5b4fc; /* indigo-300 — toast / panel borders */
 
+  /* Selected/active menu row (listbox, dropdown, palette) — resolves per theme
+     so call sites never need a manual dark: override (that gap is what made
+     the CommandPalette + NodeTypePicker rows nearly invisible in dark mode). */
+  --accent-primary-selected-bg: #eef2ff; /* indigo-50 */
+  --accent-primary-selected-fg: #312e81; /* indigo-900 */
+
   /* Signal — warm-as-signal (§7); amber for toast errors, red kept for validation */
   --signal-error: #78350f; /* amber-900 */
   --signal-error-label: #78350f; /* amber-900 — emphasis labels on warm surfaces */
@@ -103,6 +109,11 @@
   --accent-primary-border: #818cf8;
   --accent-primary-border-muted: #3730a3; /* indigo-800 */
 
+  /* Solid enough to read against dark panels — accent-primary-bg itself
+     (indigo-950) is too close to the panel background to work as a fill. */
+  --accent-primary-selected-bg: #3730a3; /* indigo-800 */
+  --accent-primary-selected-fg: #e0e7ff; /* indigo-100 */
+
   --signal-error: #fde68a; /* amber-200 */
   --signal-error-label: #fef3c7; /* amber-100 */
   --signal-error-bg: color-mix(in srgb, #451a03 60%, transparent); /* amber-950/60 */
@@ -160,6 +171,8 @@
   --color-accent-primary-fg-on-bg: var(--accent-primary-fg-on-bg);
   --color-accent-primary-border: var(--accent-primary-border);
   --color-accent-primary-border-muted: var(--accent-primary-border-muted);
+  --color-accent-primary-selected-bg: var(--accent-primary-selected-bg);
+  --color-accent-primary-selected-fg: var(--accent-primary-selected-fg);
   --color-signal-error: var(--signal-error);
   --color-signal-error-label: var(--signal-error-label);
   --color-signal-error-bg: var(--signal-error-bg);
@@ -213,4 +226,42 @@ body {
 }
 .react-flow .react-flow__nodes {
   z-index: 1;
+}
+
+/* `colorMode` on <ReactFlow> (needed for Controls theming) makes xyflow paint
+   its own opaque dark canvas fill (#141414) over this element via the
+   `.react-flow.dark` rule below, hiding our --bg-canvas token (#09090b)
+   underneath — the two are close enough in tone that floating panels lost
+   their contrast against the canvas. `.react-flow.dark` is itself a 2-class
+   selector, so beating it needs more than `.react-flow` alone (1 class) —
+   the extra `html` ancestor pushes this past it regardless of import order. */
+html .react-flow.dark {
+  --xy-background-color: transparent;
+}
+
+/* Zoom controls otherwise carry xyflow's own barely-there shadow, which reads
+   as mismatched next to the floating chrome (status cluster, palette hint)
+   that all use Tailwind's shadow-lg. `colorMode` on <ReactFlow> (Editor.tsx)
+   already fixes the dark-mode button colors — this just unifies elevation.
+   `overflow: hidden` here would clip this element's own box-shadow along with
+   the buttons' square corners, so those corners are rounded individually
+   instead (below) rather than clipped via the shadow-bearing parent. */
+.react-flow .react-flow__controls {
+  /* xyflow's own Panel default is a 15px margin — 1px off Tailwind's bottom-4
+     used by the search pill and status cluster, so bottoms didn't line up. */
+  margin: 1rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-subtle);
+}
+.dark .react-flow .react-flow__controls {
+  border-color: var(--border-default);
+}
+.react-flow .react-flow__controls-button:first-child {
+  border-top-left-radius: calc(var(--radius-lg) - 1px);
+  border-top-right-radius: calc(var(--radius-lg) - 1px);
+}
+.react-flow .react-flow__controls-button:last-child {
+  border-bottom-left-radius: calc(var(--radius-lg) - 1px);
+  border-bottom-right-radius: calc(var(--radius-lg) - 1px);
 }

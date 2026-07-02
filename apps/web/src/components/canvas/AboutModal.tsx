@@ -5,6 +5,7 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import { useTranslations } from 'next-intl';
+import { Logo } from '@/components/Logo';
 
 const GITHUB_REPO = 'https://github.com/alejofernandez/authprint';
 
@@ -35,10 +36,20 @@ export function AboutModal({
           className="fixed left-1/2 top-[18vh] z-50 w-[min(420px,90vw)] -translate-x-1/2 rounded-xl border border-border-subtle bg-bg-panel p-5 shadow-2xl outline-none transition-[opacity,transform] duration-[var(--duration-base)] ease-standard focus:outline-none data-[state=open]:scale-100 data-[state=open]:opacity-100 data-[state=closed]:scale-[0.98] data-[state=closed]:opacity-0"
           aria-describedby="about-description"
         >
-          <Dialog.Title className="font-semibold text-fg-default text-lg">Authprint</Dialog.Title>
-          <Dialog.Description id="about-description" className="mt-1 text-fg-secondary text-sm">
-            {t('tagline')}
-          </Dialog.Description>
+          <div className="flex items-center gap-3.5">
+            <Logo variant="color" size={44} />
+            <div>
+              <Dialog.Title className="font-semibold text-fg-default text-lg">
+                Authprint
+              </Dialog.Title>
+              <Dialog.Description
+                id="about-description"
+                className="mt-0.5 text-fg-secondary text-sm"
+              >
+                {t('tagline')}
+              </Dialog.Description>
+            </div>
+          </div>
 
           <p className="mt-4 text-fg-muted text-sm">{t('license')}</p>
 
