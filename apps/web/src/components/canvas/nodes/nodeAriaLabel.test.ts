@@ -5,7 +5,7 @@ import { buildNodeAriaLabel } from './nodeAriaLabel.ts';
 const flow: Flow = {
   id: 'f',
   name: 'X',
-  theme: 'light',
+  branding: { theme: 'light' },
   context: {},
   nodes: [
     { type: 'entry', id: 'e1' },

@@ -9,7 +9,7 @@ function base() {
   return hydrate({
     id: 'f',
     name: 'F',
-    theme: 'light',
+    branding: { theme: 'light' },
     context: {},
     nodes: [
       { type: 'entry', id: 'entry' },

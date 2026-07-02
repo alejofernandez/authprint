@@ -223,8 +223,14 @@ export function readContext(doc: Y.Doc): Context {
 }
 
 // ─── Flow-level meta ─────────────────────────────────────────────────────────
-// id / name / description / theme are scalars; annotations and scenarios are
-// carried opaquely (plain JSON) until they become canvas-editable — E24 only
-// needs them to survive a hydrate→read cycle, not to merge granularly.
+// id / name / description are scalars; branding (which now nests `theme`
+// alongside companyName/primaryColor — grouped because all three answer "how
+// does this flow's screens look"), annotations, and scenarios are carried
+// opaquely (plain JSON) until they become canvas-editable — E24 only needs
+// them to survive a hydrate→read cycle, not to merge granularly. Branding's
+// three fields are independently settable (setFlowTheme / setCompanyName /
+// setPrimaryColor in ops.ts) via read-modify-write on the one blob, rather
+// than exploding into their own meta keys — it's document metadata, not
+// something that needs node-level collab-merge granularity.
 
-export type FlowMeta = Pick<Flow, 'id' | 'name' | 'description' | 'theme'>;
+export type FlowMeta = Pick<Flow, 'id' | 'name' | 'description' | 'branding'>;

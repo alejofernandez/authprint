@@ -14,7 +14,7 @@ name: Minimal flow
     const r = parse(input);
     expect(r.diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
     expect(r.flow).not.toBeNull();
-    expect(r.flow?.theme).toBe('light');
+    expect(r.flow?.branding.theme).toBe('light');
     expect(r.flow?.nodes).toEqual([]);
   });
 

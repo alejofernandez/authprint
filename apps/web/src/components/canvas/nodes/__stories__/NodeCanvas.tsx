@@ -13,7 +13,7 @@ export type NodeCanvasProps = {
   node: DslNode;
   /** Editor theme to render under (drives Tailwind's `.dark` variant). */
   theme?: 'light' | 'dark';
-  /** Flow.theme for screen nodes — independent of the editor theme (US-070). */
+  /** Flow.branding.theme for screen nodes — independent of the editor theme (US-070). */
   flowTheme?: FlowTheme;
   /** Canvas size — bumped for taller nodes (e.g. mockup screens). */
   width?: number;
@@ -45,7 +45,7 @@ export function NodeCanvas({
             edges: [],
             id: 'story',
             name: 'Story',
-            theme: 'light',
+            branding: { theme: 'light' },
             context: {},
             annotations: [],
             scenarios: [],

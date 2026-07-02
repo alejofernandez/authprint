@@ -1,4 +1,4 @@
-// Flow.theme → resolved screen light/dark (US-070). Screen cards use the
+// Flow.branding.theme → resolved screen light/dark (US-070). Screen cards use the
 // `flow-dark:` Tailwind variant (scoped to `.flow-theme-dark`) so they render
 // independently of the editor's `.dark` class.
 
@@ -16,7 +16,7 @@ function resolveEditorTheme(editorTheme: Theme | 'light' | 'dark'): ResolvedScre
   return 'light';
 }
 
-/** Map Flow.theme (+ editor theme when `both`) to the card's resolved appearance. */
+/** Map Flow.branding.theme (+ editor theme when `both`) to the card's resolved appearance. */
 export function resolveScreenTheme(
   flowTheme: FlowTheme,
   editorTheme: Theme | 'light' | 'dark',

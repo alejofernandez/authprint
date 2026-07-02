@@ -33,7 +33,7 @@ export function hydrate(flow: Flow, layout?: LayoutPositions, edgeLayout?: EdgeR
     meta.set('id', flow.id);
     meta.set('name', flow.name);
     if (flow.description !== undefined) meta.set('description', flow.description);
-    meta.set('theme', flow.theme);
+    meta.set('branding', flow.branding);
     // Not canvas-edited yet — carried opaquely so a hydrate→read cycle is
     // lossless. E25 gives these a granular home if/when they become editable.
     meta.set('annotations', flow.annotations);
@@ -80,7 +80,7 @@ export function readFlow(doc: Y.Doc): Flow {
     id: meta.get('id') as string,
     name: meta.get('name') as string,
     ...(description === undefined ? {} : { description }),
-    theme: meta.get('theme') as Flow['theme'],
+    branding: meta.get('branding') as Flow['branding'],
     context: readContext(doc),
     nodes: [...nodesMap(doc).values()].map(readNodeMap),
     edges: [...edgesMap(doc).values()].map(readEdgeMap),

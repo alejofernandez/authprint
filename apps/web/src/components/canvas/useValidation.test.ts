@@ -6,7 +6,7 @@ import { computeValidation, worstSeverity } from './useValidation.ts';
 const broken: Flow = {
   id: 'f',
   name: 'X',
-  theme: 'light',
+  branding: { theme: 'light' },
   context: {},
   nodes: [
     { type: 'entry', id: 'e1' },

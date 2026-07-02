@@ -12,14 +12,32 @@ import { ScenarioSchema } from './scenario.ts';
 // for schema-format versioning (if ever needed) will use a top-level
 // `apiVersion: authprint/vN` field (Kubernetes-style), not a nested wrapper.
 
+// Presentation identity for the product the flow belongs to — feeds mockup-tier
+// screen rendering (brand block + CTA color on Screen previews) and the
+// light/dark rendering mode of the screens being modeled, independent of the
+// editor's own theme (§7 Theming). Grouped under one object rather than
+// scattered Flow scalars because these all answer "how does this flow's
+// screens look" — the same grouping Auth0/Stripe use for their own branding
+// settings, and the natural home for a future `logoUrl`. Flow-scoped, not the
+// tool-level "per-workspace branding" REQUIREMENTS.md §7 rules out of v1.
+// `theme` always resolves (default 'light'); companyName/primaryColor are
+// independently optional — an unset Flow renders screens with the existing
+// generic placeholder.
+export const BrandingSchema = z.object({
+  theme: z.enum(FLOW_THEMES).default('light'),
+  companyName: z.string().optional(),
+  primaryColor: z.string().optional(),
+});
+
 export const FlowSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   description: z.string().optional(),
 
-  // Flow.theme is the rendering theme of the SCREENS being modeled,
-  // independent of the editor's own theme. See §7 Theming.
-  theme: z.enum(FLOW_THEMES).default('light'),
+  // .prefault({}) (not .default({})) so an omitted `branding` key still runs
+  // through BrandingSchema's own field defaults (theme: 'light') rather than
+  // becoming a bare `{}` — `flow.branding.theme` must always resolve.
+  branding: BrandingSchema.prefault({}),
 
   // Defaults below let a minimal flow declare just id + name. Structural
   // validation (E2 / §6 Layer 1) enforces meaningful constraints (Entry
@@ -32,3 +50,4 @@ export const FlowSchema = z.object({
 });
 
 export type Flow = z.infer<typeof FlowSchema>;
+export type Branding = z.infer<typeof BrandingSchema>;

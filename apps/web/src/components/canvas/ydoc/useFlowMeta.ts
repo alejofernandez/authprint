@@ -1,4 +1,4 @@
-// Live flow-level meta (name, theme) for chrome that sits outside FlowCanvas.
+// Live flow-level meta (name, branding) for chrome that sits outside FlowCanvas.
 // metaMap mutations don't change the Y.Doc reference, so a plain useMemo on
 // `doc` would go stale — same useSyncExternalStore pattern as useYDocFlow.
 
@@ -7,13 +7,13 @@ import { useCallback, useRef, useSyncExternalStore } from 'react';
 import type * as Y from 'yjs';
 import { metaMap } from './schema.ts';
 
-export type FlowMetaView = { name: string; theme: Flow['theme'] };
+export type FlowMetaView = { name: string; branding: Flow['branding'] };
 
 function readMeta(doc: Y.Doc): FlowMetaView {
   const meta = metaMap(doc);
   return {
     name: meta.get('name') as string,
-    theme: meta.get('theme') as Flow['theme'],
+    branding: meta.get('branding') as Flow['branding'],
   };
 }
 
@@ -38,7 +38,9 @@ export function useFlowMeta(doc: Y.Doc): FlowMetaView {
     if (
       cache.current?.doc === doc &&
       cache.current.value.name === value.name &&
-      cache.current.value.theme === value.theme
+      cache.current.value.branding?.theme === value.branding?.theme &&
+      cache.current.value.branding?.companyName === value.branding?.companyName &&
+      cache.current.value.branding?.primaryColor === value.branding?.primaryColor
     ) {
       return cache.current.value;
     }

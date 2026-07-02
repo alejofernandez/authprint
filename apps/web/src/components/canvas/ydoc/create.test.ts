@@ -15,7 +15,7 @@ function base(): Flow {
   return {
     id: 'f',
     name: 'F',
-    theme: 'light',
+    branding: { theme: 'light' },
     context: {},
     nodes: [
       { type: 'entry', id: 'entry' },
@@ -97,7 +97,7 @@ describe('defaultNode', () => {
       const flow: Flow = {
         id: 'f',
         name: 'F',
-        theme: 'light',
+        branding: { theme: 'light' },
         context: {},
         nodes: [{ type: 'entry', id: 'entry' }, node],
         edges: [],

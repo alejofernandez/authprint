@@ -113,10 +113,29 @@ describe('Flow', () => {
     });
     expect(r.success).toBe(true);
     if (r.success) {
-      expect(r.data.theme).toBe('light');
+      expect(r.data.branding).toEqual({ theme: 'light' });
       expect(r.data.context).toEqual({});
       expect(r.data.nodes).toEqual([]);
       expect(r.data.edges).toEqual([]);
+    }
+  });
+
+  test('branding: theme always resolves; companyName/primaryColor are independently optional', () => {
+    const withAll = FlowSchema.safeParse({
+      id: 'f1',
+      name: 'Sample',
+      branding: { theme: 'dark', companyName: 'Acme', primaryColor: '#4f46e5' },
+    });
+    expect(withAll.success).toBe(true);
+
+    const withCompanyOnly = FlowSchema.safeParse({
+      id: 'f1',
+      name: 'Sample',
+      branding: { companyName: 'Acme' },
+    });
+    expect(withCompanyOnly.success).toBe(true);
+    if (withCompanyOnly.success) {
+      expect(withCompanyOnly.data.branding.theme).toBe('light');
     }
   });
 
@@ -124,7 +143,7 @@ describe('Flow', () => {
     const r = FlowSchema.safeParse({
       id: 'f1',
       name: 'Passkey signup',
-      theme: 'dark',
+      branding: { theme: 'dark' },
       context: {},
       nodes: [
         { type: 'entry', id: 'e1' },

@@ -10,6 +10,7 @@
 // dangling edges after a node delete).
 
 import type {
+  Branding,
   ContextSlot,
   Node as DslNode,
   Edge,
@@ -163,7 +164,23 @@ export function setFlowName(doc: Y.Doc, name: string): OpResult {
   return ok;
 }
 
+function patchBranding(doc: Y.Doc, patch: Partial<Branding>): void {
+  const meta = metaMap(doc);
+  const current = (meta.get('branding') as Branding | undefined) ?? { theme: 'light' as const };
+  meta.set('branding', { ...current, ...patch });
+}
+
 export function setFlowTheme(doc: Y.Doc, theme: FlowTheme): OpResult {
-  doc.transact(() => metaMap(doc).set('theme', theme), LOCAL_ORIGIN);
+  doc.transact(() => patchBranding(doc, { theme }), LOCAL_ORIGIN);
+  return ok;
+}
+
+export function setCompanyName(doc: Y.Doc, companyName: string): OpResult {
+  doc.transact(() => patchBranding(doc, { companyName }), LOCAL_ORIGIN);
+  return ok;
+}
+
+export function setPrimaryColor(doc: Y.Doc, primaryColor: string): OpResult {
+  doc.transact(() => patchBranding(doc, { primaryColor }), LOCAL_ORIGIN);
   return ok;
 }

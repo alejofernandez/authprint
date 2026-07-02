@@ -132,11 +132,33 @@ describe('round-trip — hand-built flows', () => {
       const flow = FlowSchema.parse({
         id: 'f1',
         name: 'X',
-        theme,
+        branding: { theme },
         nodes: [{ type: 'entry', id: 'e1' }],
       });
-      expect(reparse(flow).theme).toBe(theme);
+      expect(reparse(flow).branding.theme).toBe(theme);
     }
+  });
+
+  test('branding round-trips, and the key is omitted entirely when at defaults', () => {
+    const branded = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      branding: { theme: 'dark', companyName: 'Acme', primaryColor: '#4f46e5' },
+      nodes: [{ type: 'entry', id: 'e1' }],
+    });
+    expect(reparse(branded).branding).toEqual({
+      theme: 'dark',
+      companyName: 'Acme',
+      primaryColor: '#4f46e5',
+    });
+
+    const unbranded = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      nodes: [{ type: 'entry', id: 'e1' }],
+    });
+    expect(serialize(unbranded)).not.toContain('branding');
+    expect(reparse(unbranded).branding).toEqual({ theme: 'light' });
   });
 
   test('all predicate operators round-trip', () => {

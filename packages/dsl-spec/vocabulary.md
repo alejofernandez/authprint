@@ -266,7 +266,7 @@ These spec-correct or common-tech names were considered and rejected per Princip
 | `gt`/`lt`/`gte`/`lte` | `greater-than`/`less-than`/etc. | Math abbreviations are read-time friction in a config file |
 | Decision kinds with `?` suffix (`user-exists?`) | no suffix (`user-exists`) | Lisp/Ruby convention; structural type already implies "question" |
 | `UserAction` (trigger type) | `interaction` | Overloaded with `Action` structural type — created confusion |
-| `branding-customizable` (trait) | (removed) | Tool-level concern, not a flow-design concern |
+| `branding-customizable` (trait) | (removed) | Tool-level concern, not a flow-design concern — a per-Screen boolean flag didn't fit. `Flow.branding` (`companyName`/`primaryColor`, REQUIREMENTS.md §5) later solved a narrower, related need — flow-level, not a trait — without reversing this rejection |
 
 ---
 

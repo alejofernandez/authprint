@@ -12,7 +12,7 @@ import { stringify as yamlStringify } from 'yaml';
 import type { Annotation, AnnotationAttachment } from '../schema/annotation.ts';
 import type { Edge, Trigger } from '../schema/edge.ts';
 import type { Field } from '../schema/field.ts';
-import type { Flow } from '../schema/flow.ts';
+import type { Branding, Flow } from '../schema/flow.ts';
 import type {
   ActionNode,
   DecisionNode,
@@ -52,7 +52,8 @@ function canonicalizeFlow(flow: Flow): Record<string, unknown> {
     name: flow.name,
   };
   if (flow.description !== undefined) out.description = flow.description;
-  if (flow.theme !== 'light') out.theme = flow.theme;
+  const branding = canonicalizeBranding(flow.branding);
+  if (Object.keys(branding).length > 0) out.branding = branding;
   if (Object.keys(flow.context).length > 0) out.context = canonicalizeContext(flow.context);
   if (flow.nodes.length > 0) out.nodes = flow.nodes.map(canonicalizeNode);
   if (flow.edges.length > 0) out.edges = flow.edges.map(canonicalizeEdge);
@@ -62,6 +63,14 @@ function canonicalizeFlow(flow: Flow): Record<string, unknown> {
   if (flow.scenarios.length > 0) {
     out.scenarios = flow.scenarios.map(canonicalizeScenario);
   }
+  return out;
+}
+
+function canonicalizeBranding(branding: Branding): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (branding.theme !== 'light') out.theme = branding.theme;
+  if (branding.companyName !== undefined) out.companyName = branding.companyName;
+  if (branding.primaryColor !== undefined) out.primaryColor = branding.primaryColor;
   return out;
 }
 

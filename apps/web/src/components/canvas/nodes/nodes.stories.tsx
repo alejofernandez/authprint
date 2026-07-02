@@ -230,7 +230,7 @@ export const ScreenFidelityLoFiDark: Story = {
   },
 };
 
-// Flow.theme axis (US-070) — editor vs flow theme combos (mockup password screen).
+// Flow.branding.theme axis (US-070) — editor vs flow theme combos (mockup password screen).
 // `theme: both` follows the editor theme (see screenTheme.ts).
 export const ScreenFlowThemeEditorLightFlowDark: Story = {
   args: {

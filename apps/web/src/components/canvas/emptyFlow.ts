@@ -7,7 +7,7 @@ import type { Flow } from '@authprint/dsl';
 export const emptyFlow: Flow = {
   id: 'new-flow',
   name: 'Untitled flow',
-  theme: 'light',
+  branding: { theme: 'light' },
   context: {},
   nodes: [{ type: 'entry', id: 'entry' }],
   edges: [],

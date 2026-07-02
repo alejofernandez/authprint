@@ -1,10 +1,14 @@
 // Screen mockup rendering (US-067, E39) — renders a Screen node as a believable
-// auth screen for `fidelity: 'mockup'`: a windowed card with a brand-neutral
-// logo, a kind-derived headline, field rows from `fields`, and a primary CTA.
-// Traits (US-068), the wireframe/lo-fi tiers (US-069), and the Flow.theme axis
+// auth screen for `fidelity: 'mockup'`: a windowed card with a brand block, a
+// kind-derived headline, field rows from `fields`, and a primary CTA. Traits
+// (US-068), the wireframe/lo-fi tiers (US-069), and the Flow.branding.theme axis
 // (US-070) build on this. The visual language set here is what they extend.
+//
+// The brand block and CTA use Flow.branding (companyName / primaryColor,
+// US-098) when the flow has set it; falling back to the original brand-neutral
+// "Acme" + indigo placeholder when it hasn't.
 
-import type { Field, ScreenNode, TraitId } from '@authprint/dsl';
+import type { Branding, Field, ScreenNode, TraitId } from '@authprint/dsl';
 import { humanize, screenCta } from './screenCopy.ts';
 import {
   PasswordStrengthMeter,
@@ -15,11 +19,18 @@ import {
 
 const MASKED_TYPES = new Set(['password', 'new-password', 'confirm-password']);
 const STRENGTH_METER_TYPES = new Set(['password', 'new-password']);
+const PLACEHOLDER_COMPANY_NAME = 'Acme';
+/** Matches Tailwind's indigo-500 — the mockup's original hardcoded accent. */
+const PLACEHOLDER_PRIMARY_COLOR = '#6366f1';
 
-// Brand-neutral "A" monogram (placeholder brand mark) in the indigo square.
-function Monogram() {
+// "A" monogram in a square tinted with the flow's primary color (brand-neutral
+// placeholder when unset).
+function Monogram({ primaryColor }: { primaryColor: string }) {
   return (
-    <span className="inline-flex w-8 h-8 items-center justify-center rounded-[9px] bg-indigo-500">
+    <span
+      className="inline-flex w-8 h-8 items-center justify-center rounded-[9px]"
+      style={{ backgroundColor: primaryColor }}
+    >
       <svg viewBox="0 0 20 20" className="w-4 h-4" fill="none" aria-hidden="true">
         <path
           d="M10 4 L4.5 16 M10 4 L15.5 16 M7 12.5 H13"
@@ -110,10 +121,12 @@ function FieldRow({ field, traits }: { field: Field; traits: ReadonlySet<TraitId
   );
 }
 
-export function ScreenMockup({ node }: { node: ScreenNode }) {
+export function ScreenMockup({ node, branding }: { node: ScreenNode; branding?: Branding }) {
   const cta = screenCta(node.kind);
   const traitSet = new Set(node.traits);
   const traitsAfterCta = postCtaTraits(node.traits);
+  const companyName = branding?.companyName || PLACEHOLDER_COMPANY_NAME;
+  const primaryColor = branding?.primaryColor || PLACEHOLDER_PRIMARY_COLOR;
 
   return (
     <div className="w-[244px] rounded-xl border border-zinc-200 flow-dark:border-zinc-700 bg-white flow-dark:bg-zinc-900 shadow-sm overflow-hidden">
@@ -131,9 +144,9 @@ export function ScreenMockup({ node }: { node: ScreenNode }) {
       <div className="px-4 pb-4 space-y-3">
         {/* centered brand block — monogram over company name, with breathing room */}
         <div className="flex flex-col items-center gap-1.5 pt-4 pb-1">
-          <Monogram />
+          <Monogram primaryColor={primaryColor} />
           <span className="text-[11px] font-semibold text-zinc-600 flow-dark:text-zinc-300">
-            Acme
+            {companyName}
           </span>
         </div>
         <div className="text-center text-[13px] font-semibold leading-tight text-zinc-900 flow-dark:text-zinc-100">
@@ -147,7 +160,10 @@ export function ScreenMockup({ node }: { node: ScreenNode }) {
           </div>
         ) : null}
         {cta ? (
-          <div className="h-7 rounded-md bg-indigo-500 text-white text-[11px] font-medium flex items-center justify-center">
+          <div
+            className="h-7 rounded-md text-white text-[11px] font-medium flex items-center justify-center"
+            style={{ backgroundColor: primaryColor }}
+          >
             {cta}
           </div>
         ) : null}

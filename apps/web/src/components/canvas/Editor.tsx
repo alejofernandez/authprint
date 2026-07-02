@@ -84,12 +84,14 @@ import {
 import { hydrate } from './ydoc/hydrate.ts';
 import {
   declareContextSlot,
+  setCompanyName,
   setDecisionPredicate,
   setEdgeRoute,
   setFlowName,
   setFlowTheme,
   setNodeKind,
   setNodeName,
+  setPrimaryColor,
   setScreenFidelity,
   setScreenFields,
   setScreenTraits,
@@ -194,7 +196,8 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   // Scenarios travel with the flow (carried opaquely in `meta`, E24). They don't
   // change during a session, so deriving them off `doc` identity is enough.
   const scenarios = useMemo(() => docToArtifact(doc).flow.scenarios ?? [], [doc]);
-  const { name: flowName, theme: flowTheme } = useFlowMeta(doc);
+  const { name: flowName, branding: flowBranding } = useFlowMeta(doc);
+  const flowTheme = flowBranding.theme;
   useRecentFlowAutosave(sessionId ?? '', doc, flowName);
   const { hasUnexportedChanges, markExported } = useUnexportedChanges(doc);
 
@@ -791,8 +794,12 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
               onOpenChange={setDocPrefsOpen}
               flowName={flowName}
               flowTheme={flowTheme}
+              companyName={flowBranding.companyName}
+              primaryColor={flowBranding.primaryColor}
               onFlowNameChange={(name) => setFlowName(doc, name)}
               onFlowThemeChange={(theme) => setFlowTheme(doc, theme)}
+              onCompanyNameChange={(name) => setCompanyName(doc, name)}
+              onPrimaryColorChange={(color) => setPrimaryColor(doc, color)}
             />
           </div>
         </div>
@@ -1134,6 +1141,7 @@ function BoundCanvas({
 }) {
   const [nodes, setNodes, onNodesChangeLocal] = useNodesState(graph.nodes);
   const [edges, setEdges, onEdgesChangeLocal] = useEdgesState(graph.edges);
+  const { theme: editorTheme } = useTheme();
 
   // Reconcile before paint so a layout-only graph refresh (edge route commit,
   // node drag end) doesn't replace every node object and remeasure handles.
@@ -1162,6 +1170,7 @@ function BoundCanvas({
   return (
     <ReactFlow
       className="h-full w-full"
+      colorMode={editorTheme}
       nodes={nodes}
       edges={edges}
       onNodesChange={onNodesChange}
@@ -1182,6 +1191,7 @@ function BoundCanvas({
       // Default minZoom (0.5) is too high to fit wide flows — a long
       // sequence needs to zoom further out, else fitView clips the ends.
       minZoom={0.1}
+      attributionPosition="bottom-center"
     >
       <Background gap={24} size={1} />
       <Controls position="bottom-left" showInteractive={false} />

@@ -22,7 +22,7 @@ const sampleFlow: Flow = {
   id: 'sample',
   name: 'Sample',
   description: 'a tiny flow',
-  theme: 'dark',
+  branding: { theme: 'dark', companyName: 'Acme', primaryColor: '#4f46e5' },
   context: {
     'user.exists': { type: 'boolean' },
     'risk.level': { type: 'enum', values: ['low', 'high'] },
@@ -63,7 +63,7 @@ describe('hydrate → readFlow', () => {
     expect(out.id).toBe(sampleFlow.id);
     expect(out.name).toBe(sampleFlow.name);
     expect(out.description).toBe(sampleFlow.description);
-    expect(out.theme).toBe(sampleFlow.theme);
+    expect(out.branding).toEqual(sampleFlow.branding);
     expect(out.context).toEqual(sampleFlow.context);
     expect(out.annotations).toEqual(sampleFlow.annotations);
     expect(out.scenarios).toEqual(sampleFlow.scenarios);
@@ -86,6 +86,11 @@ describe('hydrate → readFlow', () => {
   test('description key absent when the flow has none', () => {
     const out = readFlow(hydrate({ ...sampleFlow, description: undefined }));
     expect('description' in out).toBe(false);
+  });
+
+  test('branding defaults to just theme when the flow declares none', () => {
+    const out = readFlow(hydrate({ ...sampleFlow, branding: { theme: 'light' } }));
+    expect(out.branding).toEqual({ theme: 'light' });
   });
 
   test('Demo Flow Zero hydrates and reads back with all entities intact', async () => {

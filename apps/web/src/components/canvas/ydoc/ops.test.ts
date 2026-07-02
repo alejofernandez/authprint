@@ -9,12 +9,14 @@ import {
   moveNode,
   removeEdge,
   removeNode,
+  setCompanyName,
   setDecisionPredicate,
   setEdgeRoute,
   setFlowName,
   setFlowTheme,
   setNodeKind,
   setNodeName,
+  setPrimaryColor,
   setScreenFidelity,
   setScreenFields,
   setScreenTraits,
@@ -26,7 +28,7 @@ function base() {
   return hydrate({
     id: 'f',
     name: 'F',
-    theme: 'light',
+    branding: { theme: 'light' },
     context: { u: { type: 'boolean' } },
     nodes: [
       { type: 'entry', id: 'entry' },
@@ -229,9 +231,27 @@ describe('flow meta edits', () => {
     setFlowName(doc, 'Renamed flow');
     setFlowTheme(doc, 'dark');
     expect(metaMap(doc).get('name')).toBe('Renamed flow');
-    expect(metaMap(doc).get('theme')).toBe('dark');
+    expect((metaMap(doc).get('branding') as { theme: string }).theme).toBe('dark');
     expect(readFlow(doc).name).toBe('Renamed flow');
-    expect(readFlow(doc).theme).toBe('dark');
+    expect(readFlow(doc).branding.theme).toBe('dark');
+  });
+
+  test('setCompanyName / setPrimaryColor merge into the branding blob without clobbering theme or each other', () => {
+    const doc = base();
+    setCompanyName(doc, 'Acme');
+    expect(readFlow(doc).branding).toEqual({ theme: 'light', companyName: 'Acme' });
+    setPrimaryColor(doc, '#4f46e5');
+    expect(readFlow(doc).branding).toEqual({
+      theme: 'light',
+      companyName: 'Acme',
+      primaryColor: '#4f46e5',
+    });
+    setCompanyName(doc, 'Acme Corp');
+    expect(readFlow(doc).branding).toEqual({
+      theme: 'light',
+      companyName: 'Acme Corp',
+      primaryColor: '#4f46e5',
+    });
   });
 });
 

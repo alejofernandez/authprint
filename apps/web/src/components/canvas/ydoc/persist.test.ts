@@ -35,7 +35,7 @@ async function loadDemoFlowZero(): Promise<Flow> {
 const flow: Flow = {
   id: 'f',
   name: 'F',
-  theme: 'light',
+  branding: { theme: 'light' },
   context: {},
   nodes: [
     { type: 'entry', id: 'entry' },

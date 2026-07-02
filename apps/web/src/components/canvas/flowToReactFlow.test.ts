@@ -5,7 +5,7 @@ import { flowToReactFlow } from './flowToReactFlow.ts';
 const flow: Flow = {
   id: 'f',
   name: 'X',
-  theme: 'light',
+  branding: { theme: 'light' },
   context: {},
   nodes: [
     { type: 'entry', id: 'entry' },

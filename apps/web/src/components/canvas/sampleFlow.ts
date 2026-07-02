@@ -14,7 +14,7 @@ import type { Flow } from '@authprint/dsl';
 export const sampleFlow: Flow = {
   id: 'sample',
   name: 'Sample flow — every node type',
-  theme: 'light',
+  branding: { theme: 'light' },
   context: {
     'user.exists': { type: 'boolean' },
   },

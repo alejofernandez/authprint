@@ -153,7 +153,8 @@ export function flowToReactFlow(
       connectedHandles: connectedHandles.get(node.id),
       diagnostics: validation?.byNode.get(node.id),
       ...(node.type === 'screen' && {
-        screenTheme: resolveScreenTheme(flow.theme, editorTheme),
+        screenTheme: resolveScreenTheme(flow.branding.theme, editorTheme),
+        branding: flow.branding,
       }),
       ...(trace && {
         traceState: trace.byNode.get(node.id),

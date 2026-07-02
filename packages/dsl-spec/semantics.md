@@ -124,13 +124,15 @@ If a scenario's `expectedOutcome.outcomeId` is set and the walker reaches a diff
 
 If the walker reaches a node it has no script step for (or a node not reachable per the model), the scenario fails with a structured error.
 
-## Theme semantics
+## Branding semantics
 
-`flow.theme` declares the **rendering theme of the screens being modeled** — `light`, `dark`, or `both`. This is independent of the editor's own theme (a user editing in light mode may be modeling a dark-themed login).
+`flow.branding.theme` declares the **rendering theme of the screens being modeled** — `light`, `dark`, or `both`. This is independent of the editor's own theme (a user editing in light mode may be modeling a dark-themed login). It's grouped under `branding` alongside `companyName`/`primaryColor` because all three describe how the flow's screens present — not the tool-level "per-workspace branding" REQUIREMENTS.md §7 rules out of v1.
 
 A `both` theme indicates the screens have parallel renderings in both modes; lo-fi previews surface a toggle on each Screen card.
 
 Per-Screen theme overrides are NOT v1 — real auth flows are theme-consistent within themselves.
+
+`companyName` and `primaryColor` are both optional and feed mockup-tier Screen previews only (brand block, CTA color); an unset Flow renders with the existing brand-neutral placeholder.
 
 ## Version semantics
 

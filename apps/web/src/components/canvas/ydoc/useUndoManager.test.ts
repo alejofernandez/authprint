@@ -14,7 +14,7 @@ function wiredDoc() {
   return hydrate({
     id: 'f',
     name: 'F',
-    theme: 'light',
+    branding: { theme: 'light' },
     context: {},
     nodes: [
       { type: 'entry', id: 'entry' },
@@ -145,10 +145,10 @@ describe('createUndoManager', () => {
     setFlowName(doc, 'New title');
     setFlowTheme(doc, 'both');
     expect(metaMap(doc).get('name')).toBe('New title');
-    expect(metaMap(doc).get('theme')).toBe('both');
+    expect((metaMap(doc).get('branding') as { theme: string }).theme).toBe('both');
 
     manager.undo();
-    expect(metaMap(doc).get('theme')).toBe('light');
+    expect((metaMap(doc).get('branding') as { theme: string }).theme).toBe('light');
     manager.undo();
     expect(metaMap(doc).get('name')).toBe('F');
 

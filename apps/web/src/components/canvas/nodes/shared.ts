@@ -1,15 +1,18 @@
 // Shared type for the `data` payload our canvas attaches to React Flow
 // nodes. Each per-structural-type view receives this wrapped in `NodeProps`.
 
-import type { Diagnostic, Node } from '@authprint/dsl';
+import type { Branding, Diagnostic, Node } from '@authprint/dsl';
 import type { TraceNodeState } from '../scenario/scenarioTrace.ts';
 import type { ResolvedScreenTheme } from './screen/screenTheme.ts';
 
 export type CanvasNodeData<TNode extends Node = Node> = {
   /** The original DSL node — single source of truth for rendering. */
   node: TNode;
-  /** Resolved screen light/dark from Flow.theme (US-070). Set on Screen nodes only. */
+  /** Resolved screen light/dark from Flow.branding.theme (US-070). Set on Screen nodes only. */
   screenTheme?: ResolvedScreenTheme;
+  /** Flow-level branding (company name / primary color) — feeds mockup-tier
+   *  screen rendering. Set on Screen nodes only. */
+  branding?: Branding;
   /** Scenario trace styling (US-061). Set when walking a scenario run. */
   traceState?: TraceNodeState;
   /** Divergence tooltip for `traceState: 'diverged'`. */

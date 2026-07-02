@@ -10,7 +10,10 @@ An `.authprint` file is a YAML document whose root IS the flow — **no wrapper 
 id: <string>
 name: <string>
 description: <string?>     # optional
-theme: <light | dark | both>   # default: light
+branding:                  # flow-level; feeds mockup-tier Screen previews
+  theme: <light | dark | both>   # default: light
+  companyName: <string?>   # optional
+  primaryColor: <string?>  # optional
 context: { ... }            # default: {}
 nodes: [ ... ]              # default: []
 edges: [ ... ]              # default: []
@@ -93,7 +96,11 @@ Accepted for `screen`, `decision`, `action`, `external`, `outcome`. Emit a `voca
 id: <string>                  # required, non-empty
 name: <string>                # required, non-empty
 description: <string?>        # optional
-theme: <light | dark | both>  # optional, default: light
+
+branding:                     # optional; flow-level, feeds mockup-tier Screen previews
+  theme: <light | dark | both>  # optional, default: light
+  companyName: <string?>      # optional
+  primaryColor: <string?>     # optional
 
 context:                      # optional, default: {}
   <slot-name>:

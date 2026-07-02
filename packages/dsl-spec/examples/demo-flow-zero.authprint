@@ -21,7 +21,8 @@ description: |
   alternative and universal recovery channel. Branches on whether the
   account already exists, never showing a separate "sign-in vs sign-up"
   toggle.
-theme: light
+branding:
+  theme: light
 
 # ─── Context ─────────────────────────────────────────────────────────────────
 # Slots are declarations only — populated by the implementation at runtime.
