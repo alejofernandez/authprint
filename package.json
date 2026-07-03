@@ -2,7 +2,7 @@
   "name": "authprint",
   "version": "0.0.0",
   "private": true,
-  "description": "Auth-native flow design tool. See REQUIREMENTS.md.",
+  "description": "Auth-native flow design tool.",
   "workspaces": [
     "apps/*",
     "packages/*"

@@ -45,10 +45,11 @@ secrets/op.env.tpl
 *.tsbuildinfo
 next-env.d.ts
 
-# claude code — local-only settings (skills + launch.json are committed)
+# claude code — local-only settings (skills symlinked to authprint-cloud; launch.json is committed)
 .claude/settings.local.json
+.claude/skills/
 
-# multi-agent worktrees — Implementers work in .worktrees/<branch>/ (see roles/*.md)
+# multi-agent worktrees — Implementers work in .worktrees/<branch>/ (see AGENTS.md)
 .worktrees/
 
 # pinned local tool binaries (e.g. the gitleaks bootstrap cache) — see scripts/
@@ -59,12 +60,3 @@ storybook-static
 
 # visual regression: commit baselines, ignore transient failure diffs/actuals
 **/__snapshots__/**/__diff_output__/
-
-# terraform local state/cache — remote GCS backend is the source of truth (lock file IS committed)
-.terraform/
-*.tfstate
-*.tfstate.*
-*.tfvars
-
-# firebase CLI local deploy cache
-.firebase/
