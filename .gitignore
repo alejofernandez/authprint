@@ -20,6 +20,7 @@ out/
 # production
 build
 dist
+apps/web/build-info.json
 
 # misc
 .DS_Store

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
-import { DevBuildOverlay } from '@/components/dev-build-overlay';
+import { BuildInfoOverlay } from '@/components/build-info-overlay';
 import { InlineScript } from '@/components/inline-script';
 import { ThemeProvider } from '@/components/theme';
 import './globals.css';
@@ -44,7 +44,7 @@ export default function RootLayout({
         <NextIntlClientProvider>
           <ThemeProvider>
             {children}
-            {process.env.NODE_ENV === 'development' && <DevBuildOverlay />}
+            <BuildInfoOverlay />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

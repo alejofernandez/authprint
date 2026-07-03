@@ -22,6 +22,13 @@ COPY --from=deps /app ./
 # Copy source files (respecting .dockerignore)
 COPY . .
 
+# Bake OCI build metadata for /api/build-info in production (no .git in the image).
+ARG OCI_REVISION=unknown
+ARG OCI_CREATED
+ARG OCI_REF=unknown
+RUN OCI_REVISION="$OCI_REVISION" OCI_CREATED="$OCI_CREATED" OCI_REF="$OCI_REF" \
+  bun -e 'Bun.write("apps/web/build-info.json", JSON.stringify({sha: Bun.env.OCI_REVISION ?? "unknown", ref: Bun.env.OCI_REF ?? "unknown", builtAt: Bun.env.OCI_CREATED || null, version: null}))'
+
 # Run build
 ENV NODE_ENV=production
 RUN bun run build
@@ -43,6 +50,7 @@ COPY --from=builder /app/apps/web/.next/standalone ./
 # Next.js standalone requires manually copying public/ and .next/static/ assets
 COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder /app/apps/web/build-info.json ./apps/web/build-info.json
 
 # Build OCI image versioning labels
 ARG OCI_REVISION
