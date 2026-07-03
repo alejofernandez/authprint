@@ -2,7 +2,7 @@
 
 Authprint never stores **plaintext** secrets in the repo or in local `.env` files. For local development (and later CI), secrets live in **1Password** and are injected into a child process at runtime via the [`op` CLI](https://developer.1password.com/docs/cli/).
 
-Production hosting uses **GCP Secret Manager** per `REQUIREMENTS.md` §12 — this folder is the **local dev** workflow.
+Production hosting uses **GCP Secret Manager** — this folder is the **local dev** workflow.
 
 ## How it works
 

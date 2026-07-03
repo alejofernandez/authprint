@@ -48,6 +48,7 @@ next-env.d.ts
 # claude code — local-only settings (skills symlinked to authprint-cloud; launch.json is committed)
 .claude/settings.local.json
 .claude/skills/
+CLAUDE.local.md
 
 # multi-agent worktrees — Implementers work in .worktrees/<branch>/ (see AGENTS.md)
 .worktrees/

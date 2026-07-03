@@ -22,9 +22,9 @@ fi
 cat >&2 <<'EOF'
 BLOCKED: merge commit onto `main`.
 
-Implementers (Senior/Junior) never merge into `main` — hand your work
-back committed in your own worktree branch; the Lead reviews and
-integrates (see AGENTS.md "Two hard rules" + roles/lead.md).
+Contributors never merge into `main` directly — hand your work back
+committed on your own branch; the maintainer's integration flow
+reviews and lands it.
 
 If you actually are the Lead doing a deliberate integration, re-run
 with the explicit opt-in:

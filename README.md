@@ -2,7 +2,7 @@
 
 **Auth-native flow design tool** — a canvas editor for authentication flows, with a portable DSL underneath. Built for Identity PMs, Solutions Architects, and UX designers who need to model auth journeys as typed state machines, not generic diagrams.
 
-> **Status (2026-06-24):** local editor MVP is working — create, connect, edit, undo/redo, save/load `.authprint`, live validation. See [`STATUS.md`](./STATUS.md) for the full snapshot and what's next.
+> **Status (2026-07-03):** the editor works end-to-end locally — create, connect, edit, undo/redo, save/load `.authprint`, live validation, screen mockups by fidelity tier, scenario walk-throughs — and is live at [editor.authprint.app](https://editor.authprint.app).
 
 ## Quick start
 
@@ -32,15 +32,11 @@ bun run lint
 
 | Doc | Read when… |
 |---|---|
-| [`STATUS.md`](./STATUS.md) | Picking the project back up — current state, session log, next steps |
-| [`REQUIREMENTS.md`](./REQUIREMENTS.md) | Product scope, architecture, principles (source of truth) |
-| [`WORK_BREAKDOWN.md`](./WORK_BREAKDOWN.md) | Implementation plan — phases, epics, active stories |
-| [`WORK_BREAKDOWN_DONE.md`](./WORK_BREAKDOWN_DONE.md) | Archived story specs for shipped epics |
-| [`COLLABORATION.md`](./COLLABORATION.md) | How to work with the maintainer (humans + AI assistants) |
-| [`AGENTS.md`](./AGENTS.md) / [`CLAUDE.md`](./CLAUDE.md) | Agent environment — monorepo commands, conventions, gotchas |
-| [`USABILITY.md`](./USABILITY.md) | Ad-hoc UX polish backlog (observed while using the app) |
+| [`AGENTS.md`](./AGENTS.md) / [`CLAUDE.md`](./CLAUDE.md) | Working on the code (human or AI) — commands, architecture map, conventions, gotchas |
+| [`packages/dsl-spec/`](./packages/dsl-spec/) | Understanding the `.authprint` format — grammar, vocabulary, semantics, ADRs |
+| [`secrets/README.md`](./secrets/README.md) | Local-dev secrets without `.env` files (1Password refs) |
 
-**AI session workflow:** run `/bootstrap` (`.claude/skills/bootstrap`) at session start; `/teardown` (`.claude/skills/teardown`) before pausing — keeps `STATUS.md` and the WBS aligned with git.
+Product planning and infrastructure for the hosted service live in a private companion repo; this repo is self-contained for building and running the editor.
 
 ## Development
 
@@ -68,7 +64,7 @@ Visual baselines live under `apps/web/__snapshots__/visual/`. They are **local-o
 - **DSL:** YAML 1.2 strict + Zod; `.authprint` extension
 - **Tooling:** Bun workspaces, Biome, Lefthook, GitHub Actions CI
 
-Auth, Firestore persistence, and scenarios walk-through are **planned** — see `WORK_BREAKDOWN.md` build sequence. The current iteration is **local file-based** (no accounts).
+Accounts and cloud persistence are **planned**. The current iteration is **local file-based** (no accounts) — flows autosave to your browser and export as `.authprint` files.
 
 ## License
 
