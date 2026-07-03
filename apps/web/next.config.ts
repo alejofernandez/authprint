@@ -46,6 +46,25 @@ const nextConfig: NextConfig = {
           // TODO(E14 CSP): Content Security Policy requires dynamic nonces; implement via middleware.
         ],
       },
+      {
+        // Next.js sets a long-lived `s-maxage` on statically-prerendered pages by
+        // default (safe on Vercel, which invalidates the CDN cache per deploy).
+        // We're self-hosted behind Firebase Hosting's CDN with no equivalent
+        // invalidation, so a redeploy silently left Firebase serving a stale HTML
+        // shell referencing a previous build's now-gone chunk hashes — breaking
+        // all client-side interactivity while `/` still returned 200 (E11 v0,
+        // discovered via US-098's ⌘0 overlay not firing in prod). Explicitly
+        // override to no-store for every route except the content-hashed,
+        // genuinely-immutable `/_next/static/*` assets, which keep Next's default
+        // long-lived caching.
+        source: '/((?!_next/static/).*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store',
+          },
+        ],
+      },
     ];
   },
 };
