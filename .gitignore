@@ -58,3 +58,12 @@ storybook-static
 
 # visual regression: commit baselines, ignore transient failure diffs/actuals
 **/__snapshots__/**/__diff_output__/
+
+# terraform local state/cache — remote GCS backend is the source of truth (lock file IS committed)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# firebase CLI local deploy cache
+.firebase/
