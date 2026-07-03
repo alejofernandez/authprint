@@ -2,7 +2,7 @@
 
 Authprint never stores **plaintext** secrets in the repo or in local `.env` files. For local development (and later CI), secrets live in **1Password** and are injected into a child process at runtime via the [`op` CLI](https://developer.1password.com/docs/cli/).
 
-Production hosting uses **GCP Secret Manager** — this folder is the **local dev** workflow.
+This folder covers the **local dev** workflow only — production secrets are managed by the hosting platform's secret manager, never 1Password.
 
 ## How it works
 
@@ -78,7 +78,7 @@ Options when cloud CI needs secrets:
 
 - `OP_SERVICE_ACCOUNT_TOKEN` + `op run` in the pipeline (same template pattern)
 - 1Password [Environments](https://developer.1password.com/docs/environments/) with `op run --environment <id>`
-- Production deploy: GCP Secret Manager (not 1Password)
+- Production deploy: the hosting platform's secret manager (not 1Password)
 
 ## Adding a new secret
 

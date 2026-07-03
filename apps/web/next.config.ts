@@ -61,18 +61,18 @@ const nextConfig: NextConfig = {
       {
         // Next.js sets a year-long `s-maxage` on statically-prerendered pages by
         // default (safe on Vercel, which invalidates its CDN per deploy). We're
-        // self-hosted behind Firebase Hosting's Fastly CDN with no equivalent
-        // mechanism — a redeploy once left Firebase serving a stale HTML shell
-        // referencing a previous build's now-gone chunk hashes, breaking all
-        // client-side hydration while `/` still returned 200 (E11 v0, first
-        // surfaced via US-098's ⌘0 overlay not firing in prod).
+        // self-hosted behind an edge CDN with no equivalent mechanism — a
+        // redeploy once left the CDN serving a stale HTML shell referencing a
+        // previous build's now-gone chunk hashes, breaking all client-side
+        // hydration while `/` still returned 200 (E11 v0, first surfaced via
+        // US-098's ⌘0 overlay not firing in prod).
         //
         // The document shell has no per-user server-side personalization yet
         // (everything stateful is client-side — Y.Doc, IndexedDB), so it's safe
         // to edge-cache briefly rather than disable caching outright: a short
         // `s-maxage` bounds staleness after any deploy to ~60s automatically
         // (no dependency on remembering to redeploy Hosting), and
-        // `stale-while-revalidate` avoids a thundering-herd of cold Cloud Run
+        // `stale-while-revalidate` avoids a thundering-herd of cold origin
         // invocations right after each expiry. Revisit once server-rendered
         // per-user content exists (Phase III auth) — that content must not
         // share this cache key.
