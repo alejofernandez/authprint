@@ -47,21 +47,40 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Next.js sets a long-lived `s-maxage` on statically-prerendered pages by
-        // default (safe on Vercel, which invalidates the CDN cache per deploy).
-        // We're self-hosted behind Firebase Hosting's CDN with no equivalent
-        // invalidation, so a redeploy silently left Firebase serving a stale HTML
-        // shell referencing a previous build's now-gone chunk hashes — breaking
-        // all client-side interactivity while `/` still returned 200 (E11 v0,
-        // discovered via US-098's ⌘0 overlay not firing in prod). Explicitly
-        // override to no-store for every route except the content-hashed,
-        // genuinely-immutable `/_next/static/*` assets, which keep Next's default
-        // long-lived caching.
-        source: '/((?!_next/static/).*)',
+        // API routes are never edge-cached — always fresh, no shared-cache window.
+        // Kept separate from the document rule below so future auth/Firestore-backed
+        // routes don't inherit page-level caching by accident.
+        source: '/api/:path*',
         headers: [
           {
             key: 'Cache-Control',
             value: 'no-store',
+          },
+        ],
+      },
+      {
+        // Next.js sets a year-long `s-maxage` on statically-prerendered pages by
+        // default (safe on Vercel, which invalidates its CDN per deploy). We're
+        // self-hosted behind Firebase Hosting's Fastly CDN with no equivalent
+        // mechanism — a redeploy once left Firebase serving a stale HTML shell
+        // referencing a previous build's now-gone chunk hashes, breaking all
+        // client-side hydration while `/` still returned 200 (E11 v0, first
+        // surfaced via US-098's ⌘0 overlay not firing in prod).
+        //
+        // The document shell has no per-user server-side personalization yet
+        // (everything stateful is client-side — Y.Doc, IndexedDB), so it's safe
+        // to edge-cache briefly rather than disable caching outright: a short
+        // `s-maxage` bounds staleness after any deploy to ~60s automatically
+        // (no dependency on remembering to redeploy Hosting), and
+        // `stale-while-revalidate` avoids a thundering-herd of cold Cloud Run
+        // invocations right after each expiry. Revisit once server-rendered
+        // per-user content exists (Phase III auth) — that content must not
+        // share this cache key.
+        source: '/((?!_next/static/|api/).*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, s-maxage=60, stale-while-revalidate=604800',
           },
         ],
       },
