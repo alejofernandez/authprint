@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 // Applied before first paint to avoid a flash of the wrong theme. Mirrors the
 // logic in theme.tsx; the ThemeProvider takes over after hydration. (Needs a
-// CSP nonce once strict headers land — §12.)
+// CSP nonce once strict headers land.)
 const THEME_INIT_SCRIPT = `try{var t=localStorage.getItem('authprint-theme')||'system';if(t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`;
 
 export default function RootLayout({

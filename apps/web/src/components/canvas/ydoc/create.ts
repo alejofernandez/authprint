@@ -1,7 +1,7 @@
 // Node-creation core (E26): the single engine behind both creation affordances
 // — the per-handle `+` (US-049) and drag-from-handle (US-050). Given a source
 // node + the handle the edge leaves from, it derives the edge trigger (valid by
-// construction, §5), makes a placeholder node of the chosen type, and wires the
+// construction), makes a placeholder node of the chosen type, and wires the
 // two together in one transaction (so E27 can undo a create as a single step).
 //
 // New nodes are born *incomplete but placed*: a placeholder name + default kind,
@@ -162,7 +162,7 @@ function isSingleUseHandle(sourceType: DslNode['type']): boolean {
   return sourceType !== 'screen';
 }
 
-/** Is a proposed connection valid by construction (§5)? Used by React Flow's
+/** Is a proposed connection valid by construction? Used by React Flow's
  *  `isValidConnection` to reject invalid drags before they land. */
 export function validateConnection(
   flow: Flow,

@@ -5,7 +5,7 @@
 
 ## Context
 
-Two-layer typing (REQUIREMENTS.md §5) makes structural node types a **closed** set
+Two-layer typing (see [Semantics](../semantics.md)) makes structural node types a **closed** set
 and `kind` tags an **open**, extensible one. The DSL accepts custom kinds; the
 validator emits a `vocabulary-unknown-*-kind` **warning** (not an error) for any
 `kind` that isn't built-in.
@@ -20,7 +20,7 @@ users doing the most valuable thing (extending the vocabulary), and offers no
 path to (a) sanction an intentional custom kind so it stops warning, or (b) grow
 the built-in vocabulary from observed real-world usage.
 
-§6 Layer 1 already specifies vocabulary correctness as *"every `kind` … is either
+Validation layer 1 already specifies vocabulary correctness as *"every `kind` … is either
 built-in **or explicitly declared custom**."* The phrase was aspirational — no
 declaration mechanism existed. This ADR supplies it.
 
@@ -35,7 +35,7 @@ Introduce a per-flow **`vocabulary:` declaration block**.
 
 - **Where it lives.** A new optional top-level key on the `Flow` — part of
   `FlowSchema`, not a sidecar. Vocabulary is **semantic** (it changes what the
-  flow *means*), so unlike `layout:` (view state, §7 / Principle 2) it travels in
+  flow *means*), so unlike `layout:` (view state, Principle 2) it travels in
   **every** export — semantic-only, sidecar, and bundled alike.
 - **Shape.** Declared custom identifiers, grouped by **open category**, as bare
   strings in v1:
@@ -95,7 +95,7 @@ Introduce a per-flow **`vocabulary:` declaration block**.
   retained as a genuine typo guard for undeclared values.
 - Per-flow declarations **double as the demand signal** for language growth — once
   a backend exists, aggregating them across flows ranks promotion candidates.
-- Realizes the existing §6 *"or explicitly declared custom"* phrasing.
+- Realizes the validation spec's existing *"or explicitly declared custom"* phrasing.
 
 ### Negative
 - Adds a semantic field that appears in every export (kept invisible when empty).
@@ -133,10 +133,6 @@ Introduce a per-flow **`vocabulary:` declaration block**.
 
 - [Vocabulary — Extension model](../vocabulary.md) — the normative description of
   declaration + promotion.
-- [REQUIREMENTS.md §5 Flow-level attributes](../../../REQUIREMENTS.md) — the
-  `vocabulary` Flow attribute.
-- [REQUIREMENTS.md §6 Layer 1](../../../REQUIREMENTS.md) — declared-vs-undeclared
-  vocabulary correctness.
 - [ADR 0001 — DSL on-disk format](./0001-dsl-format.md) — the YAML/zod substrate
   this extends.
 - WBS **E41 — Custom vocabulary declaration & promotion** — the implementation.

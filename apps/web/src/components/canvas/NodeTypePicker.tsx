@@ -1,4 +1,4 @@
-// Floating node-type quick-pick (E26 / §7): the structural-type menu shared by
+// Floating node-type quick-pick (E26): the structural-type menu shared by
 // the per-handle `+` (US-049) and drag-from-handle (US-050). Five creatable
 // types — never Entry (one per flow). Keyboard-navigable (↑/↓/Enter/Esc).
 // `+` opens node-anchored (same placement as the inspector); drag-drop uses

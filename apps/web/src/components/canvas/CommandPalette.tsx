@@ -1,6 +1,6 @@
 'use client';
 
-// Cmd+K command palette — the product's primary navigation surface (§7). Built
+// Cmd+K command palette — the product's primary navigation surface. Built
 // on cmdk (fuzzy search + keyboard nav) over Radix Dialog (focus trap, Esc,
 // backdrop). Controlled by the parent; commands are supplied as a flat typed
 // list and grouped here in registration order. Features register their own

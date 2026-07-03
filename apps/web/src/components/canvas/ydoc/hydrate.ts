@@ -3,7 +3,7 @@
 // Editor already holds. E25 adds the optional `layout` argument: a bundled
 // `.authprint` carries saved positions, which seed the `layout` map here. With
 // no layout (a fresh/semantic-only flow), the map stays empty and elkjs
-// auto-places everything (hybrid-C, §7).
+// auto-places everything (hybrid-C layout policy).
 
 import type { Annotation, Flow, Scenario } from '@authprint/dsl';
 import type * as Y from 'yjs';

@@ -1,4 +1,4 @@
-// Node inspector form body (E26 / §7, US-051 + US-052): property fields rendered
+// Node inspector form body (E26, US-051 + US-052): property fields rendered
 // inside NodeInspector's scrollable shell. Writes through to the Y.Doc via
 // attribute ops.
 

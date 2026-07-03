@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Scenarios per REQUIREMENTS.md §6 Layer 2 — first-class entities that
+// Scenarios (see @authprint/dsl-spec semantics.md) — first-class entities that
 // describe a trace through the flow under declared conditions. Authprint
 // walks the model with these inputs (model checking, NOT execution).
 

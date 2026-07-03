@@ -3,7 +3,8 @@ import type { Node } from './node.ts';
 
 // ─── Trigger union ──────────────────────────────────────────────────────────
 // Triggers are typed by the structural type of their source node. The shape
-// per source is in REQUIREMENTS.md §5 Edges; semantic mapping is enforced by
+// per source is specified in @authprint/dsl-spec (semantics.md — Edges &
+// triggers); semantic mapping is enforced by
 // `validateEdgeTrigger` below (the schema accepts any trigger; flow-level
 // validation pairs trigger with source node and checks compatibility).
 
@@ -61,7 +62,7 @@ export const EdgeSchema = z
 export type Edge = z.infer<typeof EdgeSchema>;
 
 // ─── Trigger-by-source-type validation ──────────────────────────────────────
-// "Valid by construction" per §5: trigger type must be compatible with the
+// "Valid by construction": trigger type must be compatible with the
 // source node's structural type. Schema accepts any trigger; flow-level
 // validation calls `validateEdgeTrigger` with the resolved source node type.
 
@@ -85,7 +86,7 @@ export type EdgeValidationError = {
  * type. Returns null if valid, a structured error if not.
  *
  * Does NOT verify that source/target IDs resolve to real nodes in the flow —
- * that's the responsibility of the flow-level validator (E2 / §6 Layer 1).
+ * that's the responsibility of the flow-level validator (E2, validation layer 1).
  */
 export function validateEdgeTrigger(
   edge: Edge,

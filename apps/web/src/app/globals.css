@@ -25,7 +25,7 @@
   --fg-secondary: #3f3f46; /* zinc-700 */
   --fg-soft: #3f3f46; /* zinc-700 — pairs with lighter dark counterpart at call sites */
 
-  /* Accent (indigo / violet family per §7) */
+  /* Accent (indigo / violet family) */
   --accent-primary: #6366f1; /* indigo-500 */
   --accent-primary-solid: #4f46e5; /* indigo-600 — filled buttons */
   --accent-primary-bg: #eef2ff; /* indigo-50 */
@@ -41,7 +41,7 @@
   --accent-primary-selected-bg: #eef2ff; /* indigo-50 */
   --accent-primary-selected-fg: #312e81; /* indigo-900 */
 
-  /* Signal — warm-as-signal (§7); amber for toast errors, red kept for validation */
+  /* Signal — warm colors are reserved for state signals; amber for toast errors, red kept for validation */
   --signal-error: #78350f; /* amber-900 */
   --signal-error-label: #78350f; /* amber-900 — emphasis labels on warm surfaces */
   --signal-error-bg: #fffbeb; /* amber-50 */
@@ -79,7 +79,7 @@
   /* Overlay scrim */
   --overlay-scrim: color-mix(in srgb, #09090b 40%, transparent); /* zinc-950/40 */
 
-  /* Motion (§7 — subtle, fast; 150–250ms, no bounce) */
+  /* Motion — subtle, fast; 150–250ms, no bounce */
   --duration-fast: 150ms;
   --duration-base: 200ms;
   --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);

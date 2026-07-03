@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-// Version metadata per REQUIREMENTS.md §5 Versions / §10 Persistence.
+// Version metadata (see @authprint/dsl-spec semantics.md — Versions).
 //
-// Versions are stored separately from flow content (Firestore subcollection
-// per §10 storage shape). This schema represents the metadata; the actual
+// Versions are stored separately from flow content (eventually a Firestore
+// subcollection). This schema represents the metadata; the actual
 // dsl+layout snapshot lives alongside as separate fields/documents.
 
 export const VersionTypeSchema = z.enum(['auto', 'named']);

@@ -1,5 +1,5 @@
 // Viewport-aware placement for floating panels anchored to a screen-space rect.
-// Shared by NodeInspector and NodeTypePicker (§7 surface #2 + create quick-pick).
+// Shared by NodeInspector and NodeTypePicker (node inspector + create quick-pick).
 
 import type { Node as RfNode } from '@xyflow/react';
 import { NODE_SIZE } from './flowToReactFlow.ts';

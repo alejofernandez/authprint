@@ -1,18 +1,18 @@
-// The Y.Doc runtime model for an editable flow (E24 / §7).
+// The Y.Doc runtime model for an editable flow (E24).
 //
 // The Y.Doc is the canvas's in-memory working memory; single-user editing is
 // "Yjs with one client", and a sync transport (v2) drops in without a model
-// refactor (§9). It is NOT the persisted form — on save we serialize to DSL +
-// layout JSON (E25 / §10); Yjs binary blobs are never the canonical artifact.
+// refactor. It is NOT the persisted form — on save we serialize to DSL +
+// layout JSON (E25); Yjs binary blobs are never the canonical artifact.
 //
-// Per §7 the document is five top-level Y.Maps — `nodes`, `edges`, `context`,
+// The document is five top-level Y.Maps — `nodes`, `edges`, `context`,
 // `layout`, `edgeLayout` — plus a `meta` map for flow-level scalars (id/name/theme) and, for
 // now, the not-yet-canvas-edited `annotations` / `scenarios` carried opaquely
 // so a hydrate→read cycle is lossless. Node attributes are modeled as a nested
 // Y.Map (traits → Y.Array, fields → Y.Array<Y.Map>, predicate → Y.Map) rather
 // than an opaque blob, so field-level CRDT merge works when collab arrives —
-// the entire point of Yjs-from-MVP. That costs more thought per edit (§9
-// accepted this).
+// the entire point of Yjs-from-MVP. That costs more thought per edit — an
+// accepted trade-off.
 
 import type {
   Context,

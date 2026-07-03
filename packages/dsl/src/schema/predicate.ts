@@ -3,7 +3,7 @@ import { PREDICATE_OPS, SLOT_TYPES } from '../vocabulary.ts';
 
 // ─── Context ────────────────────────────────────────────────────────────────
 // A Flow declares a Context: a typed slot bag. Slots are declarations only;
-// runtime values exist only inside Scenarios. See REQUIREMENTS.md §5.
+// runtime values exist only inside Scenarios.
 
 export const ContextSlotSchema = z
   .object({
@@ -23,7 +23,7 @@ export const ContextSchema = z.record(z.string().min(1), ContextSlotSchema);
 export type Context = z.infer<typeof ContextSchema>;
 
 // ─── Predicate ──────────────────────────────────────────────────────────────
-// v1 = single typed comparison (REQUIREMENTS.md §5 Context and conditions).
+// v1 = single typed comparison.
 // AND/OR/NOT composition deferred.
 
 export const PredicateSchema = z.object({

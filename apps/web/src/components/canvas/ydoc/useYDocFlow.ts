@@ -1,4 +1,4 @@
-// The bidirectional binding between React Flow and the Y.Doc (§7).
+// The bidirectional binding between React Flow and the Y.Doc.
 //
 //   Y.Doc → canvas:  observeDeep recomputes the derived Flow + positions, so any
 //                    mutation (local op or, later, a remote sync update) re-renders.

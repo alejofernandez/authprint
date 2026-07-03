@@ -173,7 +173,7 @@ The `custom` escape exists because real-world screens have genuinely unusual inp
 
 ## Edge trigger types
 
-Triggers are typed by source structural type per §5. DSL representation: `trigger: { type: <trigger-type>, ... }`.
+Triggers are typed by source structural type (see [semantics](./semantics.md)). DSL representation: `trigger: { type: <trigger-type>, ... }`.
 
 | Trigger type | Used on edges from | Carries |
 |---|---|---|
@@ -185,9 +185,9 @@ Triggers are typed by source structural type per §5. DSL representation: `trigg
 | `on-denied` | `external` | nothing |
 | `on-cancelled` | `external` | nothing |
 
-**`on-success` and `on-error` are mandatory** on outgoing edges from `action` and `external`, per §5 and §6 (validation enforces).
+**`on-success` and `on-error` are mandatory** on outgoing edges from `action` and `external` (validation enforces).
 
-The trigger type `interaction` was chosen over the §5-flagged `UserAction` rename candidate because:
+The trigger type `interaction` was chosen over the earlier-flagged `UserAction` rename candidate because:
 - The structural type `Action` already exists; trigger type `UserAction` was a confusing overload.
 - `interaction` accurately describes the category (user does something on the screen).
 
@@ -266,7 +266,7 @@ These spec-correct or common-tech names were considered and rejected per Princip
 | `gt`/`lt`/`gte`/`lte` | `greater-than`/`less-than`/etc. | Math abbreviations are read-time friction in a config file |
 | Decision kinds with `?` suffix (`user-exists?`) | no suffix (`user-exists`) | Lisp/Ruby convention; structural type already implies "question" |
 | `UserAction` (trigger type) | `interaction` | Overloaded with `Action` structural type — created confusion |
-| `branding-customizable` (trait) | (removed) | Tool-level concern, not a flow-design concern — a per-Screen boolean flag didn't fit. `Flow.branding` (`companyName`/`primaryColor`, REQUIREMENTS.md §5) later solved a narrower, related need — flow-level, not a trait — without reversing this rejection |
+| `branding-customizable` (trait) | (removed) | Tool-level concern, not a flow-design concern — a per-Screen boolean flag didn't fit. `Flow.branding` (`companyName`/`primaryColor` — see [semantics](./semantics.md)) later solved a narrower, related need — flow-level, not a trait — without reversing this rejection |
 
 ---
 

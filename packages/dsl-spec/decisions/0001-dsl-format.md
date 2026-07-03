@@ -62,5 +62,3 @@ The Authprint DSL is the canonical serialization of a flow (Principle 2: flows a
 
 - [Vocabulary](../vocabulary.md) — what names appear in the DSL, per Principle 7.
 - [Grammar](../grammar.md) — the strict YAML subset and document shape.
-- [REQUIREMENTS.md §5 DSL grammar targets](../../../REQUIREMENTS.md) — high-level principles.
-- [REQUIREMENTS.md §10 Export packaging](../../../REQUIREMENTS.md) — file conventions and MIME types.

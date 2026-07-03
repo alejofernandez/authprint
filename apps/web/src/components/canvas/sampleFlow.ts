@@ -4,8 +4,8 @@
 // fixture for `layout.test.ts`.
 //
 // Outcomes are deliberately DUPLICATED (3× abandoned, 2× authenticated)
-// rather than shared — see REQUIREMENTS.md §7 "Visual cleanliness —
-// diagrams should look clean". One shared outcome per kind would force
+// rather than shared, per the visual-cleanliness principle (diagrams
+// should look clean). One shared outcome per kind would force
 // crossing lines from multiple sources; duplication keeps each path
 // reaching its own terminal node, no crossings.
 

@@ -10,7 +10,7 @@ E42 (Start screen & local recent flows) introduces a Docs-style landing screen t
 
 The immediate design question (a local IndexedDB cache) is easy in isolation, but Authprint already has two other persistence-shaped commitments on the books that this needs to not collide with:
 
-- **§9/§10 of `REQUIREMENTS.md`:** `Y.Doc` is the CRDT runtime model from MVP; a sync provider (real-time collaboration) is deferred to v2 but requires no model refactor when it arrives. Firestore is the eventual canonical store, as `{ dsl, layout }` JSON — explicitly **never** Yjs binary blobs.
+- **Settled persistence architecture:** `Y.Doc` is the CRDT runtime model from MVP; a sync provider (real-time collaboration) is deferred to v2 but requires no model refactor when it arrives. Firestore is the eventual canonical store, as `{ dsl, layout }` JSON — explicitly **never** Yjs binary blobs.
 - **[ADR 0001](0001-control-plane-data-plane-split.md):** identity/accounts may move to a separate control plane; Phase III (auth, E4–E10) and E28 (Firestore persistence) are still gated on that.
 
 So the real question wasn't "how do we build a Recent list" — it was "what does adding a browser-local persistence layer commit us to, and does it still make sense once Firestore and collaboration exist." This ADR records that reasoning so it isn't re-derived when E28 or v2 collaboration land.
@@ -32,7 +32,7 @@ So the real question wasn't "how do we build a Recent list" — it was "what doe
 |---|---|---|
 | **v0 (now)** | The user's own file on disk, if ever saved (or nothing) | Recovery cache only |
 | **E28 (Firestore + accounts)** | Firestore `{dsl, layout}` doc | Local cache/buffer *in front of* Firestore — serves pre-sign-in and offline work, feeds *into* Firestore on save/sync, never competes with it |
-| **v2 (real-time collaboration)** | The server-reconciled `Y.Doc`, via the sync provider (§9) | One client's local replica — always downstream, never authoritative |
+| **v2 (real-time collaboration)** | The server-reconciled `Y.Doc`, via the sync provider | One client's local replica — always downstream, never authoritative |
 
 **The rule: IndexedDB is always a leaf, never upstream.** This matters most once collaboration exists — if two collaborators' browsers each autosave their own local view independently, those snapshots can genuinely diverge before the CRDT merge reaches the server. A "restore from local cache" path must never be allowed to overwrite server-reconciled state once a flow has a server-side identity; it can only ever mean "resume where I locally left off if nothing more authoritative exists yet."
 

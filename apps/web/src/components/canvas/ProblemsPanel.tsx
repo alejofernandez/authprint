@@ -1,7 +1,7 @@
 // Problems disclosure (E33 / US-058): a small corner badge with the live
 // error/warning counts; click to expand a dockable, dismissable list of all
 // diagnostics. Clicking a diagnostic that targets a node/edge centers it on the
-// canvas. Transient and opt-in — never a permanent side panel (§7).
+// canvas. Transient and opt-in — never a permanent side panel (a deliberate product anti-pattern).
 
 'use client';
 

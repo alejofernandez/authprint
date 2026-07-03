@@ -12,7 +12,7 @@
 // has to re-render on the client for the `type` to flip to `text/plain` (a
 // server render's `typeof window` is always `undefined`).
 //
-// Inline scripts need a CSP nonce once strict headers land — §12.
+// Inline scripts need a CSP nonce once strict headers land.
 export function InlineScript({ html }: { html: string }) {
   return (
     <script

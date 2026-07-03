@@ -20,7 +20,7 @@ The flow start. Exactly **one per flow** (validation enforces). Has no kind. Has
 ### Screen
 A **user-facing step**. The user sees the screen, optionally fills in fields, and triggers an `interaction` to transition out.
 
-Composition (three layers — see REQUIREMENTS.md §5 "Screen anatomy"):
+Composition (three layers):
 - **`kind`** — what the screen primarily is (e.g., `password`, `passkey-auth`). Drives icons, defaults, template matching.
 - **`traits`** — declarative modifiers about the screen (e.g., `captcha`, `remember-me`). Do not add transitions.
 - **`fields`** — atomic inputs/outputs the user interacts with.
@@ -126,7 +126,7 @@ If the walker reaches a node it has no script step for (or a node not reachable 
 
 ## Branding semantics
 
-`flow.branding.theme` declares the **rendering theme of the screens being modeled** — `light`, `dark`, or `both`. This is independent of the editor's own theme (a user editing in light mode may be modeling a dark-themed login). It's grouped under `branding` alongside `companyName`/`primaryColor` because all three describe how the flow's screens present — not the tool-level "per-workspace branding" REQUIREMENTS.md §7 rules out of v1.
+`flow.branding.theme` declares the **rendering theme of the screens being modeled** — `light`, `dark`, or `both`. This is independent of the editor's own theme (a user editing in light mode may be modeling a dark-themed login). It's grouped under `branding` alongside `companyName`/`primaryColor` because all three describe how the flow's screens present — not tool-level "per-workspace branding", which is deliberately out of scope for v1.
 
 A `both` theme indicates the screens have parallel renderings in both modes; lo-fi previews surface a toggle on each Screen card.
 
@@ -136,7 +136,7 @@ Per-Screen theme overrides are NOT v1 — real auth flows are theme-consistent w
 
 ## Version semantics
 
-A **Version** is an **immutable snapshot** of a Flow at a point in time. Versions are stored separately from the live flow content (per REQUIREMENTS.md §10 storage shape).
+A **Version** is an **immutable snapshot** of a Flow at a point in time. Versions are stored separately from the live flow content.
 
 Two version types:
 - `auto` — captured automatically (continuous edit history, periodic cross-session backups).
@@ -160,7 +160,7 @@ Custom kinds render with a generic visual treatment in the canvas. Curated vocab
 
 ## What Authprint is NOT
 
-These are non-features by design (see REQUIREMENTS.md §0 Principles, §1 Non-audience, §5 Composition):
+These are non-features by design:
 
 - **Not an execution engine.** Context slot values are declarations; runtime values exist only inside Scenarios.
 - **Not a codegen tool** (in v1). The DSL is the input to potential codegen tools, but Authprint itself doesn't produce production code.

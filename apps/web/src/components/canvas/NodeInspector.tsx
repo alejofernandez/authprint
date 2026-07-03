@@ -1,4 +1,4 @@
-// Node Inspector (§7 surface #2): floating, node-anchored editor shell.
+// Node Inspector: floating, node-anchored editor shell.
 // Anchors beside the node's screen rect (right + ⅛-width gap, vertically
 // centered), flips left when clipped, scrollable body, draggable header.
 

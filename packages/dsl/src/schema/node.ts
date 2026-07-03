@@ -3,7 +3,7 @@ import { FIDELITIES, TRAIT_IDS } from '../vocabulary.ts';
 import { FieldSchema } from './field.ts';
 import { PredicateSchema } from './predicate.ts';
 
-// Per REQUIREMENTS.md §5 Structural node types. Six closed structural types;
+// Six closed structural types (see @authprint/dsl-spec semantics.md);
 // every node carries `type` (discriminator) + `id` + per-type fields.
 //
 // Kind values (`kind:` on Screen/Decision/Action/External/Outcome) are
@@ -21,7 +21,7 @@ export const EntryNodeSchema = z.object({
 export type EntryNode = z.infer<typeof EntryNodeSchema>;
 
 // ─── Screen ─────────────────────────────────────────────────────────────────
-// User-facing step. Three-layer anatomy (kind + traits + fields) per §5.
+// User-facing step. Three-layer anatomy (kind + traits + fields).
 
 export const ScreenNodeSchema = z.object({
   type: z.literal('screen'),

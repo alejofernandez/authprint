@@ -3,7 +3,7 @@
 // Runs every check from packages/dsl/src/validation/* and returns a combined
 // Diagnostic[]. Pure function over a parsed Flow — no side effects, no I/O.
 //
-// Severity policy (REQUIREMENTS.md §6 Layer 1):
+// Severity policy:
 //   - error: blocks valid DSL export; surfaced as a red ring in the canvas.
 //   - warning: doesn't block; surfaced as a yellow indicator.
 //

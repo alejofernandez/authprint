@@ -1,5 +1,5 @@
 // Trait chrome for mockup screens (US-068). Each TRAIT_ID maps to a static
-// visual affordance per the frozen trait→chrome table in WORK_BREAKDOWN.md.
+// visual affordance — the mapping below IS the frozen trait→chrome table.
 // Field-adjacent traits (strength meter, show-password toggle) are rendered by
 // ScreenMockup alongside the matching field rows; everything else composes in
 // TRAIT_IDS order below the primary CTA.

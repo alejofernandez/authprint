@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ANNOTATION_KINDS } from '../vocabulary.ts';
 
-// Annotations are sticky-note style notes per §5. They attach to a node, an
+// Annotations are sticky-note style notes. They attach to a node, an
 // edge, or float on the canvas. They are NOT comments — comments are a v1.5
 // collaboration feature with their own entity.
 

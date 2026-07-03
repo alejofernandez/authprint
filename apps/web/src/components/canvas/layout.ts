@@ -1,7 +1,7 @@
 // Auto-layout via elkjs. Pure async function: Flow → NodePositionsMap.
 //
 // Uses ELK's `layered` algorithm with `direction: 'RIGHT'` for the LR
-// reading we committed to in §7. Per-structural-type intrinsic size hints
+// reading the product committed to. Per-structural-type intrinsic size hints
 // keep the diamond / circle / pill shapes from getting squeezed.
 //
 // E17 ships only the auto-layout half of hybrid-C; the drag-flips-to-manual

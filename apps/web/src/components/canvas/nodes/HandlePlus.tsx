@@ -1,4 +1,4 @@
-// The per-handle `+` affordance (E26 / §7): a small button next to an
+// The per-handle `+` affordance (E26): a small button next to an
 // unconnected outgoing handle that creates a connected node via that handle's
 // trigger. Revealed on node hover (or while the node is selected) and only on
 // handles that can take an edge — so a fully-wired node shows none, and the

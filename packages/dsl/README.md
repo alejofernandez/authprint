@@ -2,7 +2,7 @@
 
 Reference TypeScript implementation of the Authprint DSL — types, YAML parser, canonical serializer, and structural validation.
 
-Flows are **auth-aware state machines**: typed nodes (Entry, Screen, Decision, Action, External, Outcome), edges with triggers, context slots, predicates, scenarios, and annotations. See [`REQUIREMENTS.md`](../../REQUIREMENTS.md) §5–§6 and the prose spec in [`@authprint/dsl-spec`](../dsl-spec/).
+Flows are **auth-aware state machines**: typed nodes (Entry, Screen, Decision, Action, External, Outcome), edges with triggers, context slots, predicates, scenarios, and annotations. See the prose spec in [`@authprint/dsl-spec`](../dsl-spec/).
 
 ## Public API (v0)
 
@@ -30,7 +30,7 @@ Diagnostics may carry `target?: { kind: 'node' \| 'edge'; id }` for canvas consu
 
 ```
 src/
-  schema/          # Zod schemas per §5 entity
+  schema/          # Zod schemas per spec entity
   validation/      # Graph algorithms (reachability, edges, predicates, …)
   diagnostic.ts    # Shared Diagnostic types + codes
   parser.ts        # YAML + Zod ingest

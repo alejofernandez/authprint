@@ -2,7 +2,7 @@
 #
 # User signs in with Google; if the social identity is already linked we
 # authenticate, otherwise we link it to their account. Each branch ends on
-# its own outcome (§7 spine + branches).
+# its own outcome (spine + branches).
 
 id: pattern-social-account-link
 name: Social account link

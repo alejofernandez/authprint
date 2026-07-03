@@ -1,14 +1,14 @@
 # Demo Flow Zero — Authprint's own sign-in / sign-up flow.
 #
 # This is the canonical Authprint authentication flow, used as:
-#   1. The spec that drives the auth implementation in apps/web/ (per §11).
+#   1. The spec that drives the auth implementation in apps/web/.
 #   2. The marketing artifact at launch ("here's our own flow, designed in
 #      our own tool").
 #   3. The largest example in packages/dsl-spec/examples/ — exercises every
 #      structural node type, conditional UI, OTP retry, both unified-flow
 #      branches, post-signup passkey promotion, and recovery.
 #
-# Designed against REQUIREMENTS.md §11: passkeys-primary via SimpleWebAuthn,
+# Design constraints: passkeys-primary via SimpleWebAuthn,
 # Google OAuth as social fallback, Email OTP as alternative + recovery,
 # Auth.js v5, Resend for transactional email, NO backup codes, NO email/
 # password, NO SMS in v1.
@@ -147,8 +147,8 @@ nodes:
     kind: enroll-factor
 
   # ─── Outcomes ──────────────────────────────────────────────────────────
-  # Outcomes are DUPLICATED per reaching path rather than shared (REQUIREMENTS
-  # §7 "Visual cleanliness"). Multiple `authenticated` / `abandoned` / `error`
+  # Outcomes are DUPLICATED per reaching path rather than shared (the
+  # visual-cleanliness principle). Multiple `authenticated` / `abandoned` / `error`
   # terminals are semantically equivalent; giving each path its own keeps the
   # diagram readable — every branch ends at a node next to it, no long edges
   # crossing the whole flow back to one shared sink.
@@ -389,7 +389,7 @@ edges:
     trigger:
       type: on-success
 
-  # Code invalid → back to OTP entry (retry). Rate limiting (§12) caps abuse.
+  # Code invalid → back to OTP entry (retry). Rate limiting caps abuse.
   - id: edge-verifyotp-error
     source: a-verify-otp
     target: s-otp-entry
@@ -498,7 +498,7 @@ annotations:
       Email OTP serves two purposes: an alternative sign-in method, and
       the universal recovery channel when a passkey-enabled device is
       lost. We deliberately don't ship backup codes — nobody stores
-      them, and email already covers the case (REQUIREMENTS.md §11).
+      them, and email already covers the case.
     attachment:
       type: node
       nodeId: a-send-otp
@@ -659,7 +659,7 @@ scenarios:
     name: User mistypes the OTP once, retries, succeeds
     description: |
       Tests the OTP retry loop. The verify-otp on-error edge routes back to
-      s-otp-entry; rate-limiting (§12) caps abuse.
+      s-otp-entry; rate-limiting caps abuse.
     initialContext:
       user.exists: true
       user.has_passkey: false

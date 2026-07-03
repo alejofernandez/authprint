@@ -3,7 +3,7 @@
 // The Editor: a shell over the React Flow canvas. It owns the current flow as a
 // Y.Doc (blank entry-only flow by default, then whatever the user opens), file loading
 // (drag-and-drop or the command palette), and the Cmd+K palette that is the
-// product's primary navigation surface (§7). elkjs computes auto-layout (LR,
+// product's primary navigation surface. elkjs computes auto-layout (LR,
 // E17); E24 binds the canvas to the Y.Doc so node moves (→ layout map) and
 // deletes (→ cascade) flow into the document. Richer authoring (drag-from-handle
 // creation, inline editing) is E26; persistence/serialization is E25.
@@ -173,7 +173,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   const tNotices = useTranslations('notices');
   const [phase, setPhase] = useState<EditorPhase>('not-started');
   const [sessionId, setSessionId] = useState<string | null>(null);
-  // The Y.Doc is the editable runtime model (§7). It's built from the parsed
+  // The Y.Doc is the editable runtime model. It's built from the parsed
   // Flow and rebuilt wholesale on each load — a fresh document per flow is
   // simpler than diffing one doc into another, and load is a deliberate reset.
   const [doc, setDoc] = useState(() => hydrate(initialFlow));
@@ -638,7 +638,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
         run: () => setTheme(option),
       })),
       // One command per scenario (a flat-palette pick by name, not a sub-menu —
-      // §7 surface call). Runs the interpreter on the *current* flow and enters
+      // a deliberate surface call). Runs the interpreter on the *current* flow and enters
       // scenario mode. Empty-state when the flow declares no scenarios.
       ...(scenarios.length > 0
         ? scenarios.map((sc) => ({

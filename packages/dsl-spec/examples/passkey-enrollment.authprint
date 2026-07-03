@@ -2,7 +2,7 @@
 #
 # A returning user signs in with a passkey; a new user verifies via email OTP
 # and is offered passkey enrollment. Authored as a spine with branches
-# (REQUIREMENTS.md §7 "Visual cleanliness"): each path runs straight to its own
+# (the visual-cleanliness principle): each path runs straight to its own
 # outcome — no edges merge back into a shared node, so the diagram reads as a
 # clean line that bifurcates rather than a web.
 
@@ -82,7 +82,7 @@ nodes:
         type: passkey
         required: true
 
-  # ─── Outcomes — duplicated per path (§7) so each branch ends on its own ─
+  # ─── Outcomes — duplicated per path so each branch ends on its own ─
   - type: outcome
     id: o-authenticated-passkey
     name: Authenticated
