@@ -42,7 +42,7 @@ The Authprint DSL is the canonical serialization of a flow (Principle 2: flows a
 ### Mitigations
 - Strict parse options (YAML 1.2, `merge: false`, reject anchors/aliases).
 - Quoting rules enforced by the serializer.
-- Round-trip property tests (US-016) exercise the formatter aggressively.
+- Round-trip property tests in the reference implementation (`@authprint/dsl`) exercise the formatter aggressively.
 
 ## Alternatives considered
 

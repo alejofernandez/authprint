@@ -1,17 +1,16 @@
 # Demo Flow Zero — Authprint's own sign-in / sign-up flow.
 #
 # This is the canonical Authprint authentication flow, used as:
-#   1. The spec that drives the auth implementation in apps/web/.
-#   2. The marketing artifact at launch ("here's our own flow, designed in
-#      our own tool").
-#   3. The largest example in packages/dsl-spec/examples/ — exercises every
+#   1. The design spec for Authprint's own sign-in / sign-up — the flow is
+#      authored here first and implemented from it ("our own flow, designed
+#      in our own tool").
+#   2. The largest example in packages/dsl-spec/examples/ — exercises every
 #      structural node type, conditional UI, OTP retry, both unified-flow
 #      branches, post-signup passkey promotion, and recovery.
 #
-# Design constraints: passkeys-primary via SimpleWebAuthn,
-# Google OAuth as social fallback, Email OTP as alternative + recovery,
-# Auth.js v5, Resend for transactional email, NO backup codes, NO email/
-# password, NO SMS in v1.
+# Design constraints: passkeys-primary (WebAuthn), Google OAuth as social
+# fallback, Email OTP as alternative + universal recovery channel,
+# NO backup codes, NO email/password, NO SMS in v1.
 
 id: authprint-demo-flow-zero
 name: Authprint sign-in & sign-up

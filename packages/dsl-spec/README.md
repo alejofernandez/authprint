@@ -11,8 +11,8 @@ This is the canonical authority for the DSL — the reference TypeScript impleme
 | [`vocabulary.md`](./vocabulary.md) | Canonical word list for kinds / traits / fields / triggers / actions / predicate operators / context slot types. Includes a "Rejected names" table documenting why certain spec-correct names were not adopted (per Principle 7). |
 | [`grammar.md`](./grammar.md) | The strict YAML subset and document shape. Full reference at the bottom. |
 | [`semantics.md`](./semantics.md) | What each construct *means*. The authoritative reference for tool authors who want to consume Authprint flows. |
-| [`decisions/`](./decisions/) | Architecture Decision Records. Currently: [0001 — DSL on-disk format](./decisions/0001-dsl-format.md). |
-| [`examples/`](./examples/) | Annotated example flows: **[demo-flow-zero](./examples/demo-flow-zero.authprint)** (canonical — Authprint's own auth flow; drives Phase III implementation), [passkey-enrollment](./examples/passkey-enrollment.authprint), [magic-link-signin](./examples/magic-link-signin.authprint). |
+| [`decisions/`](./decisions/) | Architecture Decision Records for the spec: [0001 — DSL on-disk format](./decisions/0001-dsl-format.md), [0002 — custom vocabulary declaration & promotion](./decisions/0002-custom-vocabulary-declaration.md). |
+| [`examples/`](./examples/) | Annotated example flows: **[demo-flow-zero](./examples/demo-flow-zero.authprint)** (canonical — Authprint's own sign-in & sign-up flow, designed in Authprint before being implemented), [passkey-enrollment](./examples/passkey-enrollment.authprint), [magic-link-signin](./examples/magic-link-signin.authprint). |
 
 ## On editor support
 

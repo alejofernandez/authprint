@@ -25,8 +25,8 @@ built-in **or explicitly declared custom**."* The phrase was aspirational — no
 declaration mechanism existed. This ADR supplies it.
 
 A related symptom (the editor stamping `kind: custom` on freshly created nodes,
-producing a self-contradictory warning) is fixed independently by giving new
-nodes sensible built-in default kinds (WBS US-081); it is **not** part of this
+producing a self-contradictory warning) is fixed independently in the editor by
+giving new nodes sensible built-in default kinds; it is **not** part of this
 ADR, though it removed the most common spurious instance of the warning.
 
 ## Decision
@@ -65,7 +65,7 @@ Introduce a per-flow **`vocabulary:` declaration block**.
   tidy lints fall out: `vocabulary-redundant-declaration` (a declared kind that is
   *also* now built-in — safe to remove, typically post-promotion) and
   `vocabulary-unused-declaration` (declared but used by no node).
-- **Editor UX — declaration follows intent.** The existing `KindSelect`
+- **Editor UX — declaration follows intent.** The kind picker's existing
   "Custom…" branch becomes the declaration trigger: committing a non-built-in
   value via "Custom…" writes it into `flow.vocabulary.<category>`. Choosing
   "Custom…" *is* the intent assertion, so anything authored in the app is
@@ -121,9 +121,9 @@ Introduce a per-flow **`vocabulary:` declaration block**.
 - **An unset/`custom` sentinel kind.** Rejected: conflates with the built-in
   field-type `custom`; marks a kind as "unchosen" but never captures a *real*
   custom kind.
-- **Project / global vocabulary first.** Deferred, not rejected: needs the
-  account / persistence model (Phase III+). The per-flow block is the v1 rung and
-  is forward-compatible with a future precedence union (`built-in ∪ project ∪
+- **Project / global vocabulary first.** Deferred, not rejected: needs accounts
+  and cloud persistence, which don't exist yet. The per-flow block is the v1 rung
+  and is forward-compatible with a future precedence union (`built-in ∪ project ∪
   flow`).
 - **Object-form declarations** (`{ id, label, description }` for display /
   autocomplete) and **named extension packs** (`@authprint/vocab-*`). Deferred as
@@ -135,4 +135,3 @@ Introduce a per-flow **`vocabulary:` declaration block**.
   declaration + promotion.
 - [ADR 0001 — DSL on-disk format](./0001-dsl-format.md) — the YAML/zod substrate
   this extends.
-- WBS **E41 — Custom vocabulary declaration & promotion** — the implementation.
