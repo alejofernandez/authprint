@@ -17,8 +17,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://editor.authprint.app'),
   title: 'Authprint',
-  description: 'Auth-native flow design tool.',
+  description:
+    'Design authentication flows on an auth-native canvas. Flows are data: validated, walkable, saved as files you own.',
+  openGraph: {
+    title: 'Authprint',
+    description:
+      'Design authentication flows on an auth-native canvas. Flows are data: validated, walkable, saved as files you own.',
+    siteName: 'Authprint',
+    type: 'website',
+    url: '/',
+  },
+  // The og:image itself comes from the opengraph-image.png file convention.
+  twitter: {
+    card: 'summary_large_image',
+  },
 };
 
 // Applied before first paint to avoid a flash of the wrong theme. Mirrors the
