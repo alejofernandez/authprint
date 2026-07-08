@@ -24,3 +24,11 @@ pre-push:
   commands:
     typecheck:
       run: bun --filter '*' typecheck
+    lint:
+      # Full lint (whole-tree Biome + Next ESLint) gates pushes to main —
+      # the same command CI runs, so main can't fail CI on lint. Branch and
+      # worktree pushes skip it (CI is the backstop there); decided 2026-07-08
+      # after an unlinted README asset landed on main and failed CI.
+      only:
+        - ref: main
+      run: bun run lint
