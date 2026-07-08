@@ -8,7 +8,9 @@ pre-commit:
   parallel: true
   commands:
     biome-check:
-      glob: '*.{js,ts,jsx,tsx,json,jsonc}'
+      # Keep this glob in sync with what CI's `biome check .` actually lints —
+      # svg slipped through here once (a11y rules apply to standalone SVGs).
+      glob: '*.{js,ts,jsx,tsx,json,jsonc,css,svg}'
       run: bunx biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
     gitleaks:
       run: scripts/gitleaks.sh git --staged --redact --no-banner
