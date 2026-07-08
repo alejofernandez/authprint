@@ -1,8 +1,31 @@
+<div align="center">
+
+<img src="docs/assets/logo.svg" width="96" alt="Authprint logo" />
+
 # Authprint
 
-**Auth-native flow design tool** — a canvas editor for authentication flows, with a portable DSL underneath. Built for Identity PMs, Solutions Architects, and UX designers who need to model auth journeys as typed state machines, not generic diagrams.
+**The design tool for authentication flows**
 
-> **Status (2026-07-03):** the editor works end-to-end locally — create, connect, edit, undo/redo, save/load `.authprint`, live validation, screen mockups by fidelity tier, scenario walk-throughs — and is live at [editor.authprint.app](https://editor.authprint.app).
+A canvas editor that speaks auth natively, backed by an open, typed DSL.<br />
+Flows are data: validated structurally, walked with scenarios, versioned in your repo.
+
+[**Open the editor**](https://editor.authprint.app) · [Website](https://authprint.app) · [DSL spec](./packages/dsl-spec/)
+
+[![Code: MIT](https://img.shields.io/badge/code-MIT-6366f1)](./LICENSE)
+[![Spec: CC-BY 4.0](https://img.shields.io/badge/spec-CC--BY_4.0-8b5cf6)](./packages/dsl-spec/LICENSE)
+[![CI](https://github.com/alejofernandez/authprint/actions/workflows/ci.yml/badge.svg)](https://github.com/alejofernandez/authprint/actions/workflows/ci.yml)
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://authprint.app/assets/editor-dark.png" />
+  <img src="https://authprint.app/assets/editor-light.png" width="820"
+       alt="The Authprint editor rendering a passkey-enrollment flow with branded screen mockups and live validation" />
+</picture>
+
+</div>
+
+Built for Identity PMs, Solutions Architects, and UX designers who need to model auth journeys as typed state machines, not generic diagrams.
+
+> **Status (2026-07-03):** the editor works end-to-end locally (create, connect, edit, undo/redo, save/load `.authprint`, live validation, screen mockups by fidelity tier, scenario walk-throughs) and is live at [editor.authprint.app](https://editor.authprint.app). No account needed; flows stay on your machine.
 
 ## Quick start
 
@@ -54,9 +77,9 @@ Product planning and infrastructure for the hosted service live in a private com
 
 Visual baselines live under `apps/web/__snapshots__/visual/`. They are **local-only for now** (font/OS-dependent; CI wiring deferred).
 
-**Secrets (local dev):** no plaintext in `.env` files — use [`secrets/README.md`](./secrets/README.md). Copy `secrets/op.env.tpl.example` → `secrets/op.env.tpl`, add `op://` references, then `bun run op:run -- bun run dev`.
+**Secrets (local dev):** no plaintext in `.env` files; use [`secrets/README.md`](./secrets/README.md). Copy `secrets/op.env.tpl.example` → `secrets/op.env.tpl`, add `op://` references, then `bun run op:run -- bun run dev`.
 
-**Example flows** (`.authprint`): [`packages/dsl-spec/examples/`](./packages/dsl-spec/examples/) — Demo Flow Zero is the canonical auth spec for a future hosted product.
+**Example flows** (`.authprint`): [`packages/dsl-spec/examples/`](./packages/dsl-spec/examples/). Demo Flow Zero is the canonical auth spec for a future hosted product.
 
 ## Stack (high level)
 
@@ -64,11 +87,11 @@ Visual baselines live under `apps/web/__snapshots__/visual/`. They are **local-o
 - **DSL:** YAML 1.2 strict + Zod; `.authprint` extension
 - **Tooling:** Bun workspaces, Biome, Lefthook, GitHub Actions CI
 
-Accounts and cloud persistence are **planned**. The current iteration is **local file-based** (no accounts) — flows autosave to your browser and export as `.authprint` files.
+Accounts and cloud persistence are **planned**. The current iteration is **local file-based** (no accounts): flows autosave to your browser and export as `.authprint` files.
 
 ## License
 
-- **Code** (`apps/web`, `packages/dsl`): [MIT](./packages/dsl/LICENSE)
+- **Code** (`apps/web`, `packages/dsl`): [MIT](./LICENSE)
 - **DSL specification** (`packages/dsl-spec`): [CC-BY 4.0](./packages/dsl-spec/LICENSE)
 
-No trademark. Personal / open-source project — not affiliated with any employer.
+No trademark. Personal / open-source project, not affiliated with any employer.
