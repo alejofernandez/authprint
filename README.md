@@ -33,7 +33,7 @@ Built for Identity PMs, Solutions Architects, and UX designers who need to model
 
 ```bash
 bun install
-bun run dev          # http://localhost:3000 — blank canvas (entry node only)
+bun run dev          # http://localhost:3000, blank canvas (entry node only)
 bun test             # workspace tests (207+)
 bun run typecheck
 bun run lint
@@ -55,8 +55,8 @@ bun run lint
 
 | Doc | Read when… |
 |---|---|
-| [`AGENTS.md`](./AGENTS.md) / [`CLAUDE.md`](./CLAUDE.md) | Working on the code (human or AI) — commands, architecture map, conventions, gotchas |
-| [`packages/dsl-spec/`](./packages/dsl-spec/) | Understanding the `.authprint` format — grammar, vocabulary, semantics, ADRs |
+| [`AGENTS.md`](./AGENTS.md) / [`CLAUDE.md`](./CLAUDE.md) | Working on the code (human or AI): commands, architecture map, conventions, gotchas |
+| [`packages/dsl-spec/`](./packages/dsl-spec/) | Understanding the `.authprint` format: grammar, vocabulary, semantics, ADRs |
 | [`secrets/README.md`](./secrets/README.md) | Local-dev secrets without `.env` files (1Password refs) |
 
 Product planning and infrastructure for the hosted service live in a private companion repo; this repo is self-contained for building and running the editor.
