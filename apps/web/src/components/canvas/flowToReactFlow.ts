@@ -5,6 +5,7 @@
 // elkjs auto-layout (E17) or, later, a layout sidecar.
 
 import type { Diagnostic, Node as DslNode, Flow, Trigger } from '@authprint/dsl';
+import { defaultScreenSourceSideForAction } from '@authprint/dsl';
 import { MarkerType, type Edge as RfEdge, type Node as RfNode } from '@xyflow/react';
 import type { Theme } from '@/components/theme';
 import { effectiveSourceHandle, effectiveTargetHandle } from './connectionSides.ts';
@@ -37,10 +38,6 @@ function edgeTraceStroke(traceState: 'active' | 'diverged' | undefined): string 
   return null;
 }
 
-// Screen interactions that mean "leave / give up" exit the bottom `alt` handle
-// (toward the abandoned outcomes) rather than the forward `default` handle.
-const RETREAT_ACTIONS = new Set(['cancel', 'back', 'abandon', 'dismiss']);
-
 // Which source handle an edge leaves from. Handle ids match the ones declared
 // on each node component, so branches (yes/no), action results (success/error),
 // and external failures each leave a distinct, semantically-placed point —
@@ -52,7 +49,7 @@ export function sourceHandleFor(trigger: Trigger): string | undefined {
     case 'branch':
       return trigger.value ? 'true' : 'false';
     case 'interaction':
-      return RETREAT_ACTIONS.has(trigger.action) ? 'alt' : 'default';
+      return defaultScreenSourceSideForAction(trigger.action) === 'bottom' ? 'alt' : 'default';
     case 'on-success':
       return 'on-success';
     case 'on-error':
@@ -69,7 +66,7 @@ export function sourceHandleFor(trigger: Trigger): string | undefined {
 
 // Short edge label so the diagram is self-documenting: what action / result
 // takes you down each edge (submit, google, yes/no, success/error).
-function labelFor(trigger: Trigger): string | undefined {
+export function labelFor(trigger: Trigger): string | undefined {
   switch (trigger.type) {
     case 'interaction':
       return trigger.action;

@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { Node as DslNode, Edge } from '@authprint/dsl';
+import { effectiveSourceHandle } from '../connectionSides.ts';
+import { flowToReactFlow } from '../flowToReactFlow.ts';
 import { hydrate, readFlow } from './hydrate.ts';
 import {
   addEdge,
@@ -12,6 +14,8 @@ import {
   setCompanyName,
   setDecisionPredicate,
   setEdgeRoute,
+  setEdgeSideOverrides,
+  setEdgeTrigger,
   setFlowName,
   setFlowTheme,
   setNodeKind,
@@ -20,6 +24,7 @@ import {
   setScreenFidelity,
   setScreenFields,
   setScreenTraits,
+  swapEdgeTriggers,
 } from './ops.ts';
 import { edgeLayoutMap, edgesMap, layoutMap, metaMap, nodesMap } from './schema.ts';
 
@@ -267,5 +272,107 @@ describe('compound consistency', () => {
     });
     expect(nodesMap(doc).has('o3')).toBe(true);
     expect(edgesMap(doc).get('e5')?.get('target')).toBe('o3');
+  });
+});
+
+describe('setEdgeTrigger', () => {
+  test('updates interaction action on a screen edge', () => {
+    const doc = base();
+    expect(setEdgeTrigger(doc, 'e2', { type: 'interaction', action: 'back' }).ok).toBe(true);
+    const edge = readFlow(doc).edges.find((e) => e.id === 'e2');
+    expect(edge?.trigger).toEqual({ type: 'interaction', action: 'back' });
+  });
+
+  test('snaps primary/retreat screen interactions to their canonical side', () => {
+    const doc = base();
+    setEdgeSideOverrides(doc, 'e2', { sourceSide: 'bottom' });
+    expect(setEdgeTrigger(doc, 'e2', { type: 'interaction', action: 'submit' }).ok).toBe(true);
+    expect(edgeLayoutMap(doc).has('e2')).toBe(false);
+
+    setEdgeSideOverrides(doc, 'e2', { sourceSide: 'bottom' });
+    expect(setEdgeTrigger(doc, 'e2', { type: 'interaction', action: 'back' }).ok).toBe(true);
+    expect(edgeLayoutMap(doc).has('e2')).toBe(false);
+  });
+
+  test('preserves a flexible interaction bottom override when the label changes', () => {
+    const doc = base();
+    setEdgeSideOverrides(doc, 'e2', { sourceSide: 'bottom' });
+    expect(setEdgeTrigger(doc, 'e2', { type: 'interaction', action: 'resend-code' }).ok).toBe(true);
+    expect(edgeLayoutMap(doc).get('e2')?.sourceSide).toBe('bottom');
+  });
+
+  test('preserves bottom when changing a retreat action to a flexible one', () => {
+    const doc = base();
+    expect(setEdgeTrigger(doc, 'e2', { type: 'interaction', action: 'back' }).ok).toBe(true);
+    expect(edgeLayoutMap(doc).has('e2')).toBe(false);
+
+    expect(setEdgeTrigger(doc, 'e2', { type: 'interaction', action: 'forgot-password' }).ok).toBe(
+      true,
+    );
+    expect(edgeLayoutMap(doc).get('e2')?.sourceSide).toBe('bottom');
+  });
+});
+
+describe('swapEdgeTriggers', () => {
+  test('exchanges decision branch values atomically', () => {
+    const doc = base();
+    expect(swapEdgeTriggers(doc, 'e3', 'e4').ok).toBe(true);
+    const flow = readFlow(doc);
+    expect(flow.edges.find((e) => e.id === 'e3')?.trigger).toEqual({
+      type: 'branch',
+      value: false,
+    });
+    expect(flow.edges.find((e) => e.id === 'e4')?.trigger).toEqual({
+      type: 'branch',
+      value: true,
+    });
+  });
+
+  test('preserves each edge source side when swapping decision branches', () => {
+    const doc = base();
+    expect(swapEdgeTriggers(doc, 'e3', 'e4').ok).toBe(true);
+
+    const layout3 = edgeLayoutMap(doc).get('e3');
+    const layout4 = edgeLayoutMap(doc).get('e4');
+    expect(layout3?.sourceSide).toBe('right');
+    expect(layout4?.sourceSide).toBe('bottom');
+
+    const flow = readFlow(doc);
+    const e3 = flow.edges.find((e) => e.id === 'e3');
+    const e4 = flow.edges.find((e) => e.id === 'e4');
+    if (!e3 || !e4) throw new Error('edges missing');
+    expect(effectiveSourceHandle('decision', e3.trigger, layout3)).toBe('true');
+    expect(effectiveSourceHandle('decision', e4.trigger, layout4)).toBe('false');
+
+    const edgeLayout = Object.fromEntries(edgeLayoutMap(doc));
+    const { nodes, edges } = flowToReactFlow(flow, {}, edgeLayout);
+    const connected = nodes.find((n) => n.id === 'd1')?.data.connectedHandles;
+    expect(connected?.has('true')).toBe(true);
+    expect(connected?.has('false')).toBe(true);
+    expect(edges.find((e) => e.id === 'e3')?.sourceHandle).toBe('true');
+    expect(edges.find((e) => e.id === 'e4')?.sourceHandle).toBe('false');
+  });
+
+  test('preserves custom side overrides when swapping decision branches', () => {
+    const doc = base();
+    expect(setEdgeSideOverrides(doc, 'e3', { sourceSide: 'top' }).ok).toBe(true);
+    expect(swapEdgeTriggers(doc, 'e3', 'e4').ok).toBe(true);
+
+    const layout3 = edgeLayoutMap(doc).get('e3');
+    const layout4 = edgeLayoutMap(doc).get('e4');
+    expect(layout3?.sourceSide).toBe('top');
+    expect(layout4?.sourceSide).toBe('bottom');
+
+    const flow = readFlow(doc);
+    const e3 = flow.edges.find((e) => e.id === 'e3');
+    if (!e3) throw new Error('e3 missing');
+    expect(e3.trigger).toEqual({ type: 'branch', value: false });
+    expect(effectiveSourceHandle('decision', e3.trigger, layout3)).toBe('top-out');
+
+    const edgeLayout = Object.fromEntries(edgeLayoutMap(doc));
+    const { nodes, edges } = flowToReactFlow(flow, {}, edgeLayout);
+    expect(nodes.find((n) => n.id === 'd1')?.data.connectedHandles?.has('top-out')).toBe(true);
+    expect(edges.find((e) => e.id === 'e3')?.sourceHandle).toBe('top-out');
+    expect(edges.find((e) => e.id === 'e4')?.sourceHandle).toBe('false');
   });
 });

@@ -109,6 +109,20 @@
       "add": "+ Add field"
     }
   },
+  "edgeTrigger": {
+    "title": "Edge trigger",
+    "close": "Close",
+    "closedPair": {
+      "current": "Current: {label}",
+      "swap": "Swap with \"{label}\""
+    },
+    "interaction": {
+      "label": "Action",
+      "chooseFromList": "Choose from list",
+      "customValue": "{value} (custom)",
+      "customOption": "Custom…"
+    }
+  },
   "about": {
     "tagline": "Design authentication flows on a canvas with a portable DSL underneath.",
     "license": "Licensed under the MIT License.",

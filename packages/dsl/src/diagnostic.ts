@@ -35,6 +35,7 @@ export type DiagnosticCode =
   | 'validation-external-missing-error-edge'
   | 'validation-outcome-has-outgoing-edge'
   | 'validation-trigger-incompatible-with-source'
+  | 'validation-screen-duplicate-interaction'
 
   // ── Structural validation: reference integrity ──────────────────────────
   | 'validation-edge-source-not-found'

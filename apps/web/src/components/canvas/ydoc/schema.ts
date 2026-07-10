@@ -231,7 +231,7 @@ export function readEdgeMap(map: Y.Map<unknown>): Edge {
   return label === undefined ? edge : { ...edge, label };
 }
 
-function buildTriggerMap(trigger: Trigger): Y.Map<unknown> {
+export function buildTriggerMap(trigger: Trigger): Y.Map<unknown> {
   const map = new Y.Map<unknown>();
   map.set('type', trigger.type);
   if (trigger.type === 'interaction') map.set('action', trigger.action);
@@ -239,7 +239,7 @@ function buildTriggerMap(trigger: Trigger): Y.Map<unknown> {
   return map;
 }
 
-function readTriggerMap(map: Y.Map<unknown>): Trigger {
+export function readTriggerMap(map: Y.Map<unknown>): Trigger {
   const type = map.get('type') as Trigger['type'];
   if (type === 'interaction') return { type, action: map.get('action') as string };
   if (type === 'branch') return { type, value: map.get('value') as boolean };

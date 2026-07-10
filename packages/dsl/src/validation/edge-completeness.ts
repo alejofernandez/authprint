@@ -16,6 +16,7 @@ export function checkEdgeCompleteness(flow: Flow): Diagnostic[] {
     ...checkExternalResultEdges(flow, nodeById),
     ...checkOutcomeNoOutgoingEdges(flow, nodeById),
     ...checkTriggerCompatibility(flow, nodeById),
+    ...checkDuplicateScreenInteractions(flow, nodeById),
   ];
 }
 
@@ -186,6 +187,39 @@ function checkTriggerCompatibility(flow: Flow, nodeById: Map<string, Node>): Dia
         message: err.reason,
         path: `edges[${eIdx}].trigger`,
         target: { kind: 'edge', id: edge.id },
+      });
+    }
+  }
+
+  return out;
+}
+
+// ─── Duplicate screen interactions ────────────────────────────────────────────
+// One outgoing edge per distinct user action on a Screen (valid by construction
+// in the editor; this catches hand-authored files).
+
+function checkDuplicateScreenInteractions(flow: Flow, nodeById: Map<string, Node>): Diagnostic[] {
+  void nodeById;
+  const out: Diagnostic[] = [];
+
+  for (const [idx, node] of flow.nodes.entries()) {
+    if (node.type !== 'screen') continue;
+
+    const seen = new Map<string, number>();
+    for (const edge of flow.edges) {
+      if (edge.source !== node.id || edge.trigger.type !== 'interaction') continue;
+      const action = edge.trigger.action;
+      seen.set(action, (seen.get(action) ?? 0) + 1);
+    }
+
+    for (const [action, count] of seen) {
+      if (count <= 1) continue;
+      out.push({
+        severity: 'error',
+        code: 'validation-screen-duplicate-interaction',
+        message: `screen '${node.id}' has ${count} outgoing edges for interaction '${action}' (expected at most one per action)`,
+        path: `nodes[${idx}]`,
+        target: { kind: 'node', id: node.id },
       });
     }
   }

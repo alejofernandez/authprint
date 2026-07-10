@@ -3,8 +3,15 @@
 // are prefixed so creation paths (triggerFor) never treat them as semantic.
 
 import type { Node as DslNode, Trigger } from '@authprint/dsl';
+import {
+  defaultScreenSourceSideForAction,
+  screenActionAllowedOnSide,
+  screenInteractionSideTier,
+} from '@authprint/dsl';
 import { sourceHandleFor } from './flowToReactFlow.ts';
 import type { ConnectionSide, EdgeLayoutRecord } from './ydoc/schema.ts';
+
+const SCREEN_SOURCE_HANDLES = new Set(['default', 'alt']);
 
 export const GEO_SOURCE_TOP = 'top-out';
 export const GEO_SOURCE_BOTTOM = 'bottom-out';
@@ -33,11 +40,60 @@ export function isGeometricTargetHandle(
   );
 }
 
+export function isScreenSourceHandle(handleId: string | null | undefined): boolean {
+  return SCREEN_SOURCE_HANDLES.has(handleId ?? '');
+}
+
+export function screenSourceHandleToSide(
+  handleId: string | null | undefined,
+): ConnectionSide | undefined {
+  if (handleId === 'default') return 'right';
+  if (handleId === 'alt') return 'bottom';
+  return undefined;
+}
+
+/** Editor rule: may this interaction leave from the given screen source handle? */
+export function screenInteractionAllowedOnHandle(
+  action: string,
+  handleId: string | null | undefined,
+): boolean {
+  const side = screenSourceHandleToSide(handleId);
+  if (!side) return false;
+  return screenActionAllowedOnSide(action, side === 'bottom' ? 'bottom' : 'right');
+}
+
+/** Layout override after a screen interaction label change (US-114 side tiers).
+ *  `currentSide` is the edge's effective exit side before the change (override or
+ *  semantic default) — not just a stored layout override. */
+export function layoutSideForScreenInteraction(
+  action: string,
+  currentSide?: ConnectionSide,
+): ConnectionSide | undefined {
+  const trigger: Trigger = { type: 'interaction', action };
+  const semanticDefault = defaultSourceSide(trigger);
+  const tier = screenInteractionSideTier(action);
+
+  if (
+    tier === 'flexible' &&
+    currentSide &&
+    (currentSide === 'right' || currentSide === 'bottom') &&
+    currentSide !== semanticDefault &&
+    screenActionAllowedOnSide(action, currentSide === 'bottom' ? 'bottom' : 'right')
+  ) {
+    return normalizeSideOverride(currentSide, semanticDefault);
+  }
+
+  const canonical: ConnectionSide =
+    defaultScreenSourceSideForAction(action) === 'bottom' ? 'bottom' : 'right';
+  return normalizeSideOverride(canonical, semanticDefault);
+}
+
 export function isSideRelocationSourceHandle(
   nodeType: DslNode['type'],
   handleId: string | null | undefined,
 ): boolean {
   if (isGeometricSourceHandle(nodeType, handleId)) return true;
+  if (nodeType === 'screen') return isScreenSourceHandle(handleId);
   if (nodeType !== 'decision') return false;
   return handleId === 'true' || handleId === 'false';
 }
@@ -69,6 +125,16 @@ export function defaultSourceSide(trigger: Trigger): ConnectionSide {
   return sourceHandleToSide(sourceHandleFor(trigger));
 }
 
+/** Effective exit side: layout override wins, else trigger default. */
+export function effectiveSourceSide(
+  nodeType: DslNode['type'],
+  trigger: Trigger,
+  layout?: EdgeLayoutRecord,
+): ConnectionSide {
+  void nodeType;
+  return layout?.sourceSide ?? defaultSourceSide(trigger);
+}
+
 export function defaultTargetSide(): ConnectionSide {
   return 'left';
 }
@@ -83,6 +149,8 @@ export function effectiveSourceHandle(
   if (side === 'bottom') {
     const semantic = sourceHandleFor(trigger);
     if (semantic && sourceHandleToSide(semantic) === 'bottom') return semantic;
+    // Yes branch pinned to bottom reuses the bottom semantic port.
+    if (nodeType === 'decision' && trigger.type === 'branch' && trigger.value) return 'false';
     if (nodeType === 'decision') return GEO_SOURCE_BOTTOM;
     if (nodeType === 'screen') return 'alt';
     if (nodeType === 'action' || nodeType === 'external') return 'on-error';
@@ -90,6 +158,8 @@ export function effectiveSourceHandle(
   if (side === 'right') {
     const semantic = sourceHandleFor(trigger);
     if (semantic && sourceHandleToSide(semantic) === 'right') return semantic;
+    // No branch pinned to right reuses the right semantic port.
+    if (nodeType === 'decision' && trigger.type === 'branch' && !trigger.value) return 'true';
     if (nodeType === 'decision') return GEO_SOURCE_RIGHT;
     if (nodeType === 'screen') return 'default';
     if (nodeType === 'action' || nodeType === 'external') return 'on-success';
@@ -194,6 +264,10 @@ export function decisionGeometricHandleVisible(
   connected?: ReadonlySet<string>,
   used?: ReadonlySet<'yes' | 'no'>,
 ): boolean {
+  // Keep attached handles in the DOM — React Flow drops edges whose handle id
+  // is missing (e.g. after a yes/no swap that preserves side via override).
+  if (connected?.has(handleId)) return true;
+
   if (handleId === GEO_SOURCE_RIGHT) {
     if (rightSideOccupied(connected)) return false;
     if (decisionHandlePlusVisible('true', connected, used)) return false;

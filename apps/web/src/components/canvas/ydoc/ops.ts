@@ -17,8 +17,15 @@ import type {
   Field,
   FlowTheme,
   Predicate,
+  Trigger,
 } from '@authprint/dsl';
 import * as Y from 'yjs';
+import {
+  defaultSourceSide,
+  effectiveSourceSide,
+  layoutSideForScreenInteraction,
+  normalizeSideOverride,
+} from '../connectionSides.ts';
 import type { ConnectionSide } from './schema.ts';
 import {
   buildContextSlotMap,
@@ -26,6 +33,7 @@ import {
   buildFieldMap,
   buildNodeMap,
   buildPredicateMap,
+  buildTriggerMap,
   contextMap,
   type EdgeLayoutRecord,
   edgeLayoutHasData,
@@ -36,6 +44,7 @@ import {
   metaMap,
   nodesMap,
   type Position,
+  readTriggerMap,
 } from './schema.ts';
 
 export type OpResult = { ok: true } | { ok: false; reason: string };
@@ -163,6 +172,96 @@ export function reconnectEdgeEnd(doc: Y.Doc, args: ReconnectEdgeArgs): OpResult 
     writeEdgeLayoutRecord(doc, args.edgeId, next);
   }, LOCAL_ORIGIN);
   return ok;
+}
+
+/** Replace an edge's trigger (one LOCAL_ORIGIN transaction = one undo step). */
+export function setEdgeTrigger(doc: Y.Doc, edgeId: string, trigger: Trigger): OpResult {
+  const edgeMap = edgesMap(doc).get(edgeId);
+  if (!edgeMap) return fail(`edge '${edgeId}' does not exist`);
+  doc.transact(() => {
+    const existing = edgeLayoutMap(doc).get(edgeId) ?? {};
+    const priorTrigger = readTriggerMap(edgeMap.get('trigger') as Y.Map<unknown>);
+    edgeMap.set('trigger', buildTriggerMap(trigger));
+    if (trigger.type !== 'interaction') return;
+    const sourceId = edgeMap.get('source') as string;
+    const sourceNode = nodesMap(doc).get(sourceId);
+    if (sourceNode?.get('type') !== 'screen') return;
+
+    const currentSide =
+      priorTrigger.type === 'interaction'
+        ? effectiveSourceSide('screen', priorTrigger, existing)
+        : undefined;
+    const nextSide = layoutSideForScreenInteraction(trigger.action, currentSide);
+    const next: EdgeLayoutRecord = { ...existing };
+    if (nextSide === undefined) delete next.sourceSide;
+    else next.sourceSide = nextSide;
+    writeEdgeLayoutRecord(doc, edgeId, next);
+  }, LOCAL_ORIGIN);
+  return ok;
+}
+
+/** Atomically exchange triggers on two edges (one undo step). */
+export function swapEdgeTriggers(doc: Y.Doc, edgeIdA: string, edgeIdB: string): OpResult {
+  const mapA = edgesMap(doc).get(edgeIdA);
+  const mapB = edgesMap(doc).get(edgeIdB);
+  if (!mapA) return fail(`edge '${edgeIdA}' does not exist`);
+  if (!mapB) return fail(`edge '${edgeIdB}' does not exist`);
+
+  const sourceId = mapA.get('source') as string;
+  const sourceNode = nodesMap(doc).get(sourceId);
+  const nodeType = sourceNode?.get('type') as DslNode['type'] | undefined;
+
+  const triggerA = readTriggerMap(mapA.get('trigger') as Y.Map<unknown>);
+  const triggerB = readTriggerMap(mapB.get('trigger') as Y.Map<unknown>);
+  const layoutA = edgeLayoutMap(doc).get(edgeIdA);
+  const layoutB = edgeLayoutMap(doc).get(edgeIdB);
+
+  const preserveSides =
+    nodeType !== undefined && shouldPreserveSourceSideOnSwap(nodeType, triggerA, triggerB);
+  const sideBeforeA =
+    preserveSides && nodeType ? effectiveSourceSide(nodeType, triggerA, layoutA) : undefined;
+  const sideBeforeB =
+    preserveSides && nodeType ? effectiveSourceSide(nodeType, triggerB, layoutB) : undefined;
+
+  doc.transact(() => {
+    mapA.set('trigger', buildTriggerMap(triggerB));
+    mapB.set('trigger', buildTriggerMap(triggerA));
+
+    if (preserveSides && nodeType && sideBeforeA !== undefined && sideBeforeB !== undefined) {
+      applyPreservedSourceSide(doc, edgeIdA, triggerB, sideBeforeA);
+      applyPreservedSourceSide(doc, edgeIdB, triggerA, sideBeforeB);
+    }
+  }, LOCAL_ORIGIN);
+  return ok;
+}
+
+function shouldPreserveSourceSideOnSwap(
+  nodeType: DslNode['type'],
+  triggerA: Trigger,
+  triggerB: Trigger,
+): boolean {
+  if (nodeType === 'decision') {
+    return triggerA.type === 'branch' && triggerB.type === 'branch';
+  }
+  if (nodeType === 'action' || nodeType === 'external') {
+    const types = new Set([triggerA.type, triggerB.type]);
+    return types.has('on-success') && types.has('on-error');
+  }
+  return false;
+}
+
+function applyPreservedSourceSide(
+  doc: Y.Doc,
+  edgeId: string,
+  newTrigger: Trigger,
+  desiredSide: ConnectionSide,
+): void {
+  const existing = edgeLayoutMap(doc).get(edgeId) ?? {};
+  const next: EdgeLayoutRecord = { ...existing };
+  const override = normalizeSideOverride(desiredSide, defaultSourceSide(newTrigger));
+  if (override === undefined) delete next.sourceSide;
+  else next.sourceSide = override;
+  writeEdgeLayoutRecord(doc, edgeId, next);
 }
 
 // ─── Node attribute edits (E26 inline card, US-051) ──────────────────────────

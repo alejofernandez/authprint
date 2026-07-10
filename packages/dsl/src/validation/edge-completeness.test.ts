@@ -164,3 +164,38 @@ describe('checkEdgeCompleteness — external + outcome', () => {
     expect(codes).toContain('validation-trigger-incompatible-with-source');
   });
 });
+
+describe('checkEdgeCompleteness — duplicate screen interactions', () => {
+  test('two submit edges from one screen → duplicate-interaction error', () => {
+    const flow = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      nodes: [
+        { type: 'entry', id: 'e1' },
+        { type: 'screen', id: 's1', name: 'A', kind: 'password' },
+        { type: 'screen', id: 's2', name: 'B', kind: 'password' },
+        { type: 'outcome', id: 'o1', name: 'Done', kind: 'authenticated' },
+      ],
+      edges: [
+        { id: 'edge-1', source: 'e1', target: 's1', trigger: { type: 'unconditional' } },
+        {
+          id: 'edge-2',
+          source: 's1',
+          target: 's2',
+          trigger: { type: 'interaction', action: 'submit' },
+        },
+        {
+          id: 'edge-3',
+          source: 's1',
+          target: 'o1',
+          trigger: { type: 'interaction', action: 'submit' },
+        },
+      ],
+    });
+    const errs = checkEdgeCompleteness(flow).filter(
+      (d) => d.code === 'validation-screen-duplicate-interaction',
+    );
+    expect(errs.length).toBe(1);
+    expect(errs[0]?.message).toContain('submit');
+  });
+});

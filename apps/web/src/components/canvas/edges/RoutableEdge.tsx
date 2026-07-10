@@ -4,6 +4,7 @@ import { BaseEdge, EdgeLabelRenderer, type EdgeProps, useReactFlow } from '@xyfl
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Position } from '../ydoc/schema.ts';
 import { useSetEdgeRoute } from './edgeRouteContext.tsx';
+import { useOpenEdgeTriggerEditor } from './edgeTriggerContext.tsx';
 import {
   buildRoutedPath,
   clampAxisCenter,
@@ -68,6 +69,7 @@ export function RoutableEdge({
   interactionWidth,
 }: EdgeProps) {
   const setRoute = useSetEdgeRoute();
+  const openTriggerEditor = useOpenEdgeTriggerEditor();
   const { screenToFlowPosition, setEdges, setNodes } = useReactFlow();
   const stored = (data as RoutableEdgeData | undefined)?.waypoints ?? [];
   const [draft, setDraft] = useState<Position[] | null>(null);
@@ -265,10 +267,15 @@ export function RoutableEdge({
     [commitRoute, draft, displayWaypoints],
   );
 
-  const onSpineDoubleClick = useCallback((event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-  }, []);
+  const onEdgeDoubleClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (!openTriggerEditor) return;
+      event.preventDefault();
+      event.stopPropagation();
+      openTriggerEditor(id, { x: event.clientX, y: event.clientY });
+    },
+    [id, openTriggerEditor],
+  );
 
   const spineCursor =
     dragPolicy.mode === 'u-depth' || dragPolicy.axis === 'y'
@@ -319,13 +326,14 @@ export function RoutableEdge({
               onPointerDown={onSpinePointerDown}
               onPointerMove={onSpinePointerMove}
               onPointerUp={onSpinePointerUp}
-              onDoubleClick={onSpineDoubleClick}
+              onDoubleClick={onEdgeDoubleClick}
             />
           )}
           {label && (
-            <div
+            <button
+              type="button"
               className={[
-                'nodrag nopan pointer-events-none absolute select-none text-[10px] leading-none',
+                'nodrag nopan pointer-events-auto absolute select-none border-0 text-[10px] leading-none',
                 labelShowBg !== false &&
                   'rounded-sm bg-[var(--xy-edge-label-background-color,var(--xy-edge-label-background-color-default,#fff))] px-1 py-0.5 shadow-sm dark:bg-bg-panel',
                 selected && 'ring-2 ring-node-decision-ring dark:ring-node-decision-border',
@@ -337,9 +345,10 @@ export function RoutableEdge({
                 color: labelStyle?.color,
                 ...labelStyle,
               }}
+              onDoubleClick={onEdgeDoubleClick}
             >
               {label}
-            </div>
+            </button>
           )}
         </EdgeLabelRenderer>
       ) : null}

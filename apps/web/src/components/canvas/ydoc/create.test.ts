@@ -326,4 +326,51 @@ describe('validateConnection', () => {
       validateConnection(withYesOnBottom, { source: 'd1', target: 'o2', sourceHandle: 'true' }),
     ).toBe(false);
   });
+
+  test('screen interaction side tiers gate same-node reconnect', () => {
+    const withSubmit: Flow = {
+      ...flow,
+      edges: [
+        {
+          id: 'e1',
+          source: 's1',
+          target: 'o1',
+          trigger: { type: 'interaction', action: 'submit' },
+        },
+      ],
+    };
+    expect(
+      validateConnection(
+        withSubmit,
+        { source: 's1', target: 'o1', sourceHandle: 'alt' },
+        { reconnectingEdgeId: 'e1' },
+      ),
+    ).toBe(false);
+    expect(
+      validateConnection(
+        withSubmit,
+        { source: 's1', target: 'o1', sourceHandle: 'default' },
+        { reconnectingEdgeId: 'e1' },
+      ),
+    ).toBe(true);
+
+    const withResend: Flow = {
+      ...withSubmit,
+      edges: [
+        {
+          id: 'e1',
+          source: 's1',
+          target: 'o1',
+          trigger: { type: 'interaction', action: 'resend-code' },
+        },
+      ],
+    };
+    expect(
+      validateConnection(
+        withResend,
+        { source: 's1', target: 'o1', sourceHandle: 'alt' },
+        { reconnectingEdgeId: 'e1' },
+      ),
+    ).toBe(true);
+  });
 });

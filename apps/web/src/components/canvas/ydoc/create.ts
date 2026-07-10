@@ -20,6 +20,7 @@ import {
   isSideRelocationSourceHandle,
   isSideRelocationTargetHandle,
   normalizeSideOverride,
+  screenInteractionAllowedOnHandle,
   sourceSideFromReconnect,
   targetSideFromReconnect,
 } from '../connectionSides.ts';
@@ -283,6 +284,13 @@ export function validateConnection(
       source === reconnecting.source &&
       isSideRelocationSourceHandle(src.type, sourceHandle ?? null)
     ) {
+      if (
+        src.type === 'screen' &&
+        reconnecting.trigger.type === 'interaction' &&
+        !screenInteractionAllowedOnHandle(reconnecting.trigger.action, sourceHandle ?? null)
+      ) {
+        return false;
+      }
       return true;
     }
     if (
@@ -327,8 +335,17 @@ export function applyEdgeReconnect(
   const targetNode = flow.nodes.find((n) => n.id === connection.target);
   if (!sourceNode || !targetNode) return false;
 
+  if (
+    connection.source === edge.source &&
+    sourceNode.type === 'screen' &&
+    edge.trigger.type === 'interaction' &&
+    !screenInteractionAllowedOnHandle(edge.trigger.action, connection.sourceHandle ?? null)
+  ) {
+    return false;
+  }
+
   if (connection.source !== edge.source || connection.target !== edge.target) {
-    if (!validateConnection(flow, connection)) return false;
+    if (!validateConnection(flow, connection, { reconnectingEdgeId: edgeId })) return false;
   }
 
   const existing = edgeLayout[edgeId];

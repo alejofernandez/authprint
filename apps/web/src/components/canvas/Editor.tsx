@@ -49,8 +49,11 @@ import { useTheme } from '@/components/theme';
 import { AboutModal } from './AboutModal.tsx';
 import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { DocumentPreferencesModal } from './DocumentPreferencesModal.tsx';
+import { type EdgeTriggerActions, EdgeTriggerEditor } from './EdgeTriggerEditor.tsx';
 import { EdgeRouteProvider } from './edges/edgeRouteContext.tsx';
+import { EdgeTriggerProvider } from './edges/edgeTriggerContext.tsx';
 import { RoutableEdge } from './edges/RoutableEdge.tsx';
+import { isEditableEdgeTrigger } from './edgeTriggerUtils.ts';
 import { elkLayoutReady } from './elkLayoutReady.ts';
 import type { PatternFlow } from './flowCatalog.ts';
 import { flowFromSource } from './flowFromSource.ts';
@@ -92,6 +95,7 @@ import {
   setCompanyName,
   setDecisionPredicate,
   setEdgeRoute,
+  setEdgeTrigger,
   setFlowName,
   setFlowTheme,
   setNodeKind,
@@ -100,6 +104,7 @@ import {
   setScreenFidelity,
   setScreenFields,
   setScreenTraits,
+  swapEdgeTriggers,
 } from './ydoc/ops.ts';
 import {
   docToArtifact,
@@ -1086,8 +1091,24 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
 
   // Double-click a node → node-anchored inspector (Entry has nothing to edit).
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [edgeEditor, setEdgeEditor] = useState<{
+    edgeId: string;
+    at: { x: number; y: number };
+  } | null>(null);
+
+  const openEdgeTriggerEditor = useCallback(
+    (edgeId: string, at: { x: number; y: number }) => {
+      const edge = flow.edges.find((e) => e.id === edgeId);
+      if (!edge || !isEditableEdgeTrigger(edge.trigger)) return;
+      setEditingId(null);
+      setEdgeEditor({ edgeId, at });
+    },
+    [flow.edges],
+  );
+
   const onNodeDoubleClick = useCallback<NodeMouseHandler>((_event, node) => {
     if (node.type === 'entry') return;
+    setEdgeEditor(null);
     setEditingId(node.id);
   }, []);
 
@@ -1095,9 +1116,18 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
     (nodeId: string) => {
       const target = flow.nodes.find((n) => n.id === nodeId);
       if (!target || target.type === 'entry') return;
+      setEdgeEditor(null);
       setEditingId(nodeId);
     },
     [flow.nodes],
+  );
+
+  const edgeTriggerActions = useMemo<EdgeTriggerActions>(
+    () => ({
+      setTrigger: (id, trigger) => setEdgeTrigger(doc, id, trigger),
+      swapWithSibling: (id, siblingId) => swapEdgeTriggers(doc, id, siblingId),
+    }),
+    [doc],
   );
 
   const editActions = useMemo<NodeEditActions>(
@@ -1128,47 +1158,59 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
     // In scenario mode the `+` affordances vanish (HandlePlus renders nothing
     // without a create handler), reinforcing read-only.
     <EdgeRouteProvider setRoute={readOnly ? null : setEdgeRouteOnDoc}>
-      <NodeActivateProvider value={readOnly ? null : onNodeActivate}>
-        <NodeCreateProvider value={readOnly ? null : openCreateMenu}>
-          <BoundCanvas
-            graph={graph}
-            nodesToDoc={nodesToDoc}
-            edgesToDoc={edgesToDoc}
-            onConnect={onConnect}
-            onConnectEnd={onConnectEnd}
-            onReconnectDoc={onReconnectDoc}
-            onReconnectStart={onReconnectStart}
-            onReconnectEnd={onReconnectEnd}
-            isValidConnection={isValidConnection}
-            onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
-            readOnly={readOnly}
-          />
-          <StatusCluster>
-            <ProblemsPanel
-              validation={validation}
-              showOutlines={showOutlines}
-              onToggleOutlines={() => setShowOutlines((v) => !v)}
+      <EdgeTriggerProvider openEditor={readOnly ? null : openEdgeTriggerEditor}>
+        <NodeActivateProvider value={readOnly ? null : onNodeActivate}>
+          <NodeCreateProvider value={readOnly ? null : openCreateMenu}>
+            <BoundCanvas
+              graph={graph}
+              nodesToDoc={nodesToDoc}
+              edgesToDoc={edgesToDoc}
+              onConnect={onConnect}
+              onConnectEnd={onConnectEnd}
+              onReconnectDoc={onReconnectDoc}
+              onReconnectStart={onReconnectStart}
+              onReconnectEnd={onReconnectEnd}
+              isValidConnection={isValidConnection}
+              onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
+              readOnly={readOnly}
             />
-          </StatusCluster>
-          {!readOnly && pickerPlacement && (
-            <NodeTypePicker
-              placement={pickerPlacement}
-              onPick={pickType}
-              onClose={() => setMenu(null)}
-            />
-          )}
-          {!readOnly && editingId && editingNode && (
-            <NodeInspector
-              key={editingId}
-              nodeId={editingId}
-              node={editingNode}
-              onClose={() => setEditingId(null)}
-            >
-              <NodeInlineEditor node={editingNode} context={flow.context} actions={editActions} />
-            </NodeInspector>
-          )}
-        </NodeCreateProvider>
-      </NodeActivateProvider>
+            <StatusCluster>
+              <ProblemsPanel
+                validation={validation}
+                showOutlines={showOutlines}
+                onToggleOutlines={() => setShowOutlines((v) => !v)}
+              />
+            </StatusCluster>
+            {!readOnly && pickerPlacement && (
+              <NodeTypePicker
+                placement={pickerPlacement}
+                onPick={pickType}
+                onClose={() => setMenu(null)}
+              />
+            )}
+            {!readOnly && editingId && editingNode && (
+              <NodeInspector
+                key={editingId}
+                nodeId={editingId}
+                node={editingNode}
+                onClose={() => setEditingId(null)}
+              >
+                <NodeInlineEditor node={editingNode} context={flow.context} actions={editActions} />
+              </NodeInspector>
+            )}
+            {!readOnly && edgeEditor && (
+              <EdgeTriggerEditor
+                key={edgeEditor.edgeId}
+                edgeId={edgeEditor.edgeId}
+                flow={flow}
+                anchorAt={edgeEditor.at}
+                actions={edgeTriggerActions}
+                onClose={() => setEdgeEditor(null)}
+              />
+            )}
+          </NodeCreateProvider>
+        </NodeActivateProvider>
+      </EdgeTriggerProvider>
     </EdgeRouteProvider>
   );
 }
