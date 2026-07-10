@@ -120,10 +120,35 @@ describe('serializeLayout / parseLayout', () => {
   test('nested layout block round-trips nodes and edge routes', () => {
     const layout: LayoutPositions = { entry: { x: 5, y: 6 } };
     const edgeLayout: EdgeRoutes = {
-      e1: [
-        { x: 100, y: 200 },
-        { x: 150, y: 250 },
-      ],
+      e1: {
+        points: [
+          { x: 100, y: 200 },
+          { x: 150, y: 250 },
+        ],
+      },
+    };
+    expect(parseLayoutBlock(yamlParse(serializeLayout(layout, edgeLayout)))).toEqual({
+      nodes: layout,
+      edges: edgeLayout,
+    });
+  });
+
+  test('legacy edge waypoint arrays parse into records', () => {
+    const parsed = parseLayoutBlock({
+      nodes: { entry: { x: 1, y: 2 } },
+      edges: { e1: [{ x: 10, y: 20 }] },
+    });
+    expect(parsed.edges).toEqual({ e1: { points: [{ x: 10, y: 20 }] } });
+  });
+
+  test('object edge layout with side overrides round-trips', () => {
+    const layout: LayoutPositions = { entry: { x: 5, y: 6 } };
+    const edgeLayout: EdgeRoutes = {
+      e1: { sourceSide: 'top', targetSide: 'bottom' },
+      e2: {
+        points: [{ x: 1, y: 2 }],
+        sourceSide: 'top',
+      },
     };
     expect(parseLayoutBlock(yamlParse(serializeLayout(layout, edgeLayout)))).toEqual({
       nodes: layout,
@@ -159,7 +184,7 @@ describe('serializeLayout / parseLayout', () => {
     };
     expect(parseLayoutBlock(value)).toEqual({
       nodes: { good: { x: 1, y: 2 } },
-      edges: { ok: [{ x: 10, y: 20 }] },
+      edges: { ok: { points: [{ x: 10, y: 20 }] } },
     });
   });
 
@@ -203,11 +228,13 @@ describe('bundle round-trip', () => {
   test('edge routes survive bundle save → extract → hydrate', () => {
     const layout: LayoutPositions = { entry: { x: 5, y: 6 } };
     const edgeLayout: EdgeRoutes = {
-      e1: [{ x: 100, y: 200 }],
-      e2: [
-        { x: 50, y: 75 },
-        { x: 80, y: 90 },
-      ],
+      e1: { points: [{ x: 100, y: 200 }] },
+      e2: {
+        points: [
+          { x: 50, y: 75 },
+          { x: 80, y: 90 },
+        ],
+      },
     };
     const artifact = { flow, layout, edgeLayout };
     const out = reload(serializeBundle(artifact));
@@ -275,7 +302,7 @@ describe('export packagings (US-065)', () => {
   });
 
   test('serializeSidecar carries edge routes in the sidecar', () => {
-    const edgeLayout: EdgeRoutes = { e1: [{ x: 10, y: 20 }] };
+    const edgeLayout: EdgeRoutes = { e1: { points: [{ x: 10, y: 20 }] } };
     const { layout: layoutYaml } = serializeSidecar({ flow, layout, edgeLayout });
     expect(parseLayoutBlock(yamlParse(layoutYaml))).toEqual({ nodes: layout, edges: edgeLayout });
   });

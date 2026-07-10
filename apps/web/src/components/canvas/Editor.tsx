@@ -23,9 +23,12 @@ import {
   type OnConnectEnd,
   type OnEdgesChange,
   type OnNodesChange,
+  type OnReconnect,
   ReactFlow,
   ReactFlowProvider,
+  type Edge as RfEdge,
   type Node as RfNode,
+  reconnectEdge,
   useEdgesState,
   useNodesState,
   useReactFlow,
@@ -76,9 +79,11 @@ import { Topbar } from './Topbar.tsx';
 import { UnexportedChangesConfirmDialog } from './UnexportedChangesConfirmDialog.tsx';
 import { useValidation } from './useValidation.ts';
 import {
+  applyEdgeReconnect,
   type CreatableType,
   connectNodes,
   createConnectedNode,
+  resolveCreateFromHandle,
   validateConnection,
 } from './ydoc/create.ts';
 import { hydrate } from './ydoc/hydrate.ts';
@@ -825,13 +830,19 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
 //
 // Returns null only until the very first layout resolves, so the caller holds
 // the canvas off rather than painting against empty coordinates.
-function useElkLayout(flow: Flow, layout: NodePositionsMap): NodePositionsMap | null {
+function useElkLayout(
+  flow: Flow,
+  layout: NodePositionsMap,
+  edgeLayout: import('./ydoc/schema.ts').EdgeRoutes,
+): NodePositionsMap | null {
   // The effect reads the latest flow off a ref so it isn't a dependency — only
   // the set of unplaced nodes should trigger a (re)layout.
   const flowRef = useRef(flow);
+  const edgeLayoutRef = useRef(edgeLayout);
   useEffect(() => {
     flowRef.current = flow;
-  }, [flow]);
+    edgeLayoutRef.current = edgeLayout;
+  }, [flow, edgeLayout]);
 
   const [positions, setPositions] = useState<NodePositionsMap | null>(null);
 
@@ -851,7 +862,7 @@ function useElkLayout(flow: Flow, layout: NodePositionsMap): NodePositionsMap | 
   useEffect(() => {
     if (unplaced === '') return;
     let cancelled = false;
-    layoutFlow(flowRef.current).then((next) => {
+    layoutFlow(flowRef.current, edgeLayoutRef.current).then((next) => {
       if (!cancelled) setPositions(next);
     });
     return () => {
@@ -870,7 +881,7 @@ type CreateMenu = {
   // How to place the new node: a `+` aligns it to the source along the handle's
   // axis; a drag drops it where the user released.
   placement:
-    | { kind: 'aligned'; side: 'right' | 'bottom' }
+    | { kind: 'aligned'; side: 'top' | 'right' | 'bottom' }
     | { kind: 'drop'; at: { x: number; y: number } };
 };
 
@@ -887,10 +898,10 @@ const NEW_NODE_GAP = 80;
 // The new node isn't measured yet, so its intrinsic NODE_SIZE seeds the offset.
 function alignedNodePosition(
   source: RfNode | undefined,
-  side: 'right' | 'bottom',
+  side: 'top' | 'right' | 'bottom',
   type: CreatableType,
 ): { x: number; y: number } {
-  const { height } = NODE_SIZE[type];
+  const { width, height } = NODE_SIZE[type];
   if (!source) return { x: 0, y: 0 };
   const src = source.type
     ? NODE_SIZE[source.type as keyof typeof NODE_SIZE]
@@ -898,9 +909,13 @@ function alignedNodePosition(
   const sw = source.measured?.width ?? src.width;
   const sh = source.measured?.height ?? src.height;
   const { x, y } = source.position;
-  return side === 'right'
-    ? { x: x + sw + NEW_NODE_GAP, y: y + sh / 2 - height / 2 }
-    : { x: x + sw, y: y + sh + NEW_NODE_GAP };
+  if (side === 'right') {
+    return { x: x + sw + NEW_NODE_GAP, y: y + sh / 2 - height / 2 };
+  }
+  if (side === 'bottom') {
+    return { x: x + sw, y: y + sh + NEW_NODE_GAP };
+  }
+  return { x: x + sw / 2 - width / 2, y: y - NEW_NODE_GAP - height };
 }
 
 function FlowCanvas({ doc }: { doc: Y.Doc }) {
@@ -912,8 +927,9 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
     onEdgesChange: edgesToDoc,
   } = useYDocFlow(doc);
   const { theme: editorTheme } = useTheme();
-  const autoPositions = useElkLayout(flow, layout);
+  const autoPositions = useElkLayout(flow, layout, edgeLayout);
   const validation = useValidation(flow);
+  const reconnectingEdgeId = useRef<string | null>(null);
   // Scenario mode makes the canvas read-only — no create / drag / delete / inline
   // edit while walking a trace (US-060). US-061 adds the trace styling on top.
   const scenario = useScenarioMode();
@@ -1009,25 +1025,64 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   // Drag-from-handle released on empty canvas → open the picker there and create
   // a node connected to the drag's source handle. (A drop on a node connects via
   // `onConnect` and leaves `isValid` true, so we skip those here.)
-  const onConnectEnd = useCallback<OnConnectEnd>((event, state: FinalConnectionState) => {
-    if (state.isValid || !state.fromNode) return;
-    const onPane = (event.target as Element | null)?.classList?.contains('react-flow__pane');
-    if (!onPane) return;
-    const point =
-      'changedTouches' in event
-        ? { x: event.changedTouches[0]?.clientX ?? 0, y: event.changedTouches[0]?.clientY ?? 0 }
-        : { x: event.clientX, y: event.clientY };
-    setMenu({
-      sourceId: state.fromNode.id,
-      sourceHandle: state.fromHandle?.id ?? null,
-      placement: { kind: 'drop', at: point },
-    });
-  }, []);
+  const onConnectEnd = useCallback<OnConnectEnd>(
+    (event, state: FinalConnectionState) => {
+      if (state.isValid || !state.fromNode) return;
+      const fromType = flow.nodes.find((n) => n.id === state.fromNode?.id)?.type;
+      if (
+        !fromType ||
+        !resolveCreateFromHandle(
+          fromType,
+          state.fromNode.id,
+          state.fromHandle?.id ?? null,
+          flow.edges,
+        )
+      ) {
+        return;
+      }
+      const onPane = (event.target as Element | null)?.classList?.contains('react-flow__pane');
+      if (!onPane) return;
+      const point =
+        'changedTouches' in event
+          ? { x: event.changedTouches[0]?.clientX ?? 0, y: event.changedTouches[0]?.clientY ?? 0 }
+          : { x: event.clientX, y: event.clientY };
+      setMenu({
+        sourceId: state.fromNode.id,
+        sourceHandle: state.fromHandle?.id ?? null,
+        placement: { kind: 'drop', at: point },
+      });
+    },
+    [flow.nodes, flow.edges],
+  );
 
   const isValidConnection = useCallback<IsValidConnection>(
-    (c) => validateConnection(flow, c),
+    (c) =>
+      validateConnection(flow, c, {
+        reconnectingEdgeId: reconnectingEdgeId.current ?? undefined,
+      }),
     [flow],
   );
+
+  const onReconnectDoc = useCallback(
+    (oldEdge: RfEdge, connection: Connection): boolean => {
+      if (!connection.source || !connection.target) return false;
+      return applyEdgeReconnect(doc, flow, edgeLayout, oldEdge.id, {
+        source: connection.source,
+        target: connection.target,
+        sourceHandle: connection.sourceHandle,
+        targetHandle: connection.targetHandle,
+      });
+    },
+    [doc, flow, edgeLayout],
+  );
+
+  const onReconnectStart = useCallback((_event: React.MouseEvent, edge: RfEdge) => {
+    reconnectingEdgeId.current = edge.id;
+  }, []);
+
+  const onReconnectEnd = useCallback(() => {
+    reconnectingEdgeId.current = null;
+  }, []);
 
   // Double-click a node → node-anchored inspector (Entry has nothing to edit).
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1081,6 +1136,9 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
             edgesToDoc={edgesToDoc}
             onConnect={onConnect}
             onConnectEnd={onConnectEnd}
+            onReconnectDoc={onReconnectDoc}
+            onReconnectStart={onReconnectStart}
+            onReconnectEnd={onReconnectEnd}
             isValidConnection={isValidConnection}
             onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
             readOnly={readOnly}
@@ -1125,6 +1183,9 @@ function BoundCanvas({
   edgesToDoc,
   onConnect,
   onConnectEnd,
+  onReconnectDoc,
+  onReconnectStart,
+  onReconnectEnd,
   isValidConnection,
   onNodeDoubleClick,
   readOnly,
@@ -1134,6 +1195,9 @@ function BoundCanvas({
   edgesToDoc: OnEdgesChange;
   onConnect: OnConnect;
   onConnectEnd: OnConnectEnd;
+  onReconnectDoc: (oldEdge: RfEdge, connection: Connection) => boolean;
+  onReconnectStart: (event: React.MouseEvent, edge: RfEdge) => void;
+  onReconnectEnd: () => void;
   isValidConnection: IsValidConnection;
   onNodeDoubleClick?: NodeMouseHandler;
   /** Scenario mode (US-060): disable all editing; pan/zoom stay live. */
@@ -1167,6 +1231,15 @@ function BoundCanvas({
     [onEdgesChangeLocal, edgesToDoc],
   );
 
+  const onReconnect = useCallback<OnReconnect>(
+    (oldEdge, connection) => {
+      if (onReconnectDoc(oldEdge, connection)) {
+        setEdges((eds) => reconnectEdge(oldEdge, connection, eds));
+      }
+    },
+    [onReconnectDoc, setEdges],
+  );
+
   return (
     <ReactFlow
       className="h-full w-full"
@@ -1177,7 +1250,12 @@ function BoundCanvas({
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
+      onReconnect={onReconnect}
+      onReconnectStart={onReconnectStart}
+      onReconnectEnd={onReconnectEnd}
       isValidConnection={isValidConnection}
+      edgesReconnectable={!readOnly}
+      reconnectRadius={24}
       onNodeDoubleClick={onNodeDoubleClick}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}

@@ -19,7 +19,7 @@ export type OpenCreateMenu = (
   sourceHandle: string | null,
   anchor: DOMRect,
   /** Which side the handle is on — the new node aligns along this axis. */
-  side: 'right' | 'bottom',
+  side: 'top' | 'right' | 'bottom',
 ) => void;
 
 const NodeCreateContext = createContext<OpenCreateMenu | null>(null);
@@ -29,7 +29,8 @@ export const useNodeCreate = (): OpenCreateMenu | null => useContext(NodeCreateC
 // Sits just outside the handle on its side. `force` keeps it visible while the
 // node is selected; `anchored` while its picker is open (via node data — React
 // Flow won't re-render nodes on context alone).
-const SIDE: Record<'right' | 'bottom', string> = {
+const SIDE: Record<'top' | 'right' | 'bottom', string> = {
+  top: 'left-1/2 -top-3 -translate-x-1/2 -translate-y-full',
   right: 'top-1/2 -right-3 -translate-y-1/2 translate-x-full',
   bottom: 'left-1/2 -bottom-3 -translate-x-1/2 translate-y-full',
 };
@@ -43,7 +44,7 @@ export function HandlePlus({
   /** Source handle id this `+` creates from (null = the node's sole handle). */
   handleId: string | null;
   /** Which side the handle is on — drives placement. */
-  position: 'right' | 'bottom';
+  position: 'top' | 'right' | 'bottom';
   /** Force-visible (node selected). Otherwise hover-reveal. */
   force?: boolean;
   /** Picker is open from this handle — stay visible as a visual anchor. */
@@ -69,4 +70,27 @@ export function HandlePlus({
       +
     </button>
   );
+}
+
+/** Per-handle `+` — hidden when that handle id already carries an edge. */
+export function SourceHandlePlus({
+  handleId,
+  position,
+  connected,
+  force,
+  anchored,
+  visible = true,
+}: {
+  handleId: string | null;
+  position: 'top' | 'right' | 'bottom';
+  connected?: ReadonlySet<string>;
+  force?: boolean;
+  anchored?: boolean;
+  /** Extra gate (e.g. decision branch slot already taken on another handle). */
+  visible?: boolean;
+}) {
+  if (!visible) return null;
+  const key = handleId ?? '';
+  if (connected?.has(key)) return null;
+  return <HandlePlus handleId={handleId} position={position} force={force} anchored={anchored} />;
 }

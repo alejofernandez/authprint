@@ -6,7 +6,8 @@
 
 import type { ExternalNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
-import { HandlePlus } from './HandlePlus.tsx';
+import { GEO_TARGET_BOTTOM, GEO_TARGET_TOP } from '../connectionSides.ts';
+import { SourceHandlePlus } from './HandlePlus.tsx';
 import { NodeShellContent } from './NodeShell.tsx';
 import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
 import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
@@ -29,28 +30,28 @@ export function ExternalNodeView({ data, selected }: ExternalNodeProps) {
     >
       <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />
+      <Handle type="target" position={Position.Top} id={GEO_TARGET_TOP} />
+      <Handle type="target" position={Position.Bottom} id={GEO_TARGET_BOTTOM} />
       <div className="absolute top-1.5 right-2 text-teal-600 dark:text-teal-400" aria-hidden>
         ↗
       </div>
       <NodeShellContent typeLabel="External" name={node.name} id={node.id} kind={node.kind} />
       <Handle type="source" position={Position.Right} id="on-success" />
       <Handle type="source" position={Position.Bottom} id="on-error" />
-      {!connected?.has('on-success') && (
-        <HandlePlus
-          handleId="on-success"
-          position="right"
-          force={selected}
-          anchored={data.pickerAnchorHandle === 'on-success'}
-        />
-      )}
-      {!connected?.has('on-error') && (
-        <HandlePlus
-          handleId="on-error"
-          position="bottom"
-          force={selected}
-          anchored={data.pickerAnchorHandle === 'on-error'}
-        />
-      )}
+      <SourceHandlePlus
+        handleId="on-success"
+        position="right"
+        connected={connected}
+        force={selected}
+        anchored={data.pickerAnchorHandle === 'on-success'}
+      />
+      <SourceHandlePlus
+        handleId="on-error"
+        position="bottom"
+        connected={connected}
+        force={selected}
+        anchored={data.pickerAnchorHandle === 'on-error'}
+      />
     </CanvasNodeRoot>
   );
 }

@@ -7,11 +7,12 @@
 import type { Diagnostic, Node as DslNode, Flow, Trigger } from '@authprint/dsl';
 import { MarkerType, type Edge as RfEdge, type Node as RfNode } from '@xyflow/react';
 import type { Theme } from '@/components/theme';
+import { effectiveSourceHandle, effectiveTargetHandle } from './connectionSides.ts';
 import type { CanvasNodeData } from './nodes/index.ts';
 import { buildNodeAriaLabel } from './nodes/nodeAriaLabel.ts';
 import { resolveScreenTheme } from './nodes/screen/screenTheme.ts';
 import type { TraceAttachment } from './scenario/scenarioTrace.ts';
-import type { EdgeRoutes } from './ydoc/schema.ts';
+import { type EdgeRoutes, edgeLayoutPoints } from './ydoc/schema.ts';
 
 export type NodePositionsMap = Record<string, { x: number; y: number }>;
 
@@ -128,17 +129,32 @@ export function flowToReactFlow(
   editorTheme: Theme | 'light' | 'dark' = 'light',
   trace?: TraceAttachment,
 ): FlowToReactFlowResult {
-  // Which source handles already carry an edge, per node — drives the per-handle
-  // `+` (E26). The unconditional/entry handle has no id, keyed by ''.
+  // Physical handle ids with an outgoing edge (respects US-113 side overrides).
   const connectedHandles = new Map<string, Set<string>>();
   for (const edge of flow.edges) {
-    const handle = sourceHandleFor(edge.trigger) ?? '';
+    const sourceNode = flow.nodes.find((n) => n.id === edge.source);
+    const layout = edgeRoutes[edge.id];
+    const handle = sourceNode
+      ? (effectiveSourceHandle(sourceNode.type, edge.trigger, layout) ?? '')
+      : (sourceHandleFor(edge.trigger) ?? '');
     let set = connectedHandles.get(edge.source);
     if (!set) {
       set = new Set();
       connectedHandles.set(edge.source, set);
     }
     set.add(handle);
+  }
+
+  // Yes/no branch slots used (semantic — independent of exit side). Decision nodes only.
+  const usedDecisionBranches = new Map<string, Set<'yes' | 'no'>>();
+  for (const edge of flow.edges) {
+    if (edge.trigger.type !== 'branch') continue;
+    let set = usedDecisionBranches.get(edge.source);
+    if (!set) {
+      set = new Set();
+      usedDecisionBranches.set(edge.source, set);
+    }
+    set.add(edge.trigger.value ? 'yes' : 'no');
   }
 
   const nodes: RfNode<CanvasNodeData>[] = flow.nodes.map((node) => ({
@@ -151,6 +167,9 @@ export function flowToReactFlow(
       node,
       ariaLabel: buildNodeAriaLabel(flow, node.id),
       connectedHandles: connectedHandles.get(node.id),
+      ...(node.type === 'decision' && {
+        usedDecisionBranches: usedDecisionBranches.get(node.id),
+      }),
       diagnostics: validation?.byNode.get(node.id),
       ...(node.type === 'screen' && {
         screenTheme: resolveScreenTheme(flow.branding.theme, editorTheme),
@@ -167,15 +186,22 @@ export function flowToReactFlow(
     const traceStroke = edgeTraceStroke(trace?.byEdge.get(edge.id));
     const validationStroke = edgeStroke(validation?.byEdge.get(edge.id));
     const stroke = traceStroke ?? validationStroke;
-    const waypoints = edgeRoutes[edge.id] ?? [];
+    const layout = edgeRoutes[edge.id];
+    const waypoints = edgeLayoutPoints(layout);
+    const sourceNode = flow.nodes.find((n) => n.id === edge.source);
+    const targetNode = flow.nodes.find((n) => n.id === edge.target);
     return {
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      sourceHandle: sourceHandleFor(edge.trigger),
+      sourceHandle: sourceNode
+        ? effectiveSourceHandle(sourceNode.type, edge.trigger, layout)
+        : sourceHandleFor(edge.trigger),
+      targetHandle: targetNode ? effectiveTargetHandle(targetNode.type, layout) : undefined,
       label: labelFor(edge.trigger),
       type: 'routable',
       data: { waypoints },
+      reconnectable: true,
       ...(stroke && {
         style: { stroke, strokeWidth: traceStroke ? 3 : 2 },
         markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: stroke },

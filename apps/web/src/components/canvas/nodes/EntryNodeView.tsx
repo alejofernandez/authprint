@@ -3,7 +3,7 @@
 
 import type { EntryNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
-import { HandlePlus } from './HandlePlus.tsx';
+import { SourceHandlePlus } from './HandlePlus.tsx';
 import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
 import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
 import type { CanvasNodeData } from './shared.ts';
@@ -11,8 +11,6 @@ import type { CanvasNodeData } from './shared.ts';
 type EntryNodeProps = NodeProps & { data: CanvasNodeData<EntryNode> };
 
 export function EntryNodeView({ data, selected }: EntryNodeProps) {
-  // Entry's single unconditional out-edge has no handle id (keyed by '').
-  const free = !data.connectedHandles?.has('');
   return (
     <CanvasNodeRoot
       nodeId={data.node.id}
@@ -30,14 +28,13 @@ export function EntryNodeView({ data, selected }: EntryNodeProps) {
         {data.node.id}
       </div>
       <Handle type="source" position={Position.Right} />
-      {free && (
-        <HandlePlus
-          handleId={null}
-          position="right"
-          force={selected}
-          anchored={data.pickerAnchorHandle === null}
-        />
-      )}
+      <SourceHandlePlus
+        handleId={null}
+        position="right"
+        connected={data.connectedHandles}
+        force={selected}
+        anchored={data.pickerAnchorHandle === null}
+      />
     </CanvasNodeRoot>
   );
 }

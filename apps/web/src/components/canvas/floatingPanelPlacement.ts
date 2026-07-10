@@ -110,6 +110,32 @@ export function placeFloatingPanelBelow(
   return { left, top };
 }
 
+/** Above the anchor, horizontally centered; flips below when clipped. */
+export function placeFloatingPanelAbove(
+  anchor: ScreenRect,
+  panel: { width: number; height: number },
+  opts?: PlacementOpts,
+): { left: number; top: number } {
+  const margin = opts?.margin ?? DEFAULT_MARGIN;
+  const vw = opts?.viewport?.width ?? (typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const vh = opts?.viewport?.height ?? (typeof window !== 'undefined' ? window.innerHeight : 800);
+
+  const anchorH = anchor.bottom - anchor.top;
+  const offset = anchorH / 8 + (opts?.affordanceGap ?? 0);
+  const anchorMidX = (anchor.left + anchor.right) / 2;
+
+  let top = anchor.top - panel.height - offset;
+  if (top < margin) {
+    top = anchor.bottom + offset;
+  }
+  top = clamp(top, margin, vh - margin - panel.height);
+
+  let left = anchorMidX - panel.width / 2;
+  left = clamp(left, margin, vw - margin - panel.width);
+
+  return { left, top };
+}
+
 /** Cursor / drop placement — nudge inside the viewport. */
 export function placeFloatingPanelAtPoint(
   at: { x: number; y: number },

@@ -218,14 +218,13 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Routable edge labels render in EdgeLabelRenderer (above edges in DOM).
-   Keep them under nodes — spine drag handles interaction; labels need not
-   float over shapes. */
+/* Routable edge labels render in EdgeLabelRenderer (between edges and nodes in
+   xyflow DOM order). z-index keeps labels above edge strokes but under nodes. */
 .react-flow__edgelabel-renderer {
-  z-index: 0;
+  z-index: 1;
 }
 .react-flow .react-flow__nodes {
-  z-index: 1;
+  z-index: 2;
 }
 
 /* `colorMode` on <ReactFlow> (needed for Controls theming) makes xyflow paint

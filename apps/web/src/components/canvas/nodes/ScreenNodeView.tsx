@@ -6,7 +6,7 @@
 
 import type { ScreenNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
-import { HandlePlus } from './HandlePlus.tsx';
+import { SourceHandlePlus } from './HandlePlus.tsx';
 import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
 import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
 import { ScreenFidelityView } from './screen/ScreenFidelityView.tsx';
@@ -38,22 +38,20 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
       </div>
       <Handle type="source" position={Position.Right} id="default" />
       <Handle type="source" position={Position.Bottom} id="alt" />
-      {!connected?.has('default') && (
-        <HandlePlus
-          handleId="default"
-          position="right"
-          force={selected}
-          anchored={data.pickerAnchorHandle === 'default'}
-        />
-      )}
-      {!connected?.has('alt') && (
-        <HandlePlus
-          handleId="alt"
-          position="bottom"
-          force={selected}
-          anchored={data.pickerAnchorHandle === 'alt'}
-        />
-      )}
+      <SourceHandlePlus
+        handleId="default"
+        position="right"
+        connected={connected}
+        force={selected}
+        anchored={data.pickerAnchorHandle === 'default'}
+      />
+      <SourceHandlePlus
+        handleId="alt"
+        position="bottom"
+        connected={connected}
+        force={selected}
+        anchored={data.pickerAnchorHandle === 'alt'}
+      />
     </CanvasNodeRoot>
   );
 }

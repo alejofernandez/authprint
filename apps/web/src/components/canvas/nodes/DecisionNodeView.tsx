@@ -7,16 +7,34 @@
 
 import type { DecisionNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
-import { HandlePlus } from './HandlePlus.tsx';
+import {
+  decisionGeometricHandleVisible,
+  decisionHandlePlusVisible,
+  GEO_SOURCE_BOTTOM,
+  GEO_SOURCE_RIGHT,
+  GEO_SOURCE_TOP,
+} from '../connectionSides.ts';
+import { SourceHandlePlus } from './HandlePlus.tsx';
 import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
 import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
 import type { CanvasNodeData } from './shared.ts';
 
 type DecisionNodeProps = NodeProps & { data: CanvasNodeData<DecisionNode> };
 
+const SOURCE_HANDLES = [
+  { id: GEO_SOURCE_TOP, position: 'top' as const, geometric: true },
+  { id: 'true', position: 'right' as const, geometric: false },
+  { id: GEO_SOURCE_RIGHT, position: 'right' as const, geometric: true },
+  { id: 'false', position: 'bottom' as const, geometric: false },
+  { id: GEO_SOURCE_BOTTOM, position: 'bottom' as const, geometric: true },
+] as const;
+
 export function DecisionNodeView({ data, selected }: DecisionNodeProps) {
   const { node } = data;
   const connected = data.connectedHandles;
+  const used = data.usedDecisionBranches;
+  const showRightOut = decisionGeometricHandleVisible(GEO_SOURCE_RIGHT, connected, used);
+  const showBottomOut = decisionGeometricHandleVisible(GEO_SOURCE_BOTTOM, connected, used);
   return (
     <CanvasNodeRoot
       nodeId={node.id}
@@ -38,25 +56,49 @@ export function DecisionNodeView({ data, selected }: DecisionNodeProps) {
           {node.name ?? node.kind}
         </div>
       </div>
-      <Handle type="target" position={Position.Left} />
-      <Handle type="source" position={Position.Right} id="true" />
-      <Handle type="source" position={Position.Bottom} id="false" />
-      {!connected?.has('true') && (
-        <HandlePlus
-          handleId="true"
-          position="right"
-          force={selected}
-          anchored={data.pickerAnchorHandle === 'true'}
+      <Handle type="target" position={Position.Left} className="!z-20" />
+      <Handle
+        type="source"
+        position={Position.Top}
+        id={GEO_SOURCE_TOP}
+        className="!z-20"
+        title="Exit from the top"
+      />
+      <Handle type="source" position={Position.Right} id="true" className="!z-20" />
+      {showRightOut && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          id={GEO_SOURCE_RIGHT}
+          className="!z-20"
+          title="Exit from the right"
         />
       )}
-      {!connected?.has('false') && (
-        <HandlePlus
-          handleId="false"
-          position="bottom"
-          force={selected}
-          anchored={data.pickerAnchorHandle === 'false'}
+      <Handle type="source" position={Position.Bottom} id="false" className="!z-20" />
+      {showBottomOut && (
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id={GEO_SOURCE_BOTTOM}
+          className="!z-20"
+          title="Exit from the bottom"
         />
       )}
+      {SOURCE_HANDLES.map(({ id, position, geometric }) => (
+        <SourceHandlePlus
+          key={id}
+          handleId={id}
+          position={position}
+          connected={connected}
+          force={selected}
+          anchored={data.pickerAnchorHandle === id}
+          visible={
+            geometric
+              ? decisionGeometricHandleVisible(id, connected, used)
+              : decisionHandlePlusVisible(id, connected, used)
+          }
+        />
+      ))}
     </CanvasNodeRoot>
   );
 }

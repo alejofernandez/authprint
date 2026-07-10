@@ -1,15 +1,24 @@
 import { describe, expect, test } from 'bun:test';
 import { type Flow, validate } from '@authprint/dsl';
+import { GEO_SOURCE_BOTTOM, GEO_SOURCE_TOP } from '../connectionSides.ts';
 import {
   CREATABLE_TYPES,
   connectNodes,
   createConnectedNode,
   defaultNode,
+  resolveCreateFromHandle,
   triggerFor,
   validateConnection,
 } from './create.ts';
 import { hydrate } from './hydrate.ts';
-import { edgesMap, layoutMap, nodesMap, readEdgeMap, readNodeMap } from './schema.ts';
+import {
+  edgeLayoutMap,
+  edgesMap,
+  layoutMap,
+  nodesMap,
+  readEdgeMap,
+  readNodeMap,
+} from './schema.ts';
 
 function base(): Flow {
   return {
@@ -145,6 +154,28 @@ describe('createConnectedNode', () => {
     expect(edge?.trigger).toEqual({ type: 'branch', value: false });
   });
 
+  test('decision top handle creates yes branch with top side override', () => {
+    const doc = hydrate(base());
+    const id = createConnectedNode(doc, {
+      sourceId: 'd1',
+      sourceHandle: GEO_SOURCE_TOP,
+      type: 'outcome',
+      position: { x: 0, y: 0 },
+    });
+    expect(id).not.toBeNull();
+    const edge = [...edgesMap(doc).values()].map(readEdgeMap).find((e) => e.target === id);
+    expect(edge?.trigger).toEqual({ type: 'branch', value: true });
+    expect(edgeLayoutMap(doc).get(edge?.id ?? '')?.sourceSide).toBe('top');
+  });
+
+  test('resolveCreateFromHandle picks the open branch for geometric handles', () => {
+    expect(
+      resolveCreateFromHandle('decision', 'd1', GEO_SOURCE_BOTTOM, [
+        { id: 'e1', source: 'd1', target: 'o1', trigger: { type: 'branch', value: true } },
+      ]),
+    ).toEqual({ trigger: { type: 'branch', value: false }, sourceSide: 'bottom' });
+  });
+
   test('returns null for an invalid source (outcome) and writes nothing', () => {
     const doc = hydrate(base());
     const before = nodesMap(doc).size;
@@ -182,6 +213,15 @@ describe('connectNodes', () => {
       target: 'o1',
       trigger: { type: 'branch', value: true },
     });
+  });
+
+  test('connects from a decision top handle with a side override', () => {
+    const doc = hydrate(base());
+    const id = connectNodes(doc, { sourceId: 'd1', sourceHandle: GEO_SOURCE_TOP, targetId: 'a1' });
+    expect(id).not.toBeNull();
+    const edge = [...edgesMap(doc).values()].map(readEdgeMap).find((e) => e.id === id);
+    expect(edge?.trigger).toEqual({ type: 'branch', value: true });
+    expect(edgeLayoutMap(doc).get(id as string)?.sourceSide).toBe('top');
   });
   test('null for an invalid source (outcome) or missing target', () => {
     const doc = hydrate(base());
@@ -241,5 +281,49 @@ describe('validateConnection', () => {
     expect(
       validateConnection(withInteraction, { source: 's1', target: 'o2', sourceHandle: 'default' }),
     ).toBe(true);
+  });
+  test('allows drag-connect from decision side handles when a branch is open', () => {
+    expect(
+      validateConnection(base(), {
+        source: 'd1',
+        target: 'a1',
+        sourceHandle: GEO_SOURCE_TOP,
+      }),
+    ).toBe(true);
+    expect(
+      validateConnection(base(), {
+        source: 'd1',
+        target: 'a1',
+        sourceHandle: 'true',
+      }),
+    ).toBe(true);
+  });
+  test('rejects drag-connect from decision handles when both branches are taken', () => {
+    const both: Flow = {
+      ...base(),
+      edges: [
+        { id: 'e1', source: 'd1', target: 'o1', trigger: { type: 'branch', value: true } },
+        { id: 'e2', source: 'd1', target: 'o2', trigger: { type: 'branch', value: false } },
+      ],
+    };
+    expect(
+      validateConnection(both, {
+        source: 'd1',
+        target: 'a1',
+        sourceHandle: GEO_SOURCE_TOP,
+      }),
+    ).toBe(false);
+  });
+  test('yes branch relocated to bottom still leaves the false handle open', () => {
+    const withYesOnBottom: Flow = {
+      ...flow,
+      edges: [{ id: 'e1', source: 'd1', target: 'o1', trigger: { type: 'branch', value: true } }],
+    };
+    expect(
+      validateConnection(withYesOnBottom, { source: 'd1', target: 'o2', sourceHandle: 'false' }),
+    ).toBe(true);
+    expect(
+      validateConnection(withYesOnBottom, { source: 'd1', target: 'o2', sourceHandle: 'true' }),
+    ).toBe(false);
   });
 });

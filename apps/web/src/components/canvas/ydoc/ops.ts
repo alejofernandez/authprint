@@ -19,6 +19,7 @@ import type {
   Predicate,
 } from '@authprint/dsl';
 import * as Y from 'yjs';
+import type { ConnectionSide } from './schema.ts';
 import {
   buildContextSlotMap,
   buildEdgeMap,
@@ -26,6 +27,8 @@ import {
   buildNodeMap,
   buildPredicateMap,
   contextMap,
+  type EdgeLayoutRecord,
+  edgeLayoutHasData,
   edgeLayoutMap,
   edgesMap,
   LOCAL_ORIGIN,
@@ -95,7 +98,70 @@ export function removeEdge(doc: Y.Doc, edgeId: string): OpResult {
 /** Persist a manual edge route (waypoints). One transaction = one undo step. */
 export function setEdgeRoute(doc: Y.Doc, edgeId: string, points: Position[]): OpResult {
   if (!edgesMap(doc).has(edgeId)) return fail(`edge '${edgeId}' does not exist`);
-  doc.transact(() => edgeLayoutMap(doc).set(edgeId, points), LOCAL_ORIGIN);
+  doc.transact(() => {
+    const routes = edgeLayoutMap(doc);
+    const existing = routes.get(edgeId) ?? {};
+    const next: EdgeLayoutRecord = { ...existing, points: [...points] };
+    if (!edgeLayoutHasData(next)) routes.delete(edgeId);
+    else routes.set(edgeId, next);
+  }, LOCAL_ORIGIN);
+  return ok;
+}
+
+function writeEdgeLayoutRecord(doc: Y.Doc, edgeId: string, record: EdgeLayoutRecord): void {
+  const routes = edgeLayoutMap(doc);
+  if (!edgeLayoutHasData(record)) routes.delete(edgeId);
+  else routes.set(edgeId, record);
+}
+
+/** Record per-edge connection-side overrides (layout layer). */
+export function setEdgeSideOverrides(
+  doc: Y.Doc,
+  edgeId: string,
+  overrides: { sourceSide?: ConnectionSide; targetSide?: ConnectionSide },
+): OpResult {
+  if (!edgesMap(doc).has(edgeId)) return fail(`edge '${edgeId}' does not exist`);
+  doc.transact(() => {
+    const existing = edgeLayoutMap(doc).get(edgeId) ?? {};
+    const next: EdgeLayoutRecord = { ...existing };
+    if (overrides.sourceSide === undefined) delete next.sourceSide;
+    else next.sourceSide = overrides.sourceSide;
+    if (overrides.targetSide === undefined) delete next.targetSide;
+    else next.targetSide = overrides.targetSide;
+    writeEdgeLayoutRecord(doc, edgeId, next);
+  }, LOCAL_ORIGIN);
+  return ok;
+}
+
+export type ReconnectEdgeArgs = {
+  edgeId: string;
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+  sourceSide?: ConnectionSide;
+  targetSide?: ConnectionSide;
+};
+
+/** Apply a React Flow edge reconnect — retarget and/or side override in one undo step. */
+export function reconnectEdgeEnd(doc: Y.Doc, args: ReconnectEdgeArgs): OpResult {
+  const edgeMap = edgesMap(doc).get(args.edgeId);
+  if (!edgeMap) return fail(`edge '${args.edgeId}' does not exist`);
+  const nodes = nodesMap(doc);
+  if (!nodes.has(args.source)) return fail(`edge source '${args.source}' does not exist`);
+  if (!nodes.has(args.target)) return fail(`edge target '${args.target}' does not exist`);
+
+  doc.transact(() => {
+    edgeMap.set('source', args.source);
+    edgeMap.set('target', args.target);
+    const existing = edgeLayoutMap(doc).get(args.edgeId) ?? {};
+    const next: EdgeLayoutRecord = { ...existing };
+    if (args.sourceSide === undefined) delete next.sourceSide;
+    else next.sourceSide = args.sourceSide;
+    if (args.targetSide === undefined) delete next.targetSide;
+    else next.targetSide = args.targetSide;
+    writeEdgeLayoutRecord(doc, args.edgeId, next);
+  }, LOCAL_ORIGIN);
   return ok;
 }
 

@@ -4,6 +4,7 @@
 
 import type { OutcomeNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
+import { GEO_TARGET_BOTTOM, GEO_TARGET_TOP } from '../connectionSides.ts';
 import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
 import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
 import type { CanvasNodeData } from './shared.ts';
@@ -21,6 +22,8 @@ export function OutcomeNodeView({ data }: OutcomeNodeProps) {
     >
       <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />
+      <Handle type="target" position={Position.Top} id={GEO_TARGET_TOP} />
+      <Handle type="target" position={Position.Bottom} id={GEO_TARGET_BOTTOM} />
       <div className="px-4 py-2 min-w-44 text-center">
         <div className="text-[10px] uppercase tracking-wider font-medium text-node-outcome-fg">
           Outcome

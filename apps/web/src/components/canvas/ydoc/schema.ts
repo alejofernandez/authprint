@@ -42,8 +42,53 @@ const META = 'meta';
 export type Position = { x: number; y: number };
 /** Node id → canvas position. The `layout` map's plain-object view (E25 artifact). */
 export type LayoutPositions = Record<string, Position>;
-/** Edge id → optional bend waypoints (layout layer, not semantic). */
-export type EdgeRoutes = Record<string, Position[]>;
+
+export type ConnectionSide = 'top' | 'bottom' | 'left' | 'right';
+
+/** Per-edge layout view state: optional waypoints and/or connection-side overrides. */
+export type EdgeLayoutRecord = {
+  points?: Position[];
+  sourceSide?: ConnectionSide;
+  targetSide?: ConnectionSide;
+};
+
+/** Parsed layout value — legacy waypoint arrays or the object form (US-113). */
+export type EdgeLayoutEntry = Position[] | EdgeLayoutRecord;
+
+/** Edge id → layout view state (normalized to EdgeLayoutRecord in the Y.Doc). */
+export type EdgeRoutes = Record<string, EdgeLayoutRecord>;
+
+const CONNECTION_SIDES = new Set<ConnectionSide>(['top', 'bottom', 'left', 'right']);
+
+export function isConnectionSide(value: unknown): value is ConnectionSide {
+  return typeof value === 'string' && CONNECTION_SIDES.has(value as ConnectionSide);
+}
+
+export function normalizeEdgeLayoutEntry(entry: EdgeLayoutEntry | undefined): EdgeLayoutRecord {
+  if (!entry) return {};
+  if (Array.isArray(entry)) return entry.length > 0 ? { points: [...entry] } : {};
+  const record: EdgeLayoutRecord = {};
+  if (entry.points && entry.points.length > 0) record.points = [...entry.points];
+  if (entry.sourceSide !== undefined) record.sourceSide = entry.sourceSide;
+  if (entry.targetSide !== undefined) record.targetSide = entry.targetSide;
+  return record;
+}
+
+export function edgeLayoutPoints(
+  entry: EdgeLayoutRecord | EdgeLayoutEntry | undefined,
+): Position[] {
+  if (!entry) return [];
+  if (Array.isArray(entry)) return entry;
+  return entry.points ?? [];
+}
+
+export function edgeLayoutHasData(record: EdgeLayoutRecord): boolean {
+  return (
+    (record.points?.length ?? 0) > 0 ||
+    record.sourceSide !== undefined ||
+    record.targetSide !== undefined
+  );
+}
 
 // ─── Top-level accessors ─────────────────────────────────────────────────────
 
@@ -63,7 +108,7 @@ export const nodesMap = (doc: Y.Doc): Y.Map<Y.Map<unknown>> => doc.getMap(NODES)
 export const edgesMap = (doc: Y.Doc): Y.Map<Y.Map<unknown>> => doc.getMap(EDGES);
 export const contextMap = (doc: Y.Doc): Y.Map<Y.Map<unknown>> => doc.getMap(CONTEXT);
 export const layoutMap = (doc: Y.Doc): Y.Map<Position> => doc.getMap(LAYOUT);
-export const edgeLayoutMap = (doc: Y.Doc): Y.Map<Position[]> => doc.getMap(EDGE_LAYOUT);
+export const edgeLayoutMap = (doc: Y.Doc): Y.Map<EdgeLayoutRecord> => doc.getMap(EDGE_LAYOUT);
 export const metaMap = (doc: Y.Doc): Y.Map<unknown> => doc.getMap(META);
 
 // ─── Node ⇄ Y.Map ────────────────────────────────────────────────────────────

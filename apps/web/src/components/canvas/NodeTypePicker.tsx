@@ -12,6 +12,7 @@ import {
   nodeScreenRect,
   PLUS_AFFORDANCE_GAP,
   placeFloatingPanel,
+  placeFloatingPanelAbove,
   placeFloatingPanelAtPoint,
   placeFloatingPanelBelow,
 } from './floatingPanelPlacement.ts';
@@ -28,7 +29,7 @@ const TYPE_META: Record<CreatableType, { label: string; dot: string }> = {
 const PANEL_WIDTH = 160;
 
 export type NodeTypePickerPlacement =
-  | { kind: 'node'; sourceId: string; side: 'right' | 'bottom' }
+  | { kind: 'node'; sourceId: string; side: 'top' | 'right' | 'bottom' }
   | { kind: 'point'; at: { x: number; y: number } };
 
 export function NodeTypePicker({
@@ -70,9 +71,13 @@ export function NodeTypePicker({
     const anchor = nodeScreenRect(getNode(placement.sourceId), flowToScreenPosition);
     if (!anchor) return { left: 24, top: 24 };
     const pickerGap = { affordanceGap: PLUS_AFFORDANCE_GAP };
-    return placement.side === 'right'
-      ? placeFloatingPanel(anchor, panel, pickerGap)
-      : placeFloatingPanelBelow(anchor, panel, pickerGap);
+    if (placement.side === 'right') {
+      return placeFloatingPanel(anchor, panel, pickerGap);
+    }
+    if (placement.side === 'top') {
+      return placeFloatingPanelAbove(anchor, panel, pickerGap);
+    }
+    return placeFloatingPanelBelow(anchor, panel, pickerGap);
   }, [placement, getNode, flowToScreenPosition, transform, panelHeight]);
 
   useEffect(() => {

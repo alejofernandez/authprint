@@ -12,9 +12,18 @@ import { type Flow, serialize } from '@authprint/dsl';
 import { stringify, parse as yamlParse } from 'yaml';
 import type * as Y from 'yjs';
 import { readFlow } from './hydrate.ts';
-import { type EdgeRoutes, edgeLayoutMap, type LayoutPositions, layoutMap } from './schema.ts';
+import {
+  type EdgeLayoutEntry,
+  type EdgeLayoutRecord,
+  type EdgeRoutes,
+  edgeLayoutHasData,
+  edgeLayoutMap,
+  isConnectionSide,
+  type LayoutPositions,
+  layoutMap,
+} from './schema.ts';
 
-export type { EdgeRoutes, LayoutPositions };
+export type { EdgeLayoutEntry, EdgeLayoutRecord, EdgeRoutes, LayoutPositions };
 
 export type LayoutBlock = { nodes: LayoutPositions; edges: EdgeRoutes };
 
@@ -24,7 +33,10 @@ export type FlowArtifact = { flow: Flow; layout: LayoutPositions; edgeLayout?: E
  *  manually-positioned nodes; `edgeLayout` holds routes with waypoints. */
 export function docToArtifact(doc: Y.Doc): FlowArtifact {
   const layout = Object.fromEntries(layoutMap(doc).entries());
-  const edgeRoutes = Object.fromEntries(edgeLayoutMap(doc).entries());
+  const edgeRoutes: EdgeRoutes = {};
+  for (const [id, record] of edgeLayoutMap(doc).entries()) {
+    if (edgeLayoutHasData(record)) edgeRoutes[id] = { ...record };
+  }
   return {
     flow: readFlow(doc),
     layout,
@@ -47,12 +59,72 @@ function normalizeLayout(layout: LayoutPositions): Record<string, { x: number; y
   return out;
 }
 
-function normalizeEdgeRoutes(routes: EdgeRoutes): Record<string, { x: number; y: number }[]> {
-  const out: Record<string, { x: number; y: number }[]> = {};
-  for (const [id, points] of Object.entries(routes).sort(([a], [b]) =>
+function parseWaypointList(value: unknown): { x: number; y: number }[] {
+  if (!Array.isArray(value)) return [];
+  const route: { x: number; y: number }[] = [];
+  for (const point of value) {
+    if (point === null || typeof point !== 'object') continue;
+    const { x, y } = point as Record<string, unknown>;
+    if (
+      typeof x === 'number' &&
+      Number.isFinite(x) &&
+      typeof y === 'number' &&
+      Number.isFinite(y)
+    ) {
+      route.push({ x: Math.round(x), y: Math.round(y) });
+    }
+  }
+  return route;
+}
+
+function parseEdgeLayoutEntry(value: unknown): EdgeLayoutRecord | undefined {
+  if (Array.isArray(value)) {
+    const points = parseWaypointList(value);
+    return points.length > 0 ? { points } : undefined;
+  }
+  if (value === null || typeof value !== 'object') return undefined;
+  const obj = value as Record<string, unknown>;
+  const record: EdgeLayoutRecord = {};
+  const points = parseWaypointList(obj.points);
+  if (points.length > 0) record.points = points;
+  if (isConnectionSide(obj.sourceSide)) record.sourceSide = obj.sourceSide;
+  if (isConnectionSide(obj.targetSide)) record.targetSide = obj.targetSide;
+  return edgeLayoutHasData(record) ? record : undefined;
+}
+
+function parseEdgeRoutes(value: unknown): EdgeRoutes {
+  const out: EdgeRoutes = {};
+  if (value === null || typeof value !== 'object') return out;
+  for (const [edgeId, entry] of Object.entries(value as Record<string, unknown>)) {
+    const record = parseEdgeLayoutEntry(entry);
+    if (record) out[edgeId] = record;
+  }
+  return out;
+}
+
+function serializeEdgeLayoutEntry(record: EdgeLayoutRecord): unknown {
+  const hasPoints = (record.points?.length ?? 0) > 0;
+  const hasSides = record.sourceSide !== undefined || record.targetSide !== undefined;
+  if (!hasPoints && !hasSides) return undefined;
+  if (hasPoints && !hasSides) {
+    return record.points?.map(({ x, y }) => ({ x: Math.round(x), y: Math.round(y) }));
+  }
+  const out: Record<string, unknown> = {};
+  if (hasPoints) {
+    out.points = record.points?.map(({ x, y }) => ({ x: Math.round(x), y: Math.round(y) }));
+  }
+  if (record.sourceSide !== undefined) out.sourceSide = record.sourceSide;
+  if (record.targetSide !== undefined) out.targetSide = record.targetSide;
+  return out;
+}
+
+function normalizeEdgeRoutes(routes: EdgeRoutes): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [id, record] of Object.entries(routes).sort(([a], [b]) =>
     a < b ? -1 : a > b ? 1 : 0,
   )) {
-    out[id] = points.map(({ x, y }) => ({ x: Math.round(x), y: Math.round(y) }));
+    const serialized = serializeEdgeLayoutEntry(record);
+    if (serialized !== undefined) out[id] = serialized;
   }
   return out;
 }
@@ -74,31 +146,6 @@ function parseNodePositions(value: unknown): LayoutPositions {
   }
   return out;
 }
-
-function parseEdgeRoutes(value: unknown): EdgeRoutes {
-  const out: EdgeRoutes = {};
-  if (value === null || typeof value !== 'object') return out;
-  for (const [edgeId, points] of Object.entries(value as Record<string, unknown>)) {
-    if (!Array.isArray(points)) continue;
-    const route: Position[] = [];
-    for (const point of points) {
-      if (point === null || typeof point !== 'object') continue;
-      const { x, y } = point as Record<string, unknown>;
-      if (
-        typeof x === 'number' &&
-        Number.isFinite(x) &&
-        typeof y === 'number' &&
-        Number.isFinite(y)
-      ) {
-        route.push({ x: Math.round(x), y: Math.round(y) });
-      }
-    }
-    if (route.length > 0) out[edgeId] = route;
-  }
-  return out;
-}
-
-type Position = { x: number; y: number };
 
 /** Parse a `layout:` block (nested or legacy flat node map) into nodes + edges. */
 export function parseLayoutBlock(value: unknown): LayoutBlock {

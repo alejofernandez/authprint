@@ -156,7 +156,7 @@ describe('setEdgeRoute', () => {
       { x: 150, y: 250 },
     ];
     expect(setEdgeRoute(doc, 'e2', points)).toEqual({ ok: true });
-    expect(edgeLayoutMap(doc).get('e2')).toEqual(points);
+    expect(edgeLayoutMap(doc).get('e2')).toEqual({ points });
   });
 
   test('rejects an unknown edge', () => {

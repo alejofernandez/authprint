@@ -9,7 +9,9 @@
 
 import type { Flow } from '@authprint/dsl';
 import type ELK from 'elkjs/lib/elk.bundled.js';
+import { defaultSourceSide, defaultTargetSide, effectiveSourceHandle } from './connectionSides.ts';
 import { type NodePositionsMap, nodeSize, sourceHandleFor } from './flowToReactFlow.ts';
+import type { ConnectionSide, EdgeRoutes } from './ydoc/schema.ts';
 
 let elkInstance: InstanceType<typeof ELK> | null = null;
 
@@ -26,17 +28,27 @@ async function getElk() {
 
 // Which side of the node an outgoing handle sits on — must match the handle
 // positions on the node components: forward / yes / success exit the right
-// (EAST), while no / error / cancel exit the bottom (SOUTH). Feeding these to
-// ELK as fixed-side ports makes the layout port-aware: branches separate
-// top/bottom and an edge leaving the bottom is never forced to route back up.
-function portSide(handle: string): 'EAST' | 'SOUTH' {
-  switch (handle) {
-    case 'false':
-    case 'alt':
-    case 'on-error':
+// (EAST), while no / error / cancel exit the bottom (SOUTH). US-113 adds top
+// exits (NORTH) and top/bottom targets on Outcome/External.
+function sourcePortSide(side: ConnectionSide): 'EAST' | 'SOUTH' | 'NORTH' {
+  switch (side) {
+    case 'top':
+      return 'NORTH';
+    case 'bottom':
       return 'SOUTH';
     default:
       return 'EAST';
+  }
+}
+
+function targetPortSide(side: ConnectionSide): 'WEST' | 'NORTH' | 'SOUTH' {
+  switch (side) {
+    case 'top':
+      return 'NORTH';
+    case 'bottom':
+      return 'SOUTH';
+    default:
+      return 'WEST';
   }
 }
 
@@ -71,16 +83,40 @@ const ENTRY_LAYOUT_OPTIONS = { 'elk.layered.layering.layerConstraint': 'FIRST' }
  *
  * Returns an empty map for empty flows (avoids unnecessary elkjs calls).
  */
-export async function layoutFlow(flow: Flow): Promise<NodePositionsMap> {
+export async function layoutFlow(
+  flow: Flow,
+  edgeLayout: EdgeRoutes = {},
+): Promise<NodePositionsMap> {
   if (flow.nodes.length === 0) return {};
 
+  const nodeById = new Map(flow.nodes.map((n) => [n.id, n]));
+
   // Each distinct outgoing handle on a node becomes one fixed-side port.
-  const sourcePorts = new Map<string, Map<string, 'EAST' | 'SOUTH'>>();
+  const sourcePorts = new Map<string, Map<string, 'EAST' | 'SOUTH' | 'NORTH'>>();
+  const targetPorts = new Map<string, Map<string, 'WEST' | 'NORTH' | 'SOUTH'>>();
+
   for (const edge of flow.edges) {
-    const handle = sourceHandleFor(edge.trigger) ?? FALLBACK_HANDLE;
-    const sides = sourcePorts.get(edge.source) ?? new Map<string, 'EAST' | 'SOUTH'>();
-    sides.set(handle, portSide(handle));
-    sourcePorts.set(edge.source, sides);
+    const sourceNode = nodeById.get(edge.source);
+    const layout = edgeLayout[edge.id];
+
+    const sourceHandle = sourceNode
+      ? (effectiveSourceHandle(sourceNode.type, edge.trigger, layout) ??
+        sourceHandleFor(edge.trigger) ??
+        FALLBACK_HANDLE)
+      : (sourceHandleFor(edge.trigger) ?? FALLBACK_HANDLE);
+    const sourceSide = layout?.sourceSide ?? defaultSourceSide(edge.trigger);
+    const sourceSideElk = sourcePortSide(sourceSide);
+
+    const sourcePortMap = sourcePorts.get(edge.source) ?? new Map();
+    sourcePortMap.set(sourceHandle, sourceSideElk);
+    sourcePorts.set(edge.source, sourcePortMap);
+
+    const targetSide = layout?.targetSide ?? defaultTargetSide();
+    const targetPortId =
+      targetSide === 'left' ? 'in' : targetSide === 'top' ? 'in-top' : 'in-bottom';
+    const targetPortMap = targetPorts.get(edge.target) ?? new Map();
+    targetPortMap.set(targetPortId, targetPortSide(targetSide));
+    targetPorts.set(edge.target, targetPortMap);
   }
 
   const elkGraph = {
@@ -88,12 +124,18 @@ export async function layoutFlow(flow: Flow): Promise<NodePositionsMap> {
     layoutOptions: LAYOUT_OPTIONS,
     children: flow.nodes.map((node) => {
       const outgoing = sourcePorts.get(node.id);
+      const incoming = targetPorts.get(node.id);
       return {
         id: node.id,
         width: nodeSize(node).width,
         height: nodeSize(node).height,
         ports: [
-          { id: `${node.id}::in`, layoutOptions: { 'elk.port.side': 'WEST' } },
+          ...(incoming
+            ? [...incoming].map(([portId, side]) => ({
+                id: `${node.id}::${portId}`,
+                layoutOptions: { 'elk.port.side': side },
+              }))
+            : [{ id: `${node.id}::in`, layoutOptions: { 'elk.port.side': 'WEST' } }]),
           ...(outgoing
             ? [...outgoing].map(([handle, side]) => ({
                 id: `${node.id}::${handle}`,
@@ -108,15 +150,22 @@ export async function layoutFlow(flow: Flow): Promise<NodePositionsMap> {
       };
     }),
     edges: flow.edges.map((edge) => {
-      const handle = sourceHandleFor(edge.trigger) ?? FALLBACK_HANDLE;
+      const sourceNode = nodeById.get(edge.source);
+      const layout = edgeLayout[edge.id];
+      const handle = sourceNode
+        ? (effectiveSourceHandle(sourceNode.type, edge.trigger, layout) ??
+          sourceHandleFor(edge.trigger) ??
+          FALLBACK_HANDLE)
+        : (sourceHandleFor(edge.trigger) ?? FALLBACK_HANDLE);
+      const sourceSide = layout?.sourceSide ?? defaultSourceSide(edge.trigger);
+      const targetSide = layout?.targetSide ?? defaultTargetSide();
+      const targetPortId =
+        targetSide === 'left' ? 'in' : targetSide === 'top' ? 'in-top' : 'in-bottom';
       return {
         id: edge.id,
         sources: [`${edge.source}::${handle}`],
-        targets: [`${edge.target}::in`],
-        // Auth flows are a spine (entry → … → success) with branches dropping
-        // off it. Prioritising the straightness of the forward (EAST) edges
-        // keeps that spine horizontal; the SOUTH branches are free to bend down.
-        ...(portSide(handle) === 'EAST'
+        targets: [`${edge.target}::${targetPortId}`],
+        ...(sourcePortSide(sourceSide) === 'EAST'
           ? { layoutOptions: { 'elk.layered.priority.straightness': '10' } }
           : {}),
       };

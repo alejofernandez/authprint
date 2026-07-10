@@ -14,6 +14,7 @@ import {
   contextMap,
   createDoc,
   type EdgeRoutes,
+  edgeLayoutHasData,
   edgeLayoutMap,
   edgesMap,
   type LayoutPositions,
@@ -21,6 +22,7 @@ import {
   layoutMap,
   metaMap,
   nodesMap,
+  normalizeEdgeLayoutEntry,
   readContext,
   readEdgeMap,
   readNodeMap,
@@ -64,8 +66,10 @@ export function hydrate(flow: Flow, layout?: LayoutPositions, edgeLayout?: EdgeR
     if (edgeLayout) {
       const edgeIds = new Set(flow.edges.map((e) => e.id));
       const routes = edgeLayoutMap(doc);
-      for (const [id, points] of Object.entries(edgeLayout)) {
-        if (edgeIds.has(id)) routes.set(id, points);
+      for (const [id, entry] of Object.entries(edgeLayout)) {
+        if (!edgeIds.has(id)) continue;
+        const record = normalizeEdgeLayoutEntry(entry);
+        if (edgeLayoutHasData(record)) routes.set(id, record);
       }
     }
   }, LOCAL_ORIGIN);

@@ -6,7 +6,7 @@
 
 import type { ActionNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
-import { HandlePlus } from './HandlePlus.tsx';
+import { SourceHandlePlus } from './HandlePlus.tsx';
 import { NodeShellContent } from './NodeShell.tsx';
 import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
 import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
@@ -29,22 +29,20 @@ export function ActionNodeView({ data, selected }: ActionNodeProps) {
       <NodeShellContent typeLabel="Action" name={node.name} id={node.id} kind={node.kind} />
       <Handle type="source" position={Position.Right} id="on-success" />
       <Handle type="source" position={Position.Bottom} id="on-error" />
-      {!connected?.has('on-success') && (
-        <HandlePlus
-          handleId="on-success"
-          position="right"
-          force={selected}
-          anchored={data.pickerAnchorHandle === 'on-success'}
-        />
-      )}
-      {!connected?.has('on-error') && (
-        <HandlePlus
-          handleId="on-error"
-          position="bottom"
-          force={selected}
-          anchored={data.pickerAnchorHandle === 'on-error'}
-        />
-      )}
+      <SourceHandlePlus
+        handleId="on-success"
+        position="right"
+        connected={connected}
+        force={selected}
+        anchored={data.pickerAnchorHandle === 'on-success'}
+      />
+      <SourceHandlePlus
+        handleId="on-error"
+        position="bottom"
+        connected={connected}
+        force={selected}
+        anchored={data.pickerAnchorHandle === 'on-error'}
+      />
     </CanvasNodeRoot>
   );
 }

@@ -48,7 +48,7 @@ describe('flowToReactFlow — validation attachment (E33)', () => {
 
   test('edge routes attach waypoints on routable edges', () => {
     const route = [{ x: 40, y: 90 }];
-    const { edges } = flowToReactFlow(flow, {}, { e1: route });
+    const { edges } = flowToReactFlow(flow, {}, { e1: { points: route } });
     expect(edges[0]?.type).toBe('routable');
     expect(edges[0]?.data).toEqual({ waypoints: route });
   });

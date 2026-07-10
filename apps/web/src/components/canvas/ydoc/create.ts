@@ -10,15 +10,32 @@
 
 import type { Node as DslNode, Edge, Flow, Trigger } from '@authprint/dsl';
 import type * as Y from 'yjs';
-import { sourceHandleFor } from '../flowToReactFlow.ts';
+import {
+  defaultSourceSide,
+  defaultTargetSide,
+  GEO_SOURCE_BOTTOM,
+  GEO_SOURCE_RIGHT,
+  GEO_SOURCE_TOP,
+  isGeometricTargetHandle,
+  isSideRelocationSourceHandle,
+  isSideRelocationTargetHandle,
+  normalizeSideOverride,
+  sourceSideFromReconnect,
+  targetSideFromReconnect,
+} from '../connectionSides.ts';
+import { reconnectEdgeEnd } from './ops.ts';
+import type { ConnectionSide } from './schema.ts';
 import {
   buildEdgeMap,
   buildNodeMap,
+  type EdgeRoutes,
+  edgeLayoutMap,
   edgesMap,
   LOCAL_ORIGIN,
   layoutMap,
   nodesMap,
   type Position,
+  readEdgeMap,
 } from './schema.ts';
 
 // Structural types a user can create. `entry` is excluded — exactly one per flow.
@@ -56,6 +73,52 @@ export function triggerFor(sourceType: DslNode['type'], handleId: string | null)
       if (handleId === 'on-cancelled') return { type: 'on-cancelled' };
       return null;
     case 'outcome':
+      return null;
+  }
+}
+
+type CreateFromHandle = { trigger: Trigger; sourceSide?: ConnectionSide };
+
+function branchUsed(edges: Edge[], sourceId: string, value: boolean): boolean {
+  return edges.some(
+    (e) => e.source === sourceId && e.trigger.type === 'branch' && e.trigger.value === value,
+  );
+}
+
+function triggersEqual(a: Trigger, b: Trigger): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/** Resolve a create/`+`/drag-connect action from a source handle.
+ *  Single entry point — do not call triggerFor alone for side handles. */
+export function resolveCreateFromHandle(
+  sourceType: DslNode['type'],
+  sourceId: string,
+  sourceHandle: string | null,
+  edges: Edge[],
+): CreateFromHandle | null {
+  const direct = triggerFor(sourceType, sourceHandle);
+  if (direct) return { trigger: direct };
+
+  if (sourceType !== 'decision') return null;
+
+  const yesOpen = !branchUsed(edges, sourceId, true);
+  const noOpen = !branchUsed(edges, sourceId, false);
+
+  switch (sourceHandle) {
+    case GEO_SOURCE_TOP:
+      if (yesOpen) return { trigger: { type: 'branch', value: true }, sourceSide: 'top' };
+      if (noOpen) return { trigger: { type: 'branch', value: false }, sourceSide: 'top' };
+      return null;
+    case GEO_SOURCE_BOTTOM:
+      if (noOpen) return { trigger: { type: 'branch', value: false }, sourceSide: 'bottom' };
+      if (yesOpen) return { trigger: { type: 'branch', value: true }, sourceSide: 'bottom' };
+      return null;
+    case GEO_SOURCE_RIGHT:
+      if (yesOpen) return { trigger: { type: 'branch', value: true }, sourceSide: 'right' };
+      if (noOpen) return { trigger: { type: 'branch', value: false }, sourceSide: 'right' };
+      return null;
+    default:
       return null;
   }
 }
@@ -113,6 +176,18 @@ export type CreateConnectedNodeArgs = {
   position: Position;
 };
 
+function layoutSideFromResolved(resolved: CreateFromHandle): ConnectionSide | undefined {
+  if (!resolved.sourceSide) return undefined;
+  return normalizeSideOverride(resolved.sourceSide, defaultSourceSide(resolved.trigger));
+}
+
+function writeEdgeWithLayout(doc: Y.Doc, edge: Edge, sourceSide?: ConnectionSide): void {
+  edgesMap(doc).set(edge.id, buildEdgeMap(edge));
+  if (sourceSide !== undefined) {
+    edgeLayoutMap(doc).set(edge.id, { sourceSide });
+  }
+}
+
 /** Create a node of `type` connected to `sourceId` via the handle's trigger.
  *  Returns the new node id, or null if the source/handle can't originate an
  *  edge. One transaction = one undo step (E27). */
@@ -120,16 +195,24 @@ export function createConnectedNode(doc: Y.Doc, args: CreateConnectedNodeArgs): 
   const { sourceId, sourceHandle, type, position } = args;
   const source = nodesMap(doc).get(sourceId);
   if (!source) return null;
-  const trigger = triggerFor(source.get('type') as DslNode['type'], sourceHandle);
-  if (!trigger) return null;
+  const sourceType = source.get('type') as DslNode['type'];
+  const edges = [...edgesMap(doc).values()].map(readEdgeMap);
+  const resolved = resolveCreateFromHandle(sourceType, sourceId, sourceHandle, edges);
+  if (!resolved) return null;
 
   const nodeId = `${type}-${rid()}`;
   const node = defaultNode(type, nodeId);
-  const edge: Edge = { id: `e-${rid()}`, source: sourceId, target: nodeId, trigger };
+  const edge: Edge = {
+    id: `e-${rid()}`,
+    source: sourceId,
+    target: nodeId,
+    trigger: resolved.trigger,
+  };
+  const sourceSide = layoutSideFromResolved(resolved);
 
   doc.transact(() => {
     nodesMap(doc).set(nodeId, buildNodeMap(node));
-    edgesMap(doc).set(edge.id, buildEdgeMap(edge));
+    writeEdgeWithLayout(doc, edge, sourceSide);
     layoutMap(doc).set(nodeId, position);
   }, LOCAL_ORIGIN);
 
@@ -147,11 +230,20 @@ export function connectNodes(
   const { sourceId, sourceHandle, targetId } = args;
   const source = nodesMap(doc).get(sourceId);
   if (!source || !nodesMap(doc).has(targetId)) return null;
-  const trigger = triggerFor(source.get('type') as DslNode['type'], sourceHandle);
-  if (!trigger) return null;
+  const sourceType = source.get('type') as DslNode['type'];
+  const edges = [...edgesMap(doc).values()].map(readEdgeMap);
+  const resolved = resolveCreateFromHandle(sourceType, sourceId, sourceHandle, edges);
+  if (!resolved) return null;
 
-  const edge: Edge = { id: `e-${rid()}`, source: sourceId, target: targetId, trigger };
-  doc.transact(() => edgesMap(doc).set(edge.id, buildEdgeMap(edge)), LOCAL_ORIGIN);
+  const edge: Edge = {
+    id: `e-${rid()}`,
+    source: sourceId,
+    target: targetId,
+    trigger: resolved.trigger,
+  };
+  const sourceSide = layoutSideFromResolved(resolved);
+
+  doc.transact(() => writeEdgeWithLayout(doc, edge, sourceSide), LOCAL_ORIGIN);
   return edge.id;
 }
 
@@ -166,23 +258,109 @@ function isSingleUseHandle(sourceType: DslNode['type']): boolean {
  *  `isValidConnection` to reject invalid drags before they land. */
 export function validateConnection(
   flow: Flow,
-  c: { source?: string | null; target?: string | null; sourceHandle?: string | null },
+  c: {
+    source?: string | null;
+    target?: string | null;
+    sourceHandle?: string | null;
+    targetHandle?: string | null;
+  },
+  options?: { reconnectingEdgeId?: string },
 ): boolean {
-  const { source, target, sourceHandle } = c;
-  if (!source || !target || source === target) return false; // need both ends; no self-loop
+  const { source, target, sourceHandle, targetHandle } = c;
+  if (!source || !target || source === target) return false;
 
   const src = flow.nodes.find((n) => n.id === source);
   const tgt = flow.nodes.find((n) => n.id === target);
   if (!src || !tgt) return false;
-  if (tgt.type === 'entry') return false; // entry has no incoming edges
-  if (!triggerFor(src.type, sourceHandle ?? null)) return false; // source can't originate here
+  if (tgt.type === 'entry') return false;
+
+  const reconnecting = options?.reconnectingEdgeId
+    ? flow.edges.find((e) => e.id === options.reconnectingEdgeId)
+    : undefined;
+
+  if (reconnecting) {
+    if (
+      source === reconnecting.source &&
+      isSideRelocationSourceHandle(src.type, sourceHandle ?? null)
+    ) {
+      return true;
+    }
+    if (
+      target === reconnecting.target &&
+      isSideRelocationTargetHandle(tgt.type, targetHandle ?? null)
+    ) {
+      return true;
+    }
+  }
+
+  if (isGeometricTargetHandle(tgt.type, targetHandle ?? null)) return false;
+
+  const activeEdges = flow.edges.filter((e) => e.id !== options?.reconnectingEdgeId);
+  const resolved = resolveCreateFromHandle(src.type, source, sourceHandle ?? null, activeEdges);
+  if (!resolved) return false;
 
   if (isSingleUseHandle(src.type)) {
-    const handle = sourceHandle ?? '';
-    const filled = flow.edges.some(
-      (e) => e.source === source && (sourceHandleFor(e.trigger) ?? '') === handle,
+    const filled = activeEdges.some(
+      (e) => e.source === source && triggersEqual(e.trigger, resolved.trigger),
     );
-    if (filled) return false; // this typed handle already has its edge
+    if (filled) return false;
   }
   return true;
+}
+
+/** Apply a React Flow edge reconnect — retarget and/or record side overrides. */
+export function applyEdgeReconnect(
+  doc: Y.Doc,
+  flow: Flow,
+  edgeLayout: EdgeRoutes,
+  edgeId: string,
+  connection: {
+    source: string;
+    target: string;
+    sourceHandle?: string | null;
+    targetHandle?: string | null;
+  },
+): boolean {
+  const edge = flow.edges.find((e) => e.id === edgeId);
+  if (!edge) return false;
+  const sourceNode = flow.nodes.find((n) => n.id === connection.source);
+  const targetNode = flow.nodes.find((n) => n.id === connection.target);
+  if (!sourceNode || !targetNode) return false;
+
+  if (connection.source !== edge.source || connection.target !== edge.target) {
+    if (!validateConnection(flow, connection)) return false;
+  }
+
+  const existing = edgeLayout[edgeId];
+  let sourceSide = existing?.sourceSide;
+  let targetSide = existing?.targetSide;
+
+  if (connection.source === edge.source) {
+    const side = sourceSideFromReconnect(sourceNode.type, edge.trigger, connection.sourceHandle);
+    if (side !== undefined) {
+      sourceSide = normalizeSideOverride(side, defaultSourceSide(edge.trigger));
+    }
+  } else {
+    sourceSide = undefined;
+  }
+
+  if (connection.target === edge.target) {
+    const side = targetSideFromReconnect(targetNode.type, connection.targetHandle);
+    if (side !== undefined) {
+      targetSide = normalizeSideOverride(side, defaultTargetSide());
+    }
+  } else {
+    targetSide = undefined;
+  }
+
+  const result = reconnectEdgeEnd(doc, {
+    edgeId,
+    source: connection.source,
+    target: connection.target,
+    sourceHandle: connection.sourceHandle,
+    targetHandle: connection.targetHandle,
+    sourceSide,
+    targetSide,
+  });
+  return result.ok;
 }

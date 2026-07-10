@@ -48,6 +48,7 @@ Full setup: [`secrets/README.md`](./secrets/README.md).
 | Undo | `apps/web/src/components/canvas/ydoc/useUndoManager.ts` |
 | Live validation | `apps/web/src/components/canvas/useValidation.ts`, `ProblemsPanel.tsx` |
 | Flow → React Flow | `apps/web/src/components/canvas/flowToReactFlow.ts` |
+| Connection sides + handle ids | `apps/web/src/components/canvas/connectionSides.ts` |
 | Auto-layout | `apps/web/src/components/canvas/layout.ts` (elkjs) |
 | Node views | `apps/web/src/components/canvas/nodes/*` |
 
@@ -85,6 +86,7 @@ Subjects are `type(scope): summary` — imperative, lower-case, no trailing peri
 | **Plaintext secrets in repo** | Use `secrets/op.env.tpl` with `op://` refs only; run via `bun run op:run -- …`. Never `op inject -o .env` |
 | **Tailwind v4 `duration-*` utilities** | `--duration-*` in `@theme` does **not** auto-generate named `duration-*` utilities the way `--ease-*` does (`duration-fast` silently resolves to nothing, riding Tailwind's 150ms default). Reference custom duration tokens via arbitrary-value syntax: `duration-[var(--duration-fast)]`. Verify with `getComputedStyle(el).transitionDuration`, not a visual glance |
 | **Radix Dialog + commit-on-blur** | Radix's focus trap can redirect focus before a native `blur` reaches React's synthetic `onBlur`, silently dropping the commit through **every** dismiss path. Prefer committing on the dialog's `onOpenChange(false)` (controlled draft + commit-on-close) — the one lifecycle event Radix guarantees |
+| **Connection side overrides (US-113+)** | Triggers stay semantic; exit **sides** are layout view state (`edgeLayout.sourceSide`). Relocated branches need their own geometric handle ids (`top-out`, `bottom-out`, `right-out`) — never reuse another branch's semantic id (`false`, `true`). Route **all** `+` / drag-connect / `isValidConnection` through `resolveCreateFromHandle` in `create.ts`, not `triggerFor` alone. Affordance visibility: `connectionSides.ts`; canvas data: `effectiveSourceHandle` → `connectedHandles` plus `usedDecisionBranches` in `flowToReactFlow.ts`. Do not stack two draggable source handles on the same side without `decisionGeometricHandleVisible` hiding the extra one |
 
 ## Project docs
 
