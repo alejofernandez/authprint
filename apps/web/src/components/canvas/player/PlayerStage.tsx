@@ -245,6 +245,8 @@ function ScreenStageFrame({
           branding={branding}
           errorBannerCopy={errorBannerCopy}
           stageLayout="player"
+          highlightedAction={step.exitActionId}
+          highlightedActionLabel={step.exitTriggerLabel}
         />
       </div>
     </div>

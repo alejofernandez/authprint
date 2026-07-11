@@ -3,6 +3,11 @@
 
 import type { Field, ScreenNode, TraitId } from '@authprint/dsl';
 import { PlayerScreenCard } from './PlayerScreenCard.tsx';
+import {
+  ActionHighlightShell,
+  PlayerActionCallout,
+  useScreenActionHighlight,
+} from './screenActionHighlight.tsx';
 import { screenCta } from './screenCopy.ts';
 import type { ScreenStageLayout } from './screenStageLayout.ts';
 import {
@@ -19,7 +24,17 @@ function Bar({ className }: { className?: string }) {
   return <div className={`rounded-md bg-zinc-200 flow-dark:bg-zinc-700 ${className ?? ''}`} />;
 }
 
-function WireframeFieldRow({ field, traits }: { field: Field; traits: ReadonlySet<TraitId> }) {
+function WireframeFieldRow({
+  field,
+  traits,
+  highlightPasskey = false,
+  highlightLabel,
+}: {
+  field: Field;
+  traits: ReadonlySet<TraitId>;
+  highlightPasskey?: boolean;
+  highlightLabel?: string | null;
+}) {
   const showStrengthMeter =
     STRENGTH_METER_TYPES.has(field.type) && traits.has('password-strength-meter');
 
@@ -32,7 +47,11 @@ function WireframeFieldRow({ field, traits }: { field: Field; traits: ReadonlySe
     );
   }
   if (field.type === 'passkey') {
-    return <Bar className="h-7 w-full" />;
+    return (
+      <ActionHighlightShell active={highlightPasskey} label={highlightLabel ?? undefined}>
+        <Bar className="h-7 w-full" />
+      </ActionHighlightShell>
+    );
   }
   if (field.type === 'otp') {
     return (
@@ -127,15 +146,20 @@ export function ScreenWireframe({
   displayErrorState = false,
   errorBannerCopy = null,
   stageLayout = 'default',
+  highlightedAction = null,
+  highlightedActionLabel = null,
 }: {
   node: ScreenNode;
   displayErrorState?: boolean;
   errorBannerCopy?: string | null;
   stageLayout?: ScreenStageLayout;
+  highlightedAction?: string | null;
+  highlightedActionLabel?: string | null;
 }) {
   const cta = screenCta(node.kind);
   const traitSet = new Set(node.traits);
   const traitsAfterCta = postCtaTraits(node.traits);
+  const highlight = useScreenActionHighlight(node, highlightedAction, highlightedActionLabel);
   const playerFrame = stageLayout === 'player';
   const showErrorSlot = playerFrame && hasErrorBannerTrait(node.traits);
 
@@ -171,20 +195,42 @@ export function ScreenWireframe({
     node.fields.length > 0 ? (
       <div className="space-y-2">
         {node.fields.map((field) => (
-          <WireframeFieldRow key={field.name} field={field} traits={traitSet} />
+          <WireframeFieldRow
+            key={field.name}
+            field={field}
+            traits={traitSet}
+            highlightPasskey={highlight.isPasskeyFieldHighlighted(field)}
+            highlightLabel={highlight.label}
+          />
         ))}
       </div>
     ) : null;
 
   const footerBlock = (
     <>
-      {cta ? <Bar className="h-7 w-full" /> : null}
+      {cta ? (
+        <ActionHighlightShell
+          active={highlight.target === 'primary-cta'}
+          label={highlight.label ?? undefined}
+        >
+          <Bar className="h-7 w-full" />
+        </ActionHighlightShell>
+      ) : null}
       {traitsAfterCta.length > 0 ? (
         <div className="space-y-2">
           {traitsAfterCta.map((trait) => (
-            <WireframeTraitBlock key={trait} trait={trait} />
+            <ActionHighlightShell
+              key={trait}
+              active={highlight.isTraitHighlighted(trait)}
+              label={highlight.label ?? undefined}
+            >
+              <WireframeTraitBlock trait={trait} />
+            </ActionHighlightShell>
           ))}
         </div>
+      ) : null}
+      {highlight.target === 'retreat' || highlight.target === 'callout' ? (
+        <PlayerActionCallout action={highlightedAction ?? ''} exitLabel={highlightedActionLabel} />
       ) : null}
     </>
   );

@@ -136,6 +136,7 @@ describe('derivePlayerSteps — passkey-enrollment', () => {
     const { steps } = derivePlayerSteps(flow, run);
     const identifier = steps.find((s) => s.nodeId === 's-identifier');
     expect(identifier?.exitTriggerLabel).toBe('submit');
+    expect(identifier?.exitActionId).toBe('submit');
   });
 });
 
@@ -205,6 +206,7 @@ describe('lastScreenStepIndex', () => {
             nodeType: 'entry',
             displayName: 'Start',
             exitTriggerLabel: null,
+            exitActionId: null,
             decisionQuestion: null,
             decisionBranch: null,
             resolution: null,

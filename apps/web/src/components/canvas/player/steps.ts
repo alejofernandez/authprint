@@ -19,6 +19,8 @@ export type PlayerStep = {
   displayName: string;
   /** Label of the edge this step exits through, or null on the final step. */
   exitTriggerLabel: string | null;
+  /** Screen only: interaction action id for the next step, when known. */
+  exitActionId: string | null;
   /** Decision only: formatted predicate question. */
   decisionQuestion: string | null;
   /** Decision only: branch taken (yes/no). */
@@ -54,6 +56,7 @@ export function derivePlayerSteps(flow: Flow, run: ScenarioRun): PlayerModel {
     const nextVia = run.trace[index + 1]?.viaEdgeId ?? null;
     const exitEdge = nextVia ? edgeById.get(nextVia) : undefined;
     const exitTriggerLabel = exitEdge ? formatExitLabel(exitEdge) : null;
+    const exitActionId = exitEdge?.trigger.type === 'interaction' ? exitEdge.trigger.action : null;
 
     const context = run.contextSnapshots[index] ?? {};
 
@@ -71,6 +74,7 @@ export function derivePlayerSteps(flow: Flow, run: ScenarioRun): PlayerModel {
       nodeType: node.type,
       displayName: displayNameFor(node),
       exitTriggerLabel,
+      exitActionId,
       decisionQuestion: null as string | null,
       decisionBranch: null as boolean | null,
       resolution: null as PlayerStep['resolution'],

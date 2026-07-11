@@ -12,6 +12,8 @@ export function ScreenFidelityView({
   displayErrorState = false,
   errorBannerCopy = null,
   stageLayout = 'default',
+  highlightedAction = null,
+  highlightedActionLabel = null,
 }: {
   node: ScreenNode;
   /** Only the mockup tier renders a brand block. */
@@ -22,6 +24,10 @@ export function ScreenFidelityView({
   errorBannerCopy?: string | null;
   /** `player` pins header/body/footer for consistent stage height. */
   stageLayout?: ScreenStageLayout;
+  /** Player playback — interaction action that advances to the next step. */
+  highlightedAction?: string | null;
+  /** Optional display label (edge label) for the highlighted action. */
+  highlightedActionLabel?: string | null;
 }) {
   switch (node.fidelity) {
     case 'mockup':
@@ -32,6 +38,8 @@ export function ScreenFidelityView({
           displayErrorState={displayErrorState}
           errorBannerCopy={errorBannerCopy}
           stageLayout={stageLayout}
+          highlightedAction={highlightedAction}
+          highlightedActionLabel={highlightedActionLabel}
         />
       );
     case 'wireframe':
@@ -41,9 +49,17 @@ export function ScreenFidelityView({
           displayErrorState={displayErrorState}
           errorBannerCopy={errorBannerCopy}
           stageLayout={stageLayout}
+          highlightedAction={highlightedAction}
+          highlightedActionLabel={highlightedActionLabel}
         />
       );
     case 'lo-fi':
-      return <ScreenLoFi node={node} />;
+      return (
+        <ScreenLoFi
+          node={node}
+          highlightedAction={highlightedAction}
+          highlightedActionLabel={highlightedActionLabel}
+        />
+      );
   }
 }

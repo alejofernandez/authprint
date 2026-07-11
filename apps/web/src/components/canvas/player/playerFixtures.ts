@@ -11,16 +11,18 @@ import type { PlayerStep } from './steps.ts';
 const baseContext = { 'user.exists': false, 'user.has_passkey': false };
 
 function step(
-  partial: Omit<PlayerStep, 'context' | 'enteredViaError' | 'errorBannerCopy'> & {
+  partial: Omit<PlayerStep, 'context' | 'enteredViaError' | 'errorBannerCopy' | 'exitActionId'> & {
     context?: Record<string, unknown>;
     enteredViaError?: boolean;
     errorBannerCopy?: string | null;
+    exitActionId?: string | null;
   },
 ): PlayerStep {
   return {
     context: baseContext,
     enteredViaError: false,
     errorBannerCopy: null,
+    exitActionId: null,
     ...partial,
   };
 }
@@ -65,6 +67,16 @@ export const fixtureScreenMfa: ScreenNode = {
   kind: 'mfa-challenge',
   traits: [],
   fields: [{ name: 'code', type: 'otp', required: true }],
+  fidelity: 'mockup',
+};
+
+export const fixtureScreenPasskeyEnroll: ScreenNode = {
+  type: 'screen',
+  id: 's-enroll',
+  name: 'Set up a passkey',
+  kind: 'passkey-enroll',
+  traits: ['passkey-promotion'],
+  fields: [{ name: 'passkey', type: 'passkey', required: true }],
   fidelity: 'mockup',
 };
 
@@ -129,6 +141,7 @@ export const stepScreenMockup = step({
   nodeType: 'screen',
   displayName: 'Sign in',
   exitTriggerLabel: 'submit',
+  exitActionId: 'submit',
   decisionQuestion: null,
   decisionBranch: null,
   resolution: null,
@@ -172,6 +185,20 @@ export const stepScreenMfa = step({
   nodeType: 'screen',
   displayName: 'Enter code',
   exitTriggerLabel: 'submit',
+  exitActionId: 'submit',
+  decisionQuestion: null,
+  decisionBranch: null,
+  resolution: null,
+  matchesExpectedOutcome: null,
+});
+
+export const stepScreenPasskeySkip = step({
+  index: 5,
+  nodeId: 's-enroll',
+  nodeType: 'screen',
+  displayName: 'Set up a passkey',
+  exitTriggerLabel: 'skip',
+  exitActionId: 'skip',
   decisionQuestion: null,
   decisionBranch: null,
   resolution: null,
@@ -237,6 +264,7 @@ export function buildLongStripSteps(count = 15): PlayerStep[] {
       nodeType: types[index % types.length] ?? 'screen',
       displayName: names[index % names.length] ?? `Step ${index + 1}`,
       exitTriggerLabel: index === count - 1 ? null : 'submit',
+      exitActionId: index === count - 1 ? null : 'submit',
       decisionQuestion:
         types[index % types.length] === 'decision' ? 'user.exists equals true?' : null,
       decisionBranch: types[index % types.length] === 'decision' ? false : null,

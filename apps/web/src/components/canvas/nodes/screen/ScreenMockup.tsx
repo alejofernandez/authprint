@@ -10,6 +10,11 @@
 
 import type { Branding, Field, ScreenNode, TraitId } from '@authprint/dsl';
 import { PlayerScreenCard } from './PlayerScreenCard.tsx';
+import {
+  ActionHighlightShell,
+  PlayerActionCallout,
+  useScreenActionHighlight,
+} from './screenActionHighlight.tsx';
 import { humanize, screenCta } from './screenCopy.ts';
 import type { ScreenStageLayout } from './screenStageLayout.ts';
 import {
@@ -95,7 +100,17 @@ function PasskeyButton() {
   );
 }
 
-function FieldRow({ field, traits }: { field: Field; traits: ReadonlySet<TraitId> }) {
+function FieldRow({
+  field,
+  traits,
+  highlightPasskey = false,
+  highlightLabel,
+}: {
+  field: Field;
+  traits: ReadonlySet<TraitId>;
+  highlightPasskey?: boolean;
+  highlightLabel?: string | null;
+}) {
   if (field.type === 'consent-checkbox') {
     // A static mock of a checkbox row — not a real control, so a plain div
     // (not <label>) is correct here.
@@ -107,7 +122,11 @@ function FieldRow({ field, traits }: { field: Field; traits: ReadonlySet<TraitId
     );
   }
   if (field.type === 'passkey') {
-    return <PasskeyButton />;
+    return (
+      <ActionHighlightShell active={highlightPasskey} label={highlightLabel ?? undefined}>
+        <PasskeyButton />
+      </ActionHighlightShell>
+    );
   }
 
   const masked = MASKED_TYPES.has(field.type);
@@ -147,16 +166,21 @@ export function ScreenMockup({
   displayErrorState = false,
   errorBannerCopy = null,
   stageLayout = 'default',
+  highlightedAction = null,
+  highlightedActionLabel = null,
 }: {
   node: ScreenNode;
   branding?: Branding;
   displayErrorState?: boolean;
   errorBannerCopy?: string | null;
   stageLayout?: ScreenStageLayout;
+  highlightedAction?: string | null;
+  highlightedActionLabel?: string | null;
 }) {
   const cta = screenCta(node.kind);
   const traitSet = new Set(node.traits);
   const traitsAfterCta = postCtaTraits(node.traits);
+  const highlight = useScreenActionHighlight(node, highlightedAction, highlightedActionLabel);
   const companyName = branding?.companyName || PLACEHOLDER_COMPANY_NAME;
   const primaryColor = branding?.primaryColor || PLACEHOLDER_PRIMARY_COLOR;
   const playerFrame = stageLayout === 'player';
@@ -200,7 +224,13 @@ export function ScreenMockup({
     node.fields.length > 0 ? (
       <div className="space-y-2">
         {node.fields.map((f) => (
-          <FieldRow key={f.name} field={f} traits={traitSet} />
+          <FieldRow
+            key={f.name}
+            field={f}
+            traits={traitSet}
+            highlightPasskey={highlight.isPasskeyFieldHighlighted(f)}
+            highlightLabel={highlight.label}
+          />
         ))}
       </div>
     ) : null;
@@ -208,19 +238,33 @@ export function ScreenMockup({
   const footerBlock = (
     <>
       {cta ? (
-        <div
-          className="flex h-7 items-center justify-center rounded-md font-medium text-[11px] text-white"
-          style={{ backgroundColor: primaryColor }}
+        <ActionHighlightShell
+          active={highlight.target === 'primary-cta'}
+          label={highlight.label ?? undefined}
         >
-          {cta}
-        </div>
+          <div
+            className="flex h-7 items-center justify-center rounded-md font-medium text-[11px] text-white"
+            style={{ backgroundColor: primaryColor }}
+          >
+            {cta}
+          </div>
+        </ActionHighlightShell>
       ) : null}
       {traitsAfterCta.length > 0 ? (
         <div className="space-y-2">
           {traitsAfterCta.map((trait) => (
-            <TraitChromeBlock key={trait} trait={trait} />
+            <ActionHighlightShell
+              key={trait}
+              active={highlight.isTraitHighlighted(trait)}
+              label={highlight.label ?? undefined}
+            >
+              <TraitChromeBlock trait={trait} />
+            </ActionHighlightShell>
           ))}
         </div>
+      ) : null}
+      {highlight.target === 'retreat' || highlight.target === 'callout' ? (
+        <PlayerActionCallout action={highlightedAction ?? ''} exitLabel={highlightedActionLabel} />
       ) : null}
     </>
   );

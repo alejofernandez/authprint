@@ -11,6 +11,7 @@ import {
   fixtureScreenMfa,
   fixtureScreenMockup,
   fixtureScreenMockupWithErrorBanner,
+  fixtureScreenPasskeyEnroll,
   fixtureScreenWireframe,
   stepAction,
   stepActionVerify,
@@ -21,6 +22,7 @@ import {
   stepScreenMfa,
   stepScreenMockup,
   stepScreenMockupError,
+  stepScreenPasskeySkip,
 } from '../playerFixtures.ts';
 
 type PlayerStageStoryArgs = React.ComponentProps<typeof PlayerStage> & {
@@ -75,6 +77,16 @@ export const ScreenMockupErrorLight: Story = {
     theme: 'light',
     step: stepScreenMockupError,
     node: fixtureScreenMockupWithErrorBanner,
+    branding,
+    flowTheme: 'light',
+  },
+};
+
+export const ScreenMockupSkipLight: Story = {
+  args: {
+    theme: 'light',
+    step: stepScreenPasskeySkip,
+    node: fixtureScreenPasskeyEnroll,
     branding,
     flowTheme: 'light',
   },
