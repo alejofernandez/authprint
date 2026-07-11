@@ -3,7 +3,7 @@ import {
   defaultScreenSourceSideForAction,
   screenActionAllowedOnSide,
   screenInteractionSideTier,
-} from './vocabulary.ts';
+} from './screenInteractionSides.ts';
 
 describe('screen interaction side tiers', () => {
   test('primary actions exit right only', () => {

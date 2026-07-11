@@ -3,12 +3,12 @@
 // are prefixed so creation paths (triggerFor) never treat them as semantic.
 
 import type { Node as DslNode, Trigger } from '@authprint/dsl';
+import { sourceHandleFor } from './flowToReactFlow.ts';
 import {
   defaultScreenSourceSideForAction,
   screenActionAllowedOnSide,
   screenInteractionSideTier,
-} from '@authprint/dsl';
-import { sourceHandleFor } from './flowToReactFlow.ts';
+} from './screenInteractionSides.ts';
 import type { ConnectionSide, EdgeLayoutRecord } from './ydoc/schema.ts';
 
 const SCREEN_SOURCE_HANDLES = new Set(['default', 'alt']);

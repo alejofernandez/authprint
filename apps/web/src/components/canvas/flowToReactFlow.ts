@@ -5,7 +5,6 @@
 // elkjs auto-layout (E17) or, later, a layout sidecar.
 
 import type { Diagnostic, Node as DslNode, Flow, Trigger } from '@authprint/dsl';
-import { defaultScreenSourceSideForAction } from '@authprint/dsl';
 import { MarkerType, type Edge as RfEdge, type Node as RfNode } from '@xyflow/react';
 import type { Theme } from '@/components/theme';
 import { effectiveSourceHandle, effectiveTargetHandle } from './connectionSides.ts';
@@ -13,6 +12,7 @@ import type { CanvasNodeData } from './nodes/index.ts';
 import { buildNodeAriaLabel } from './nodes/nodeAriaLabel.ts';
 import { resolveScreenTheme } from './nodes/screen/screenTheme.ts';
 import type { TraceAttachment } from './scenario/scenarioTrace.ts';
+import { defaultScreenSourceSideForAction } from './screenInteractionSides.ts';
 import { type EdgeRoutes, edgeLayoutPoints, type LayoutPositions } from './ydoc/schema.ts';
 
 export type NodePositionsMap = Record<string, { x: number; y: number }>;
