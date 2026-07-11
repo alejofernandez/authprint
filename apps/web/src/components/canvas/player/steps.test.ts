@@ -11,6 +11,7 @@ import {
 import {
   timelineFillWidth,
   timelinePlayheadOffset,
+  timelineStepIndexFromOffset,
   timelineStripWidth,
 } from './timelineGeometry.ts';
 import { advancePlayerPlayback, clampPlayerIndex } from './usePlayer.ts';
@@ -231,13 +232,26 @@ describe('isSilentPlayerStep', () => {
 });
 
 describe('timelineGeometry', () => {
-  test('playhead spans inset at the first step and stripWidth - inset at the last', () => {
+  test('playhead aligns to clip edges on first/last steps and centers otherwise', () => {
     expect(timelineStripWidth(3)).toBe(380);
     expect(timelinePlayheadOffset(0, 3)).toBe(6);
     expect(timelineFillWidth(0, 3)).toBe(0);
     expect(timelinePlayheadOffset(1, 3)).toBe(190);
     expect(timelinePlayheadOffset(2, 3)).toBe(374);
     expect(timelineFillWidth(2, 3)).toBe(374);
+  });
+
+  test('middle steps sit on clip centers for longer strips', () => {
+    expect(timelinePlayheadOffset(1, 4)).toBe(190);
+    expect(timelinePlayheadOffset(2, 4)).toBe(320);
+    expect(timelinePlayheadOffset(3, 4)).toBe(504);
+  });
+
+  test('scrub position snaps to the nearest step index', () => {
+    expect(timelineStepIndexFromOffset(6, 3)).toBe(0);
+    expect(timelineStepIndexFromOffset(100, 3)).toBe(1);
+    expect(timelineStepIndexFromOffset(300, 3)).toBe(2);
+    expect(timelineStepIndexFromOffset(320, 4)).toBe(2);
   });
 });
 

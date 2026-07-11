@@ -9,6 +9,7 @@ import type {
   ScenarioRun,
   ScreenNode,
 } from '@authprint/dsl';
+import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
 import { ScreenFidelityView } from '../nodes/screen/ScreenFidelityView.tsx';
 import { resolveScreenTheme } from '../nodes/screen/screenTheme.ts';
 import { divergenceDetail, divergenceHeadline } from './divergenceCopy.ts';
@@ -33,6 +34,8 @@ export type PlayerStageProps = {
   /** Screen shown dimmed beneath a silent step overlay (action/external/decision). */
   backdropStep?: PlayerStep | null;
   backdropNode?: ScreenNode | null;
+  /** Fill available height with minimal chrome — used by player mode. */
+  immersive?: boolean;
 };
 
 export function PlayerStage({
@@ -47,14 +50,41 @@ export function PlayerStage({
   runTrace,
   backdropStep = null,
   backdropNode = null,
+  immersive = false,
 }: PlayerStageProps) {
   return (
     <div
-      className="flex min-h-[320px] flex-1 items-center justify-center rounded-xl border border-border-subtle bg-bg-subtle/80 p-8 dark:border-border-default dark:bg-bg-subtle/40"
+      className={
+        immersive
+          ? 'flex h-full min-h-0 w-full flex-1 overflow-hidden'
+          : 'flex min-h-[320px] flex-1 items-center justify-center rounded-xl border border-border-subtle bg-bg-subtle/80 p-8 dark:border-border-default dark:bg-bg-subtle/40'
+      }
       data-stage-scale={STAGE_PRESENTATION_SCALE}
+      data-stage-immersive={immersive || undefined}
     >
       {isDiverged && divergence ? (
-        <DivergenceStageCard divergence={divergence} />
+        immersive ? (
+          <StagePresentationFrame>
+            <DivergenceStageCard divergence={divergence} />
+          </StagePresentationFrame>
+        ) : (
+          <DivergenceStageCard divergence={divergence} />
+        )
+      ) : immersive ? (
+        <StagePresentationFrame>
+          <StageContent
+            step={step}
+            node={node}
+            branding={branding}
+            editorTheme={editorTheme}
+            flowTheme={flowTheme}
+            flow={flow}
+            runTrace={runTrace}
+            backdropStep={backdropStep}
+            backdropNode={backdropNode}
+            immersive
+          />
+        </StagePresentationFrame>
       ) : (
         <StageContent
           step={step}
@@ -72,6 +102,46 @@ export function PlayerStage({
   );
 }
 
+function StagePresentationFrame({ children }: { children: ReactNode }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(STAGE_PRESENTATION_SCALE);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const content = contentRef.current;
+    if (!container || !content) return;
+
+    const update = () => {
+      const pad = 32;
+      const cw = Math.max(container.clientWidth - pad, 0);
+      const ch = Math.max(container.clientHeight - pad, 0);
+      const bw = content.offsetWidth;
+      const bh = content.offsetHeight;
+      if (bw === 0 || bh === 0 || cw === 0 || ch === 0) return;
+      const fit = Math.min(cw / bw, ch / bh, STAGE_PRESENTATION_SCALE);
+      setScale((prev) => (Math.abs(prev - fit) < 0.001 ? prev : fit));
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(container);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="flex h-full min-h-0 w-full items-center justify-center overflow-hidden p-4"
+    >
+      <div className="origin-center" style={{ transform: `scale(${scale})` }}>
+        <div ref={contentRef}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 function StageContent({
   step,
   node,
@@ -82,6 +152,7 @@ function StageContent({
   runTrace,
   backdropStep,
   backdropNode,
+  immersive = false,
 }: {
   step: PlayerStep;
   node: Node;
@@ -92,6 +163,7 @@ function StageContent({
   runTrace?: ScenarioRun['trace'];
   backdropStep?: PlayerStep | null;
   backdropNode?: ScreenNode | null;
+  immersive?: boolean;
 }) {
   switch (step.nodeType) {
     case 'screen':
@@ -104,6 +176,7 @@ function StageContent({
           flowTheme={flowTheme}
           flow={flow}
           runTrace={runTrace}
+          immersive={immersive}
         />
       );
     case 'decision':
@@ -119,6 +192,7 @@ function StageContent({
             branding={branding}
             editorTheme={editorTheme}
             flowTheme={flowTheme}
+            immersive={immersive}
           />
         );
       }
@@ -144,6 +218,7 @@ function ScreenStageFrame({
   flowTheme,
   flow,
   runTrace,
+  immersive = false,
 }: {
   step: PlayerStep;
   node: ScreenNode;
@@ -152,6 +227,7 @@ function ScreenStageFrame({
   flowTheme: FlowTheme;
   flow?: Flow;
   runTrace?: ScenarioRun['trace'];
+  immersive?: boolean;
 }) {
   const screenTheme = resolveScreenTheme(flowTheme, editorTheme);
   const errorBannerCopy =
@@ -161,7 +237,7 @@ function ScreenStageFrame({
   return (
     <div
       className={`${screenTheme === 'dark' ? 'flow-theme-dark ' : ''}origin-center`}
-      style={{ transform: `scale(${STAGE_PRESENTATION_SCALE})` }}
+      style={immersive ? undefined : { transform: `scale(${STAGE_PRESENTATION_SCALE})` }}
     >
       <div className="rounded-xl border border-border-default bg-bg-panel shadow-sm">
         <ScreenFidelityView
@@ -183,6 +259,7 @@ function InterstitialOverlayStage({
   branding,
   editorTheme,
   flowTheme,
+  immersive = false,
 }: {
   step: PlayerStep;
   node: Node;
@@ -191,13 +268,14 @@ function InterstitialOverlayStage({
   branding?: Branding;
   editorTheme: 'light' | 'dark';
   flowTheme: FlowTheme;
+  immersive?: boolean;
 }) {
   const screenTheme = resolveScreenTheme(flowTheme, editorTheme);
 
   return (
     <div
       className={`${screenTheme === 'dark' ? 'flow-theme-dark ' : ''}relative inline-block origin-center`}
-      style={{ transform: `scale(${STAGE_PRESENTATION_SCALE})` }}
+      style={immersive ? undefined : { transform: `scale(${STAGE_PRESENTATION_SCALE})` }}
       data-stage-overlay
     >
       <div

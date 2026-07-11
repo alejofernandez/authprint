@@ -24,6 +24,7 @@ export function ContextPanel({
   previousContext,
   divergence,
   embedded = false,
+  drawer = false,
   emphasizedSlots,
 }: {
   context: Record<string, unknown>;
@@ -31,6 +32,8 @@ export function ContextPanel({
   divergence: Divergence | null;
   /** When true, panel flows in the player layout instead of floating over the canvas. */
   embedded?: boolean;
+  /** Drawer body inside the player — no outer chrome; list fills the drawer. */
+  drawer?: boolean;
   /** Slots to emphasize (e.g. the predicate slot on an active decision step). */
   emphasizedSlots?: ReadonlySet<string>;
 }) {
@@ -41,18 +44,28 @@ export function ContextPanel({
   return (
     <div
       className={
-        embedded
-          ? 'w-56 shrink-0 self-start rounded-lg border border-border-subtle bg-bg-panel/95 p-3 shadow-lg dark:border-border-default dark:bg-bg-panel/95'
-          : 'absolute top-4 left-4 z-30 w-56 rounded-lg border border-border-subtle bg-bg-panel/95 p-3 shadow-lg backdrop-blur dark:border-border-default dark:bg-bg-panel/95'
+        drawer
+          ? 'flex min-h-0 flex-1 flex-col'
+          : embedded
+            ? 'w-56 shrink-0 self-start rounded-lg border border-border-subtle bg-bg-panel/95 p-3 shadow-lg dark:border-border-default dark:bg-bg-panel/95'
+            : 'absolute top-4 left-4 z-30 w-56 rounded-lg border border-border-subtle bg-bg-panel/95 p-3 shadow-lg backdrop-blur dark:border-border-default dark:bg-bg-panel/95'
       }
     >
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-subtle dark:text-fg-subtle">
-        Context
-      </div>
+      {!drawer ? (
+        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-subtle dark:text-fg-subtle">
+          Context
+        </div>
+      ) : null}
       {entries.length === 0 ? (
         <p className="text-xs text-fg-subtle">No context values</p>
       ) : (
-        <ul className="max-h-48 space-y-1.5 overflow-auto">
+        <ul
+          className={
+            drawer
+              ? 'min-h-0 flex-1 space-y-1.5 overflow-auto'
+              : 'max-h-48 space-y-1.5 overflow-auto'
+          }
+        >
           {entries.map(([slot, value]) => (
             <li key={slot} className="font-mono text-[11px] leading-snug">
               <span

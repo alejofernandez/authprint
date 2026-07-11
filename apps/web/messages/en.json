@@ -164,15 +164,26 @@
     "indicatorTitle": "Saved locally — not exported as a file yet"
   },
   "player": {
+    "context": {
+      "toggle": "Context",
+      "close": "Close context panel",
+      "title": "Context"
+    },
+    "scenarioPicker": {
+      "open": "Switch scenario",
+      "current": "Current scenario"
+    },
     "transport": {
       "stepBack": "Step back",
       "stepForward": "Step forward",
       "play": "Play",
       "pause": "Pause",
-      "stepCounter": "{current} / {total}",
-      "speed": "Playback speed",
-      "speedOption": "{seconds}s",
+      "dragHandle": "Drag transport bar",
+      "collapse": "Collapse transport bar",
+      "expand": "Expand transport bar. Double-click the compact bar.",
       "exit": "Exit"
-    }
+    },
+    "canvasPlay": "Play scenario: {name}",
+    "canvasPlayDisabled": "No scenarios to play"
   }
 }

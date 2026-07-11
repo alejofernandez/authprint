@@ -13,6 +13,7 @@ export type TimelineStripProps = {
   onSeek?: (index: number) => void;
   /** When false, the playhead does not auto-scroll into view (Storybook baselines). */
   autoScroll?: boolean;
+  onScrubBegin?: () => void;
 };
 
 export function TimelineStrip({
@@ -21,6 +22,7 @@ export function TimelineStrip({
   divergedIndex = null,
   onSeek,
   autoScroll = true,
+  onScrubBegin,
 }: TimelineStripProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLDivElement>(null);
@@ -38,6 +40,11 @@ export function TimelineStrip({
     });
   }, [activeIndex, autoScroll]);
 
+  const seekTo = (index: number) => {
+    onScrubBegin?.();
+    onSeek?.(index);
+  };
+
   return (
     <div className="w-full">
       <div
@@ -45,44 +52,46 @@ export function TimelineStrip({
         className="overflow-x-auto overflow-y-visible pb-2"
         data-timeline-scroller
       >
-        <div className="min-w-max px-1.5">
+        <div className="mx-auto w-max px-1.5">
           <TimelineProgressBar
             stepCount={steps.length}
             activeIndex={activeIndex}
             diverged={divergedIndex !== null && activeIndex === divergedIndex}
+            onSeek={onSeek}
+            onScrubBegin={onScrubBegin}
           />
-        </div>
-        <div className="mb-1 flex min-w-max" style={{ gap: TIMELINE_CLIP_GAP }}>
-          {steps.map((step) => (
-            <button
-              key={`ruler-${step.nodeId}-${step.index}`}
-              type="button"
-              className="w-[120px] shrink-0 text-center text-[11px] text-fg-subtle hover:text-fg-muted"
-              onClick={() => onSeek?.(step.index)}
-            >
-              {step.index + 1}
-            </button>
-          ))}
-        </div>
-        <div className="flex min-w-max" style={{ gap: TIMELINE_CLIP_GAP }}>
-          {steps.map((step) => {
-            const active = step.index === activeIndex;
-            const diverged = divergedIndex !== null && step.index === divergedIndex;
-            return (
-              <div
-                key={`clip-${step.nodeId}-${step.index}`}
-                ref={active ? activeRef : undefined}
-                className="shrink-0"
+          <div className="mb-1 flex" style={{ gap: TIMELINE_CLIP_GAP }}>
+            {steps.map((step) => (
+              <button
+                key={`ruler-${step.nodeId}-${step.index}`}
+                type="button"
+                className="w-[120px] shrink-0 text-center text-[11px] text-fg-subtle hover:text-fg-muted"
+                onClick={() => seekTo(step.index)}
               >
-                <TimelineClip
-                  step={step}
-                  active={active}
-                  diverged={diverged}
-                  onSeek={onSeek ? () => onSeek(step.index) : undefined}
-                />
-              </div>
-            );
-          })}
+                {step.index + 1}
+              </button>
+            ))}
+          </div>
+          <div className="flex" style={{ gap: TIMELINE_CLIP_GAP }}>
+            {steps.map((step) => {
+              const active = step.index === activeIndex;
+              const diverged = divergedIndex !== null && step.index === divergedIndex;
+              return (
+                <div
+                  key={`clip-${step.nodeId}-${step.index}`}
+                  ref={active ? activeRef : undefined}
+                  className="shrink-0"
+                >
+                  <TimelineClip
+                    step={step}
+                    active={active}
+                    diverged={diverged}
+                    onSeek={onSeek ? () => seekTo(step.index) : undefined}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

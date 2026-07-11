@@ -186,6 +186,7 @@ export function Editor({ initialFlow, patterns }: { initialFlow: Flow; patterns:
 
 function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: PatternFlow[] }) {
   const tPalette = useTranslations('palette');
+  const tPlayer = useTranslations('player');
   const tNotices = useTranslations('notices');
   const [phase, setPhase] = useState<EditorPhase>('not-started');
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -484,6 +485,13 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     },
     [enterPlayer, exitScenario],
   );
+
+  const playFirstScenario = useCallback(() => {
+    const first = scenarios[0];
+    if (!first) return;
+    const flow = docToArtifact(doc).flow;
+    enterPlayerMode(runScenario(flow, first), first.name, flow, first.initialContext);
+  }, [scenarios, doc, enterPlayerMode]);
 
   const goHome = useCallback(() => {
     exitScenario();
@@ -883,17 +891,39 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
 
               {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
 
-              <button
-                type="button"
-                onClick={() => setPaletteOpen(true)}
-                aria-label={tPalette('openPalette')}
-                className="absolute bottom-4 left-14 z-20 flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-panel/95 px-2.5 py-1.5 text-fg-muted text-sm shadow-lg backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default dark:bg-bg-panel/95"
-              >
-                {tPalette('searchButton')}
-                <kbd className="rounded border border-border-default bg-bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-subtle">
-                  ⌘K
-                </kbd>
-              </button>
+              <div className="absolute bottom-4 left-14 z-20 flex items-center gap-2">
+                {!player.session && !scenario.session ? (
+                  <button
+                    type="button"
+                    onClick={playFirstScenario}
+                    disabled={scenarios.length === 0}
+                    aria-label={
+                      scenarios.length > 0
+                        ? tPlayer('canvasPlay', { name: scenarios[0]?.name ?? '' })
+                        : tPlayer('canvasPlayDisabled')
+                    }
+                    title={
+                      scenarios.length > 0
+                        ? tPlayer('canvasPlay', { name: scenarios[0]?.name ?? '' })
+                        : tPlayer('canvasPlayDisabled')
+                    }
+                    className="flex shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-bg-panel/95 px-2.5 py-1.5 text-accent-primary-fg-emphasis text-sm shadow-lg backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border disabled:cursor-not-allowed disabled:opacity-35 dark:border-border-default dark:bg-bg-panel/95 dark:text-accent-primary-fg-on-bg"
+                  >
+                    ▶
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setPaletteOpen(true)}
+                  aria-label={tPalette('openPalette')}
+                  className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-panel/95 px-2.5 py-1.5 text-fg-muted text-sm shadow-lg backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default dark:bg-bg-panel/95"
+                >
+                  {tPalette('searchButton')}
+                  <kbd className="rounded border border-border-default bg-bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-subtle">
+                    ⌘K
+                  </kbd>
+                </button>
+              </div>
 
               {scenario.session && !player.session && (
                 <>
