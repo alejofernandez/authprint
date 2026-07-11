@@ -237,5 +237,7 @@ scenarios:
       - type: screen
         nodeId: s-passkey-enroll
         action: submit
+        set:
+          user.has_passkey: true
     expectedOutcome:
       outcomeId: o-authenticated-enrolled

@@ -6,7 +6,11 @@ import type { ContextSlot, Predicate } from '../schema/predicate.ts';
 import type { PredicateOp, SlotType } from '../vocabulary.ts';
 
 export function checkContextIntegrity(flow: Flow): Diagnostic[] {
-  return [...checkDecisionPredicates(flow), ...checkScenarioInitialContext(flow)];
+  return [
+    ...checkDecisionPredicates(flow),
+    ...checkScenarioInitialContext(flow),
+    ...checkScenarioStepContextPatches(flow),
+  ];
 }
 
 // ─── Decision predicates ────────────────────────────────────────────────────
@@ -90,6 +94,48 @@ function checkScenarioInitialContext(flow: Flow): Diagnostic[] {
           message: `scenario '${scenario.id}' initialContext['${slotName}'] does not match slot type '${slot.type}'`,
           path: `scenarios[${sIdx}].initialContext.${slotName}`,
         });
+      }
+    }
+  }
+
+  return out;
+}
+
+// ─── Scenario inputScript `set:` patches ───────────────────────────────────
+// Each key in a step's optional `set` block must be a declared slot, and the
+// value must match the slot's declared type (same rules as initialContext).
+
+function checkScenarioStepContextPatches(flow: Flow): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  const ctx = flow.context;
+
+  for (const [sIdx, scenario] of flow.scenarios.entries()) {
+    for (const [stepIdx, step] of scenario.inputScript.entries()) {
+      const patch = step.set;
+      if (!patch) continue;
+
+      for (const [slotName, value] of Object.entries(patch)) {
+        const slot = ctx[slotName] as ContextSlot | undefined;
+        const path = `scenarios[${sIdx}].inputScript[${stepIdx}].set.${slotName}`;
+
+        if (!slot) {
+          out.push({
+            severity: 'error',
+            code: 'validation-scenario-context-slot-undeclared',
+            message: `scenario '${scenario.id}' set key '${slotName}' is not a declared context slot`,
+            path,
+          });
+          continue;
+        }
+
+        if (!valueMatchesSlotType(value, slot)) {
+          out.push({
+            severity: 'error',
+            code: 'validation-scenario-context-value-type-mismatch',
+            message: `scenario '${scenario.id}' set['${slotName}'] does not match slot type '${slot.type}'`,
+            path,
+          });
+        }
       }
     }
   }

@@ -7,22 +7,27 @@ import { z } from 'zod';
 // ─── Script steps ───────────────────────────────────────────────────────────
 // Each step says: at this node, take this action / inject this result.
 
+const ContextPatchSchema = z.record(z.string(), z.unknown());
+
 export const ScreenStepSchema = z.object({
   type: z.literal('screen'),
   nodeId: z.string().min(1),
   action: z.string().min(1),
+  set: ContextPatchSchema.optional(),
 });
 
 export const ActionStepSchema = z.object({
   type: z.literal('action'),
   nodeId: z.string().min(1),
   result: z.enum(['success', 'error']),
+  set: ContextPatchSchema.optional(),
 });
 
 export const ExternalStepSchema = z.object({
   type: z.literal('external'),
   nodeId: z.string().min(1),
   result: z.enum(['success', 'error', 'denied', 'cancelled']),
+  set: ContextPatchSchema.optional(),
 });
 
 export const ScriptStepSchema = z.discriminatedUnion('type', [

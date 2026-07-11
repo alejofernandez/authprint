@@ -31,12 +31,19 @@ const config: TestRunnerConfig = {
     // Capture just the fixed-size canvas (not the full viewport) so the baseline
     // is tight and a small node change is a large fraction of the diff.
     const isContextPanel = /contextpanel/i.test(context.id);
+    const isPlayerCanvas = /player/i.test(context.title ?? '') || /player/i.test(context.id);
     const canvas = page.locator(
-      isContextPanel ? '[data-testid="context-panel-canvas"]' : '[data-testid="node-canvas"]',
+      isContextPanel
+        ? '[data-testid="context-panel-canvas"]'
+        : isPlayerCanvas
+          ? '[data-testid="player-canvas"]'
+          : '[data-testid="node-canvas"]',
     );
     // Wait for content and webfonts so the capture is never taken mid-render.
     if (isContextPanel) {
       await canvas.getByText('Context').waitFor({ state: 'visible' });
+    } else if (isPlayerCanvas) {
+      await canvas.waitFor({ state: 'visible' });
     } else {
       await canvas.locator('.react-flow__node').first().waitFor({ state: 'visible' });
     }

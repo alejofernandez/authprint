@@ -24,11 +24,13 @@ export function hasErrorBannerTrait(traits: readonly TraitId[]): boolean {
   return traits.includes('error-banner');
 }
 
-export function ErrorBanner({ copy }: { copy: string }) {
+export function ErrorBanner({ copy, singleLine = false }: { copy: string; singleLine?: boolean }) {
   return (
     <div
       role="alert"
-      className="rounded-md border border-signal-danger-ring bg-red-50 px-2.5 py-1.5 text-[10px] leading-snug text-signal-danger flow-dark:border-signal-danger-ring flow-dark:bg-red-950/50 flow-dark:text-signal-danger-fg"
+      className={`rounded-md border border-signal-danger-ring bg-red-50 px-2.5 py-1.5 text-[10px] leading-snug text-signal-danger flow-dark:border-signal-danger-ring flow-dark:bg-red-950/50 flow-dark:text-signal-danger-fg ${
+        singleLine ? 'truncate' : ''
+      }`}
     >
       {copy}
     </div>

@@ -200,14 +200,20 @@ scenarios:                      # optional, default: []
       - type: screen
         nodeId: <NodeId>
         action: <string>
+        set:                          # optional; applied after this step resolves
+          <slot-name>: <value>
       # action step:
       - type: action
         nodeId: <NodeId>
         result: success | error
+        set:                          # optional
+          <slot-name>: <value>
       # external step:
       - type: external
         nodeId: <NodeId>
         result: success | error | denied | cancelled
+        set:                          # optional
+          <slot-name>: <value>
     expectedOutcome:             # optional assertion
       outcomeId: <NodeId?>
         sequence: [<NodeId>, ...]?

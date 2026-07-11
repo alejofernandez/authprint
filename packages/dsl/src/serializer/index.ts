@@ -229,11 +229,32 @@ function canonicalizeScenario(s: Scenario): Record<string, unknown> {
 
 function canonicalizeScriptStep(step: ScriptStep): Record<string, unknown> {
   switch (step.type) {
-    case 'screen':
-      return { type: step.type, nodeId: step.nodeId, action: step.action };
-    case 'action':
-      return { type: step.type, nodeId: step.nodeId, result: step.result };
-    case 'external':
-      return { type: step.type, nodeId: step.nodeId, result: step.result };
+    case 'screen': {
+      const out: Record<string, unknown> = {
+        type: step.type,
+        nodeId: step.nodeId,
+        action: step.action,
+      };
+      if (step.set !== undefined && Object.keys(step.set).length > 0) out.set = step.set;
+      return out;
+    }
+    case 'action': {
+      const out: Record<string, unknown> = {
+        type: step.type,
+        nodeId: step.nodeId,
+        result: step.result,
+      };
+      if (step.set !== undefined && Object.keys(step.set).length > 0) out.set = step.set;
+      return out;
+    }
+    case 'external': {
+      const out: Record<string, unknown> = {
+        type: step.type,
+        nodeId: step.nodeId,
+        result: step.result,
+      };
+      if (step.set !== undefined && Object.keys(step.set).length > 0) out.set = step.set;
+      return out;
+    }
   }
 }

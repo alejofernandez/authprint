@@ -87,7 +87,7 @@ The `label` field is for human-readable context only — not used by any validat
 
 A Flow declares its Context as a typed slot bag at the flow level. Each slot has a `type` and (for `enum` slots) a `values` list.
 
-**Context slots are declarations only.** They describe what kinds of data the flow's Decisions can reference. They do **not** carry runtime values — Authprint is not an execution engine. Slot values exist only inside Scenarios as `initialContext`.
+**Context slots are declarations only.** They describe what kinds of data the flow's Decisions can reference. They do **not** carry runtime values — Authprint is not an execution engine. Slot values exist only inside Scenarios: `initialContext` plus optional per-step `set:` patches (see Scenario semantics).
 
 ## Predicate semantics
 
@@ -125,7 +125,10 @@ Composition:
   - `screen` step: which user action label was taken.
   - `action` step: which result (`success` / `error`) to inject.
   - `external` step: which result (`success` / `error` / `denied` / `cancelled`) to inject.
+  - Optional **`set:`** on any script step: a patch applied to context **after the step resolves, before the next transition**. Keys must be declared context slots; values are type-checked like `initialContext`. Omitted when unchanged. Enables loops whose predicates must answer differently on a revisit (OTP retry) and before/after checks around a step.
 - **`expectedOutcome`** (optional) — assertion about where the trace should end and (optionally) the exact sequence of nodes visited.
+
+The interpreter exposes a **context snapshot per trace step** (aligned with the walker's `trace` array) so UI layers can show how context evolves during playback.
 
 ### Walker semantics
 

@@ -260,5 +260,105 @@ describe('runScenario — minimal happy path', () => {
     expect(run.trace[0]?.viaEdgeId).toBeNull();
     expect(run.trace[1]?.viaEdgeId).toBe('e-entry');
     expect(run.trace[2]?.viaEdgeId).toBe('e-submit');
+    expect(run.contextSnapshots).toHaveLength(3);
+    expect(run.contextSnapshots[0]).toEqual({});
+  });
+});
+
+describe('runScenario — per-step set: patches', () => {
+  function otpRetryFlow() {
+    const flow = FlowSchema.parse({
+      id: 'f-otp-retry',
+      name: 'OTP retry',
+      context: { 'code.valid': { type: 'boolean' } },
+      nodes: [
+        { type: 'entry', id: 'e1' },
+        { type: 'screen', id: 's-otp', name: 'OTP', kind: 'mfa-challenge' },
+        {
+          type: 'decision',
+          id: 'd-valid',
+          kind: 'code-valid',
+          predicate: { slot: 'code.valid', op: 'equals', value: true },
+        },
+        { type: 'outcome', id: 'o1', name: 'Done', kind: 'authenticated' },
+      ],
+      edges: [
+        { id: 'e-entry', source: 'e1', target: 's-otp', trigger: { type: 'unconditional' } },
+        {
+          id: 'e-submit',
+          source: 's-otp',
+          target: 'd-valid',
+          trigger: { type: 'interaction', action: 'submit' },
+        },
+        {
+          id: 'e-valid',
+          source: 'd-valid',
+          target: 'o1',
+          trigger: { type: 'branch', value: true },
+        },
+        {
+          id: 'e-retry',
+          source: 'd-valid',
+          target: 's-otp',
+          trigger: { type: 'branch', value: false },
+        },
+      ],
+    });
+    return flow;
+  }
+
+  test('retry loop: second visit set: flips the branch and passes', () => {
+    const flow = otpRetryFlow();
+    const scenario: Scenario = {
+      id: 'sc-retry',
+      name: 'Wrong code then correct',
+      initialContext: { 'code.valid': false },
+      inputScript: [
+        { type: 'screen', nodeId: 's-otp', action: 'submit' },
+        {
+          type: 'screen',
+          nodeId: 's-otp',
+          action: 'submit',
+          set: { 'code.valid': true },
+        },
+      ],
+      expectedOutcome: { outcomeId: 'o1' },
+    };
+    const run = runScenario(flow, scenario);
+    expect(run.status).toBe('passed');
+    expect(run.trace.map((t) => t.nodeId)).toEqual([
+      'e1',
+      's-otp',
+      'd-valid',
+      's-otp',
+      'd-valid',
+      'o1',
+    ]);
+    expect(run.contextSnapshots[4]?.['code.valid']).toBe(true);
+  });
+
+  test('retry loop without set: diverges with step-limit-exceeded', () => {
+    const flow = otpRetryFlow();
+    const scenario: Scenario = {
+      id: 'sc-loop',
+      name: 'Never fixes code',
+      initialContext: { 'code.valid': false },
+      inputScript: Array.from({ length: 25 }, () => ({
+        type: 'screen' as const,
+        nodeId: 's-otp',
+        action: 'submit',
+      })),
+    };
+    const run = runScenario(flow, scenario);
+    expect(run.status).toBe('diverged');
+    expect(run.divergence?.kind).toBe('step-limit-exceeded');
+  });
+
+  test('contextSnapshots stay aligned with trace length on divergence', () => {
+    const { flow, scenario } = minimalScreenFlow({
+      scenario: { inputScript: [] },
+    });
+    const run = runScenario(flow, scenario);
+    expect(run.contextSnapshots).toHaveLength(run.trace.length);
   });
 });

@@ -32,7 +32,7 @@ const demoContext = {
 export const Light: Story = {
   args: {
     theme: 'light',
-    initialContext: demoContext,
+    context: demoContext,
     divergence: null,
   },
 };
@@ -40,7 +40,7 @@ export const Light: Story = {
 export const Dark: Story = {
   args: {
     theme: 'dark',
-    initialContext: demoContext,
+    context: demoContext,
     divergence: null,
   },
 };
@@ -48,7 +48,16 @@ export const Dark: Story = {
 export const FlaggedSlot: Story = {
   args: {
     theme: 'light',
-    initialContext: demoContext,
+    context: demoContext,
     divergence: { kind: 'unknown-slot', nodeId: 'decision-1', slot: 'user.exists' },
+  },
+};
+
+export const PatchedSlot: Story = {
+  args: {
+    theme: 'light',
+    context: { ...demoContext, 'user.mfaEnrolled': false },
+    previousContext: demoContext,
+    divergence: null,
   },
 };

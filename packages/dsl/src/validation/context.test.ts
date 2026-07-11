@@ -177,3 +177,82 @@ describe('checkContextIntegrity — scenario initialContext', () => {
     expect(codes).toContain('validation-scenario-context-value-type-mismatch');
   });
 });
+
+describe('checkContextIntegrity — scenario inputScript set:', () => {
+  test('valid set patch → no diagnostics', () => {
+    const flow = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      context: { 'user.has_passkey': { type: 'boolean' } },
+      nodes: [{ type: 'entry', id: 'e1' }],
+      scenarios: [
+        {
+          id: 'sc1',
+          name: 'X',
+          initialContext: { 'user.has_passkey': false },
+          inputScript: [
+            {
+              type: 'screen',
+              nodeId: 's1',
+              action: 'submit',
+              set: { 'user.has_passkey': true },
+            },
+          ],
+        },
+      ],
+    });
+    expect(checkContextIntegrity(flow)).toEqual([]);
+  });
+
+  test('set references undeclared slot → context-slot-undeclared error', () => {
+    const flow = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      context: { 'user.has_passkey': { type: 'boolean' } },
+      nodes: [{ type: 'entry', id: 'e1' }],
+      scenarios: [
+        {
+          id: 'sc1',
+          name: 'X',
+          initialContext: {},
+          inputScript: [
+            {
+              type: 'action',
+              nodeId: 'a1',
+              result: 'success',
+              set: { 'unknown.slot': true },
+            },
+          ],
+        },
+      ],
+    });
+    const codes = checkContextIntegrity(flow).map((d) => d.code);
+    expect(codes).toContain('validation-scenario-context-slot-undeclared');
+  });
+
+  test('set value wrong type → context-value-type-mismatch error', () => {
+    const flow = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      context: { 'risk.score': { type: 'number' } },
+      nodes: [{ type: 'entry', id: 'e1' }],
+      scenarios: [
+        {
+          id: 'sc1',
+          name: 'X',
+          initialContext: {},
+          inputScript: [
+            {
+              type: 'external',
+              nodeId: 'x1',
+              result: 'success',
+              set: { 'risk.score': 'high' },
+            },
+          ],
+        },
+      ],
+    });
+    const codes = checkContextIntegrity(flow).map((d) => d.code);
+    expect(codes).toContain('validation-scenario-context-value-type-mismatch');
+  });
+});

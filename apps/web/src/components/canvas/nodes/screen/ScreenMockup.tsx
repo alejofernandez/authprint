@@ -9,8 +9,11 @@
 // "Acme" + indigo placeholder when it hasn't.
 
 import type { Branding, Field, ScreenNode, TraitId } from '@authprint/dsl';
+import { PlayerScreenCard } from './PlayerScreenCard.tsx';
 import { humanize, screenCta } from './screenCopy.ts';
+import type { ScreenStageLayout } from './screenStageLayout.ts';
 import {
+  ErrorBanner,
   ErrorBannerPlaceholder,
   hasErrorBannerTrait,
   PasswordStrengthMeter,
@@ -123,68 +126,125 @@ function FieldRow({ field, traits }: { field: Field; traits: ReadonlySet<TraitId
   );
 }
 
+function MockupErrorBanner({
+  traits,
+  displayErrorState,
+  errorBannerCopy,
+}: {
+  traits: TraitId[];
+  displayErrorState: boolean;
+  errorBannerCopy: string | null;
+}) {
+  if (!hasErrorBannerTrait(traits)) return null;
+  if (errorBannerCopy) return <ErrorBanner copy={errorBannerCopy} />;
+  if (displayErrorState) return <ErrorBannerPlaceholder />;
+  return null;
+}
+
 export function ScreenMockup({
   node,
   branding,
   displayErrorState = false,
+  errorBannerCopy = null,
+  stageLayout = 'default',
 }: {
   node: ScreenNode;
   branding?: Branding;
   displayErrorState?: boolean;
+  errorBannerCopy?: string | null;
+  stageLayout?: ScreenStageLayout;
 }) {
   const cta = screenCta(node.kind);
   const traitSet = new Set(node.traits);
   const traitsAfterCta = postCtaTraits(node.traits);
   const companyName = branding?.companyName || PLACEHOLDER_COMPANY_NAME;
   const primaryColor = branding?.primaryColor || PLACEHOLDER_PRIMARY_COLOR;
+  const playerFrame = stageLayout === 'player';
+  const showErrorSlot = playerFrame && hasErrorBannerTrait(node.traits);
 
-  return (
-    <div className="w-[244px] rounded-xl border border-zinc-200 flow-dark:border-zinc-700 bg-white flow-dark:bg-zinc-900 shadow-sm overflow-hidden">
-      {/* window chrome — dots left, the kind as a monospace route tag right */}
-      <div className="h-5 flex items-center justify-between px-2.5 border-b border-zinc-100 flow-dark:border-zinc-800">
-        <div className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
-        </div>
-        <span className="font-mono text-[8px] text-zinc-400 flow-dark:text-zinc-500">
-          {node.kind}
+  const windowChrome = (
+    <div className="flex h-5 shrink-0 items-center justify-between border-b border-zinc-100 px-2.5 flow-dark:border-zinc-800">
+      <div className="flex items-center gap-1">
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
+      </div>
+      <span className="font-mono text-[8px] text-zinc-400 flow-dark:text-zinc-500">
+        {node.kind}
+      </span>
+    </div>
+  );
+
+  const headerBlock = (
+    <>
+      <div className="flex flex-col items-center gap-1.5 pb-1 pt-4">
+        <Monogram primaryColor={primaryColor} />
+        <span className="text-[11px] font-semibold text-zinc-600 flow-dark:text-zinc-300">
+          {companyName}
         </span>
       </div>
-      <div className="px-4 pb-4 space-y-3">
-        {/* centered brand block — monogram over company name, with breathing room */}
-        <div className="flex flex-col items-center gap-1.5 pt-4 pb-1">
-          <Monogram primaryColor={primaryColor} />
-          <span className="text-[11px] font-semibold text-zinc-600 flow-dark:text-zinc-300">
-            {companyName}
-          </span>
+      <div className="text-center text-[13px] font-semibold leading-tight text-zinc-900 flow-dark:text-zinc-100">
+        {node.name}
+      </div>
+      {!playerFrame ? (
+        <MockupErrorBanner
+          traits={node.traits}
+          displayErrorState={displayErrorState}
+          errorBannerCopy={errorBannerCopy}
+        />
+      ) : null}
+    </>
+  );
+
+  const fieldsBlock =
+    node.fields.length > 0 ? (
+      <div className="space-y-2">
+        {node.fields.map((f) => (
+          <FieldRow key={f.name} field={f} traits={traitSet} />
+        ))}
+      </div>
+    ) : null;
+
+  const footerBlock = (
+    <>
+      {cta ? (
+        <div
+          className="flex h-7 items-center justify-center rounded-md font-medium text-[11px] text-white"
+          style={{ backgroundColor: primaryColor }}
+        >
+          {cta}
         </div>
-        <div className="text-center text-[13px] font-semibold leading-tight text-zinc-900 flow-dark:text-zinc-100">
-          {node.name}
+      ) : null}
+      {traitsAfterCta.length > 0 ? (
+        <div className="space-y-2">
+          {traitsAfterCta.map((trait) => (
+            <TraitChromeBlock key={trait} trait={trait} />
+          ))}
         </div>
-        {hasErrorBannerTrait(node.traits) && displayErrorState ? <ErrorBannerPlaceholder /> : null}
-        {node.fields.length > 0 ? (
-          <div className="space-y-2">
-            {node.fields.map((f) => (
-              <FieldRow key={f.name} field={f} traits={traitSet} />
-            ))}
-          </div>
-        ) : null}
-        {cta ? (
-          <div
-            className="h-7 rounded-md text-white text-[11px] font-medium flex items-center justify-center"
-            style={{ backgroundColor: primaryColor }}
-          >
-            {cta}
-          </div>
-        ) : null}
-        {traitsAfterCta.length > 0 ? (
-          <div className="space-y-2">
-            {traitsAfterCta.map((trait) => (
-              <TraitChromeBlock key={trait} trait={trait} />
-            ))}
-          </div>
-        ) : null}
+      ) : null}
+    </>
+  );
+
+  if (playerFrame) {
+    return (
+      <PlayerScreenCard
+        chrome={windowChrome}
+        header={headerBlock}
+        showErrorSlot={showErrorSlot}
+        errorBannerCopy={errorBannerCopy}
+        fields={fieldsBlock}
+        footer={footerBlock}
+      />
+    );
+  }
+
+  return (
+    <div className="w-[244px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm flow-dark:border-zinc-700 flow-dark:bg-zinc-900">
+      {windowChrome}
+      <div className="space-y-3 px-4 pb-4">
+        {headerBlock}
+        {fieldsBlock}
+        {footerBlock}
       </div>
     </div>
   );

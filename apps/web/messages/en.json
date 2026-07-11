@@ -20,8 +20,10 @@
       "fitView": "Fit flow to screen",
       "theme": "Theme: {name}{mark}",
       "runScenario": "Run scenario: {name}",
+      "playScenario": "Play scenario: {name}",
       "noScenarios": "No scenarios in this flow",
       "exitScenario": "Exit scenario: {name}",
+      "exitPlayer": "Exit player: {name}",
       "home": "Home",
       "continueEditing": "Continue editing",
       "about": "About Authprint"
@@ -160,5 +162,17 @@
     "continue": "Continue",
     "indicatorLabel": "Not exported",
     "indicatorTitle": "Saved locally — not exported as a file yet"
+  },
+  "player": {
+    "transport": {
+      "stepBack": "Step back",
+      "stepForward": "Step forward",
+      "play": "Play",
+      "pause": "Pause",
+      "stepCounter": "{current} / {total}",
+      "speed": "Playback speed",
+      "speedOption": "{seconds}s",
+      "exit": "Exit"
+    }
   }
 }

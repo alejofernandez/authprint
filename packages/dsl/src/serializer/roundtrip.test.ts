@@ -127,6 +127,41 @@ describe('round-trip — hand-built flows', () => {
     expect(reparse(flow)).toEqual(flow);
   });
 
+  test('scenario script steps with set: round-trip and omit when absent', () => {
+    const baseScenario = {
+      id: 'sc1',
+      name: 'plain',
+      initialContext: { 'user.has_passkey': false },
+      inputScript: [{ type: 'screen' as const, nodeId: 's1', action: 'submit' }],
+    };
+    const withoutSet = FlowSchema.parse({
+      id: 'f1',
+      name: 'No set',
+      context: { 'user.has_passkey': { type: 'boolean' } },
+      nodes: [{ type: 'entry', id: 'e1' }],
+      scenarios: [baseScenario],
+    });
+    const withSet = FlowSchema.parse({
+      ...withoutSet,
+      scenarios: [
+        {
+          ...baseScenario,
+          inputScript: [
+            {
+              type: 'screen' as const,
+              nodeId: 's1',
+              action: 'submit',
+              set: { 'user.has_passkey': true },
+            },
+          ],
+        },
+      ],
+    });
+    expect(reparse(withoutSet)).toEqual(withoutSet);
+    expect(reparse(withSet)).toEqual(withSet);
+    expect(serialize(withoutSet)).not.toContain('\n        set:');
+  });
+
   test('all theme values round-trip', () => {
     for (const theme of ['light', 'dark', 'both'] as const) {
       const flow = FlowSchema.parse({

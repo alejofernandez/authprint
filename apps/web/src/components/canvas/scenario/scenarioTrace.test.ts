@@ -9,6 +9,7 @@ const baseRun: ScenarioRun = {
     { nodeId: 'screen-a', viaEdgeId: 'e1' },
     { nodeId: 'outcome', viaEdgeId: 'e2' },
   ],
+  contextSnapshots: [{}, {}, {}],
   reachedOutcomeId: 'outcome',
   status: 'passed',
   divergence: null,

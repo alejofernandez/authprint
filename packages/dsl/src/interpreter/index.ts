@@ -1,4 +1,5 @@
 // US-059 — Scenario walk-through interpreter (model checking, not execution).
+// US-111 — per-step `set:` patches + context snapshots aligned with trace.
 
 import type { Edge } from '../schema/edge.ts';
 import type { Flow } from '../schema/flow.ts';
@@ -21,6 +22,8 @@ export type Divergence =
 export type ScenarioRun = {
   scenarioId: string;
   trace: TraceStep[];
+  /** Context state at each trace index — same length as `trace`. */
+  contextSnapshots: Record<string, unknown>[];
   reachedOutcomeId: string | null;
   status: 'passed' | 'diverged';
   divergence: Divergence | null;
@@ -33,7 +36,7 @@ type TransitionResult =
 export function runScenario(flow: Flow, scenario: Scenario): ScenarioRun {
   const entry = flow.nodes.find((n) => n.type === 'entry');
   if (!entry) {
-    return divergedRun(scenario.id, [], null, {
+    return divergedRun(scenario.id, [], [cloneContext(scenario.initialContext)], null, {
       kind: 'no-matching-edge',
       nodeId: '',
       detail: 'flow has no entry node',
@@ -45,20 +48,22 @@ export function runScenario(flow: Flow, scenario: Scenario): ScenarioRun {
   const scriptQueue = [...scenario.inputScript];
   const maxSteps = flow.nodes.length * 8;
 
+  let currentContext = cloneContext(scenario.initialContext);
   const trace: TraceStep[] = [{ nodeId: entry.id, viaEdgeId: null }];
+  const contextSnapshots: Record<string, unknown>[] = [cloneContext(currentContext)];
   let current: Node = entry;
   let iterations = 1;
 
   while (true) {
     if (iterations > maxSteps) {
-      return divergedRun(scenario.id, trace, null, {
+      return divergedRun(scenario.id, trace, contextSnapshots, null, {
         kind: 'step-limit-exceeded',
         nodeId: current.id,
       });
     }
 
     if (current.type === 'outcome') {
-      return finishAtOutcome(scenario, trace, current.id);
+      return finishAtOutcome(scenario, trace, contextSnapshots, current.id);
     }
 
     const transition = transitionFrom(
@@ -67,26 +72,33 @@ export function runScenario(flow: Flow, scenario: Scenario): ScenarioRun {
       scriptQueue,
       edgesBySource,
       nodeById,
-      scenario.initialContext,
+      currentContext,
     );
     if (!transition.ok) {
-      return divergedRun(scenario.id, trace, null, transition.divergence);
+      return divergedRun(scenario.id, trace, contextSnapshots, null, transition.divergence);
     }
 
+    currentContext = transition.context;
     trace.push({ nodeId: transition.target.id, viaEdgeId: transition.edge.id });
+    contextSnapshots.push(cloneContext(currentContext));
     current = transition.target;
     iterations++;
   }
 }
 
-function finishAtOutcome(scenario: Scenario, trace: TraceStep[], outcomeId: string): ScenarioRun {
+function finishAtOutcome(
+  scenario: Scenario,
+  trace: TraceStep[],
+  contextSnapshots: Record<string, unknown>[],
+  outcomeId: string,
+): ScenarioRun {
   const expected = scenario.expectedOutcome;
   if (!expected) {
-    return passedRun(scenario.id, trace, outcomeId);
+    return passedRun(scenario.id, trace, contextSnapshots, outcomeId);
   }
 
   if (expected.outcomeId !== undefined && expected.outcomeId !== outcomeId) {
-    return divergedRun(scenario.id, trace, outcomeId, {
+    return divergedRun(scenario.id, trace, contextSnapshots, outcomeId, {
       kind: 'unexpected-outcome',
       nodeId: outcomeId,
       expected: expected.outcomeId,
@@ -101,7 +113,7 @@ function finishAtOutcome(scenario: Scenario, trace: TraceStep[], outcomeId: stri
       const want = expected.sequence[i] ?? '';
       const got = actualSequence[i] ?? '';
       if (got !== want) {
-        return divergedRun(scenario.id, trace, outcomeId, {
+        return divergedRun(scenario.id, trace, contextSnapshots, outcomeId, {
           kind: 'sequence-mismatch',
           atIndex: i,
           expected: want,
@@ -111,8 +123,15 @@ function finishAtOutcome(scenario: Scenario, trace: TraceStep[], outcomeId: stri
     }
   }
 
-  return passedRun(scenario.id, trace, outcomeId);
+  return passedRun(scenario.id, trace, contextSnapshots, outcomeId);
 }
+
+type TransitionOk = {
+  ok: true;
+  edge: Edge;
+  target: Node;
+  context: Record<string, unknown>;
+};
 
 function transitionFrom(
   flow: Flow,
@@ -120,26 +139,38 @@ function transitionFrom(
   scriptQueue: ScriptStep[],
   edgesBySource: Map<string, Edge[]>,
   nodeById: Map<string, Node>,
-  initialContext: Record<string, unknown>,
-): TransitionResult {
+  currentContext: Record<string, unknown>,
+): TransitionOk | { ok: false; divergence: Divergence } {
   switch (node.type) {
-    case 'entry':
-      return followUnconditional(node, edgesBySource, nodeById);
-    case 'decision':
-      return followDecision(flow, node, edgesBySource, nodeById, initialContext);
+    case 'entry': {
+      const result = followUnconditional(node, edgesBySource, nodeById);
+      if (!result.ok) return result;
+      return { ...result, context: currentContext };
+    }
+    case 'decision': {
+      const result = followDecision(flow, node, edgesBySource, nodeById, currentContext);
+      if (!result.ok) return result;
+      return { ...result, context: currentContext };
+    }
     case 'screen': {
       const result = consumeScriptStep(node, scriptQueue, 'screen', (step) =>
         findInteractionEdge(edgesBySource.get(node.id) ?? [], step.action),
       );
       if (!result.ok) return result;
-      return edgeToTransition(result.edge, nodeById);
+      const context = applyStepPatch(currentContext, result.step);
+      const transition = edgeToTransition(result.edge, nodeById);
+      if (!transition.ok) return transition;
+      return { ...transition, context };
     }
     case 'action': {
       const result = consumeScriptStep(node, scriptQueue, 'action', (step) =>
         findResultEdge(edgesBySource.get(node.id) ?? [], step.result, ['on-success', 'on-error']),
       );
       if (!result.ok) return result;
-      return edgeToTransition(result.edge, nodeById);
+      const context = applyStepPatch(currentContext, result.step);
+      const transition = edgeToTransition(result.edge, nodeById);
+      if (!transition.ok) return transition;
+      return { ...transition, context };
     }
     case 'external': {
       const result = consumeScriptStep(node, scriptQueue, 'external', (step) =>
@@ -151,7 +182,10 @@ function transitionFrom(
         ]),
       );
       if (!result.ok) return result;
-      return edgeToTransition(result.edge, nodeById);
+      const context = applyStepPatch(currentContext, result.step);
+      const transition = edgeToTransition(result.edge, nodeById);
+      if (!transition.ok) return transition;
+      return { ...transition, context };
     }
     case 'outcome':
       return {
@@ -163,6 +197,14 @@ function transitionFrom(
         },
       };
   }
+}
+
+function applyStepPatch(
+  currentContext: Record<string, unknown>,
+  step: ScriptStep,
+): Record<string, unknown> {
+  if (!step.set || Object.keys(step.set).length === 0) return currentContext;
+  return { ...currentContext, ...step.set };
 }
 
 function followUnconditional(
@@ -190,9 +232,9 @@ function followDecision(
   node: Extract<Node, { type: 'decision' }>,
   edgesBySource: Map<string, Edge[]>,
   nodeById: Map<string, Node>,
-  initialContext: Record<string, unknown>,
+  currentContext: Record<string, unknown>,
 ): TransitionResult {
-  const evalResult = evaluatePredicate(flow, node.id, node.predicate, initialContext);
+  const evalResult = evaluatePredicate(flow, node.id, node.predicate, currentContext);
   if (evalResult.kind === 'error') {
     return { ok: false, divergence: evalResult.divergence };
   }
@@ -214,7 +256,9 @@ function followDecision(
   return edgeToTransition(edge, nodeById);
 }
 
-type ScriptStepResult = { ok: true; edge: Edge } | { ok: false; divergence: Divergence };
+type ScriptStepResult =
+  | { ok: true; edge: Edge; step: ScriptStep }
+  | { ok: false; divergence: Divergence };
 
 function consumeScriptStep<T extends ScriptStep['type']>(
   node: Node,
@@ -252,7 +296,7 @@ function consumeScriptStep<T extends ScriptStep['type']>(
       divergence: { kind: 'no-matching-edge', nodeId: node.id, detail },
     };
   }
-  return { ok: true, edge };
+  return { ok: true, edge, step };
 }
 
 function findInteractionEdge(edges: Edge[], action: string): Edge | null {
@@ -273,7 +317,7 @@ function evaluatePredicate(
   flow: Flow,
   nodeId: string,
   predicate: Predicate,
-  initialContext: Record<string, unknown>,
+  currentContext: Record<string, unknown>,
 ): { kind: 'ok'; value: boolean } | { kind: 'error'; divergence: Divergence } {
   const slotDecl = flow.context[predicate.slot] as ContextSlot | undefined;
   if (!slotDecl) {
@@ -282,14 +326,14 @@ function evaluatePredicate(
       divergence: { kind: 'unknown-slot', nodeId, slot: predicate.slot },
     };
   }
-  if (!(predicate.slot in initialContext)) {
+  if (!(predicate.slot in currentContext)) {
     return {
       kind: 'error',
       divergence: { kind: 'unknown-slot', nodeId, slot: predicate.slot },
     };
   }
 
-  const slotValue = initialContext[predicate.slot];
+  const slotValue = currentContext[predicate.slot];
 
   if (predicate.op === 'in' || predicate.op === 'not-in') {
     if (!Array.isArray(predicate.value)) {
@@ -393,10 +437,20 @@ function edgeToTransition(edge: Edge, nodeById: Map<string, Node>): TransitionRe
   return { ok: true, edge, target };
 }
 
-function passedRun(scenarioId: string, trace: TraceStep[], outcomeId: string): ScenarioRun {
+function cloneContext(context: Record<string, unknown>): Record<string, unknown> {
+  return { ...context };
+}
+
+function passedRun(
+  scenarioId: string,
+  trace: TraceStep[],
+  contextSnapshots: Record<string, unknown>[],
+  outcomeId: string,
+): ScenarioRun {
   return {
     scenarioId,
     trace,
+    contextSnapshots,
     reachedOutcomeId: outcomeId,
     status: 'passed',
     divergence: null,
@@ -406,12 +460,14 @@ function passedRun(scenarioId: string, trace: TraceStep[], outcomeId: string): S
 function divergedRun(
   scenarioId: string,
   trace: TraceStep[],
+  contextSnapshots: Record<string, unknown>[],
   outcomeId: string | null,
   divergence: Divergence,
 ): ScenarioRun {
   return {
     scenarioId,
     trace,
+    contextSnapshots,
     reachedOutcomeId: outcomeId,
     status: 'diverged',
     divergence,

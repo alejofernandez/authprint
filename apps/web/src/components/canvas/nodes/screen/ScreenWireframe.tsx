@@ -2,8 +2,15 @@
 // placeholder bars: no styled copy, structural blocks only.
 
 import type { Field, ScreenNode, TraitId } from '@authprint/dsl';
+import { PlayerScreenCard } from './PlayerScreenCard.tsx';
 import { screenCta } from './screenCopy.ts';
-import { ErrorBannerPlaceholder, hasErrorBannerTrait, postCtaTraits } from './traitChrome.tsx';
+import type { ScreenStageLayout } from './screenStageLayout.ts';
+import {
+  ErrorBanner,
+  ErrorBannerPlaceholder,
+  hasErrorBannerTrait,
+  postCtaTraits,
+} from './traitChrome.tsx';
 
 const MASKED_TYPES = new Set(['password', 'new-password', 'confirm-password']);
 const STRENGTH_METER_TYPES = new Set(['password', 'new-password']);
@@ -100,49 +107,108 @@ function WireframeTraitBlock({ trait }: { trait: TraitId }) {
   }
 }
 
+function WireframeErrorBanner({
+  traits,
+  displayErrorState,
+  errorBannerCopy,
+}: {
+  traits: TraitId[];
+  displayErrorState: boolean;
+  errorBannerCopy: string | null;
+}) {
+  if (!hasErrorBannerTrait(traits)) return null;
+  if (errorBannerCopy) return <ErrorBanner copy={errorBannerCopy} />;
+  if (displayErrorState) return <ErrorBannerPlaceholder />;
+  return null;
+}
+
 export function ScreenWireframe({
   node,
   displayErrorState = false,
+  errorBannerCopy = null,
+  stageLayout = 'default',
 }: {
   node: ScreenNode;
   displayErrorState?: boolean;
+  errorBannerCopy?: string | null;
+  stageLayout?: ScreenStageLayout;
 }) {
   const cta = screenCta(node.kind);
   const traitSet = new Set(node.traits);
   const traitsAfterCta = postCtaTraits(node.traits);
+  const playerFrame = stageLayout === 'player';
+  const showErrorSlot = playerFrame && hasErrorBannerTrait(node.traits);
+
+  const windowChrome = (
+    <div className="flex h-5 shrink-0 items-center justify-between border-b border-zinc-100 px-2.5 flow-dark:border-zinc-800">
+      <div className="flex items-center gap-1">
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
+      </div>
+      <Bar className="h-2 w-14" />
+    </div>
+  );
+
+  const headerBlock = (
+    <>
+      <div className="flex flex-col items-center gap-1.5 pb-1 pt-4">
+        <Bar className="h-8 w-8 rounded-[9px]" />
+        <Bar className="h-2.5 w-10" />
+      </div>
+      <Bar className="mx-auto h-3.5 w-28" />
+      {!playerFrame ? (
+        <WireframeErrorBanner
+          traits={node.traits}
+          displayErrorState={displayErrorState}
+          errorBannerCopy={errorBannerCopy}
+        />
+      ) : null}
+    </>
+  );
+
+  const fieldsBlock =
+    node.fields.length > 0 ? (
+      <div className="space-y-2">
+        {node.fields.map((field) => (
+          <WireframeFieldRow key={field.name} field={field} traits={traitSet} />
+        ))}
+      </div>
+    ) : null;
+
+  const footerBlock = (
+    <>
+      {cta ? <Bar className="h-7 w-full" /> : null}
+      {traitsAfterCta.length > 0 ? (
+        <div className="space-y-2">
+          {traitsAfterCta.map((trait) => (
+            <WireframeTraitBlock key={trait} trait={trait} />
+          ))}
+        </div>
+      ) : null}
+    </>
+  );
+
+  if (playerFrame) {
+    return (
+      <PlayerScreenCard
+        chrome={windowChrome}
+        header={headerBlock}
+        showErrorSlot={showErrorSlot}
+        errorBannerCopy={errorBannerCopy}
+        fields={fieldsBlock}
+        footer={footerBlock}
+      />
+    );
+  }
 
   return (
     <div className="w-[244px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm flow-dark:border-zinc-700 flow-dark:bg-zinc-900">
-      <div className="flex h-5 items-center justify-between border-b border-zinc-100 px-2.5 flow-dark:border-zinc-800">
-        <div className="flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 flow-dark:bg-zinc-600" />
-        </div>
-        <Bar className="h-2 w-14" />
-      </div>
+      {windowChrome}
       <div className="space-y-3 px-4 pb-4">
-        <div className="flex flex-col items-center gap-1.5 pb-1 pt-4">
-          <Bar className="h-8 w-8 rounded-[9px]" />
-          <Bar className="h-2.5 w-10" />
-        </div>
-        <Bar className="mx-auto h-3.5 w-28" />
-        {hasErrorBannerTrait(node.traits) && displayErrorState ? <ErrorBannerPlaceholder /> : null}
-        {node.fields.length > 0 ? (
-          <div className="space-y-2">
-            {node.fields.map((field) => (
-              <WireframeFieldRow key={field.name} field={field} traits={traitSet} />
-            ))}
-          </div>
-        ) : null}
-        {cta ? <Bar className="h-7 w-full" /> : null}
-        {traitsAfterCta.length > 0 ? (
-          <div className="space-y-2">
-            {traitsAfterCta.map((trait) => (
-              <WireframeTraitBlock key={trait} trait={trait} />
-            ))}
-          </div>
-        ) : null}
+        {headerBlock}
+        {fieldsBlock}
+        {footerBlock}
       </div>
     </div>
   );
