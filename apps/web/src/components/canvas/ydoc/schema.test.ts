@@ -74,7 +74,23 @@ describe('node round-trip', () => {
       predicate: { slot: 'u', op: 'equals', value: true },
     },
     { type: 'action', id: 'a1', name: 'Send code', kind: 'send-otp' },
+    {
+      type: 'action',
+      id: 'a2',
+      name: 'Validate',
+      kind: 'validate-credentials',
+      errorMessage: 'Invalid credentials.',
+    },
     { type: 'external', id: 'x1', name: 'Google', kind: 'google' },
+    {
+      type: 'screen',
+      id: 's2',
+      name: 'Retry login',
+      kind: 'password',
+      traits: ['error-banner'],
+      fields: [],
+      fidelity: 'mockup',
+    },
     { type: 'outcome', id: 'o1', name: 'Authenticated', kind: 'authenticated' },
   ];
 

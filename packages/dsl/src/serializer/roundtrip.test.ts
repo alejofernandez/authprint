@@ -204,6 +204,60 @@ describe('round-trip — hand-built flows', () => {
     });
     expect(reparse(flow)).toEqual(flow);
   });
+
+  test('action/external errorMessage round-trips and omits when absent', () => {
+    const withMessage = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      nodes: [
+        { type: 'entry', id: 'e1' },
+        {
+          type: 'action',
+          id: 'a1',
+          name: 'Validate',
+          kind: 'validate-credentials',
+          errorMessage: 'Invalid credentials.',
+        },
+        {
+          type: 'external',
+          id: 'x1',
+          name: 'Google',
+          kind: 'google',
+          errorMessage: 'Sign-in was cancelled.',
+        },
+      ],
+    });
+    expect(reparse(withMessage)).toEqual(withMessage);
+
+    const without = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      nodes: [
+        { type: 'entry', id: 'e1' },
+        { type: 'action', id: 'a1', name: 'Send OTP', kind: 'send-otp' },
+      ],
+    });
+    expect(serialize(without)).not.toContain('errorMessage');
+    expect(reparse(without)).toEqual(without);
+  });
+
+  test('error-banner trait round-trips on screens', () => {
+    const flow = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      nodes: [
+        { type: 'entry', id: 'e1' },
+        {
+          type: 'screen',
+          id: 's1',
+          name: 'Sign in',
+          kind: 'password',
+          traits: ['error-banner'],
+        },
+      ],
+    });
+    expect(reparse(flow)).toEqual(flow);
+  });
 });
 
 describe('round-trip — example files', () => {

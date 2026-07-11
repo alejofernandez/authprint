@@ -161,6 +161,50 @@ export const ScreenMockupTraitsDark: Story = {
   },
 };
 
+const errorBannerScreen: ScreenNode = {
+  type: 'screen',
+  id: 'login-error-banner',
+  name: 'Sign in',
+  kind: 'identifier-collect',
+  traits: ['error-banner'],
+  fields: [
+    { name: 'email', type: 'email', required: true },
+    { name: 'password', type: 'password', required: true },
+  ],
+  fidelity: 'mockup',
+};
+
+const errorBannerCanvas = { width: 360, height: 420 };
+
+export const ScreenMockupErrorBannerLight: Story = {
+  args: {
+    type: 'screen',
+    node: errorBannerScreen,
+    theme: 'light',
+    displayErrorState: true,
+    ...errorBannerCanvas,
+  },
+};
+export const ScreenMockupErrorBannerDark: Story = {
+  args: {
+    type: 'screen',
+    node: errorBannerScreen,
+    theme: 'dark',
+    flowTheme: 'dark',
+    displayErrorState: true,
+    ...errorBannerCanvas,
+  },
+};
+export const ScreenWireframeErrorBannerLight: Story = {
+  args: {
+    type: 'screen',
+    node: { ...errorBannerScreen, fidelity: 'wireframe' },
+    theme: 'light',
+    displayErrorState: true,
+    ...errorBannerCanvas,
+  },
+};
+
 // Fidelity tiers (US-069) — same password screen across mockup / wireframe / lo-fi.
 const passwordFidelityScreen: ScreenNode = {
   type: 'screen',

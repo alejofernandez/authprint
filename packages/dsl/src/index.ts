@@ -1,6 +1,7 @@
 export const DSL_VERSION = '0.0.0';
 
 export * from './diagnostic.ts';
+export * from './errorBanner.ts';
 export {
   type Divergence,
   runScenario,

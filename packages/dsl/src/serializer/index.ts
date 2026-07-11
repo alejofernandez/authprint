@@ -130,11 +130,25 @@ function canonicalizeDecision(n: DecisionNode): Record<string, unknown> {
 }
 
 function canonicalizeAction(n: ActionNode): Record<string, unknown> {
-  return { type: n.type, id: n.id, name: n.name, kind: n.kind };
+  const out: Record<string, unknown> = {
+    type: n.type,
+    id: n.id,
+    name: n.name,
+    kind: n.kind,
+  };
+  if (n.errorMessage !== undefined) out.errorMessage = n.errorMessage;
+  return out;
 }
 
 function canonicalizeExternal(n: ExternalNode): Record<string, unknown> {
-  return { type: n.type, id: n.id, name: n.name, kind: n.kind };
+  const out: Record<string, unknown> = {
+    type: n.type,
+    id: n.id,
+    name: n.name,
+    kind: n.kind,
+  };
+  if (n.errorMessage !== undefined) out.errorMessage = n.errorMessage;
+  return out;
 }
 
 function canonicalizeOutcome(n: OutcomeNode): Record<string, unknown> {

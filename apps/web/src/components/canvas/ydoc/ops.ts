@@ -42,6 +42,7 @@ import {
   LOCAL_ORIGIN,
   layoutMap,
   metaMap,
+  type NodeLayoutRecord,
   nodesMap,
   type Position,
   readTriggerMap,
@@ -83,7 +84,34 @@ export function removeNode(doc: Y.Doc, nodeId: string): OpResult {
 /** Persist a node position (flips the canvas to manual mode for that node). */
 export function moveNode(doc: Y.Doc, nodeId: string, position: Position): OpResult {
   if (!nodesMap(doc).has(nodeId)) return fail(`node '${nodeId}' does not exist`);
-  doc.transact(() => layoutMap(doc).set(nodeId, position), LOCAL_ORIGIN);
+  doc.transact(() => {
+    const map = layoutMap(doc);
+    const prev = map.get(nodeId);
+    const next: NodeLayoutRecord = { ...position };
+    if (prev?.displayErrorState) next.displayErrorState = true;
+    map.set(nodeId, next);
+  }, LOCAL_ORIGIN);
+  return ok;
+}
+
+/** Toggle error-banner preview on a screen (layout view state, not DSL). */
+export function setScreenDisplayErrorState(
+  doc: Y.Doc,
+  nodeId: string,
+  displayErrorState: boolean,
+  position: Position,
+): OpResult {
+  const node = nodesMap(doc).get(nodeId);
+  if (!node) return fail(`node '${nodeId}' does not exist`);
+  if (node.get('type') !== 'screen') return fail(`node '${nodeId}' is not a screen`);
+  doc.transact(() => {
+    const map = layoutMap(doc);
+    const prev = map.get(nodeId);
+    const x = prev?.x ?? position.x;
+    const y = prev?.y ?? position.y;
+    if (displayErrorState) map.set(nodeId, { x, y, displayErrorState: true });
+    else map.set(nodeId, { x, y });
+  }, LOCAL_ORIGIN);
   return ok;
 }
 
@@ -280,6 +308,25 @@ export function setNodeName(doc: Y.Doc, id: string, name: string): OpResult {
 
 export function setNodeKind(doc: Y.Doc, id: string, kind: string): OpResult {
   return withNode(doc, id, (node) => node.set('kind', kind));
+}
+
+export function setNodeErrorMessage(
+  doc: Y.Doc,
+  id: string,
+  errorMessage: string | undefined,
+): OpResult {
+  const node = nodesMap(doc).get(id);
+  if (!node) return fail(`node '${id}' does not exist`);
+  const type = node.get('type');
+  if (type !== 'action' && type !== 'external') {
+    return fail(`node '${id}' is not action/external`);
+  }
+  const trimmed = errorMessage?.trim();
+  doc.transact(() => {
+    if (!trimmed) node.delete('errorMessage');
+    else node.set('errorMessage', trimmed);
+  }, LOCAL_ORIGIN);
+  return ok;
 }
 
 export function setScreenFidelity(

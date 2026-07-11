@@ -34,7 +34,11 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
       <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />
       <div className={screenThemeClass(data.screenTheme ?? 'light')}>
-        <ScreenFidelityView node={node} branding={data.branding} />
+        <ScreenFidelityView
+          node={node}
+          branding={data.branding}
+          displayErrorState={data.displayErrorState}
+        />
       </div>
       <Handle type="source" position={Position.Right} id="default" />
       <Handle type="source" position={Position.Bottom} id="alt" />

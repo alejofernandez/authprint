@@ -23,7 +23,7 @@ scenarios: [ ... ]          # default: []
 
 The file extension `.authprint` is the indicator that the document is a flow; a wrapper key would be redundant.
 
-**Reserved top-level key — `layout`.** A *bundled* `.authprint` (the editor's default single-file save) carries node positions in a top-level `layout:` mapping (`nodeId: { x, y }`) alongside the flow. `layout` is **reserved and ignored by the semantic parser**: it is not part of the data model (Principle 2 — layout is view, not data; `FlowSchema` has no `layout` field), so `parse()` strips it and emits no diagnostic. Editors read `layout` separately to restore positions; a clean *semantic-only* export omits it entirely.
+**Reserved top-level key — `layout`.** A *bundled* `.authprint` (the editor's default single-file save) carries node positions in a top-level `layout:` mapping (`nodeId: { x, y, … }`) alongside the flow. `layout` is **reserved and ignored by the semantic parser**: it is not part of the data model (Principle 2 — layout is view, not data; `FlowSchema` has no `layout` field), so `parse()` strips it and emits no diagnostic. Editors read `layout` separately to restore positions and per-node view flags; a clean *semantic-only* export omits it entirely.
 
 **Forward-compat for schema-format versioning** (if/when needed): adopt the Kubernetes-style top-level `apiVersion: authprint/vN` field, not a nested wrapper. Not in v1.
 
@@ -139,12 +139,14 @@ nodes:                        # optional, default: []
     id: <string>
     name: <string>
     kind: <ActionKind>          # built-in or custom
+    errorMessage: <string?>     # optional authored copy for error-banner screens
 
   # External
   - type: external
     id: <string>
     name: <string>
     kind: <ExternalKind>        # built-in or custom
+    errorMessage: <string?>     # optional authored copy for error-banner screens
 
   # Outcome
   - type: outcome
@@ -216,11 +218,25 @@ scenarios:                      # optional, default: []
 The layout layer lives in a separate file `<name>.authprint.layout`:
 
 ```yaml
-layout:
+nodes:
   <nodeId>:
     x: <number>
     y: <number>
+    displayErrorState: <boolean?>   # optional; screen preview only
+edges:
+  <edgeId>:
+    - x: <number>
+      y: <number>
 ```
+
+Bundled `.authprint` files use the same shape under a top-level `layout:` key (nested `nodes` / `edges` blocks). Legacy flat node maps (`layout: { nodeId: { x, y } }`) remain valid.
+
+**Node layout fields**
+
+| Field | Applies to | Default | Meaning |
+|---|---|---|---|
+| `x`, `y` | all nodes | — | Canvas position |
+| `displayErrorState` | screens with `error-banner` | `false` (omitted) | When `true`, wireframe/mockup tiers show the error-banner preview on the static canvas. Scenario playback shows the banner regardless (derived from the run). |
 
 Same strict YAML subset applies. Nodes without entries fall back to auto-layout.
 

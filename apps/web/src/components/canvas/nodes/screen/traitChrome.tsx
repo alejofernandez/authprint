@@ -5,7 +5,7 @@
 // TRAIT_IDS order below the primary CTA.
 
 import type { TraitId } from '@authprint/dsl';
-import { TRAIT_IDS } from '@authprint/dsl';
+import { resolveErrorBannerCopy, TRAIT_IDS } from '@authprint/dsl';
 
 const FIELD_TRAITS = new Set<TraitId>(['password-strength-meter', 'show-password-toggle']);
 
@@ -15,7 +15,28 @@ export function sortTraits(traits: TraitId[]): TraitId[] {
 }
 
 export function postCtaTraits(traits: TraitId[]): TraitId[] {
-  return sortTraits(traits).filter((t) => t !== 'bot-detection-invisible' && !FIELD_TRAITS.has(t));
+  return sortTraits(traits).filter(
+    (t) => t !== 'bot-detection-invisible' && t !== 'error-banner' && !FIELD_TRAITS.has(t),
+  );
+}
+
+export function hasErrorBannerTrait(traits: readonly TraitId[]): boolean {
+  return traits.includes('error-banner');
+}
+
+export function ErrorBanner({ copy }: { copy: string }) {
+  return (
+    <div
+      role="alert"
+      className="rounded-md border border-signal-danger-ring bg-red-50 px-2.5 py-1.5 text-[10px] leading-snug text-signal-danger flow-dark:border-signal-danger-ring flow-dark:bg-red-950/50 flow-dark:text-signal-danger-fg"
+    >
+      {copy}
+    </div>
+  );
+}
+
+export function ErrorBannerPlaceholder() {
+  return <ErrorBanner copy={resolveErrorBannerCopy(null)} />;
 }
 
 function MockCheckbox({ label }: { label: string }) {

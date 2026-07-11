@@ -161,6 +161,20 @@ describe('serializeLayout / parseLayout', () => {
     expect(out).toEqual({ s1: { x: 13, y: -3 } });
   });
 
+  test('round-trips displayErrorState on node layout records', () => {
+    const layout: LayoutPositions = {
+      s1: { x: 10, y: 20, displayErrorState: true },
+      entry: { x: 0, y: 0 },
+    };
+    expect(parseLayoutBlock(yamlParse(serializeLayout(layout)))).toEqual({
+      nodes: layout,
+      edges: {},
+    });
+    const yaml = serializeLayout({ s1: { x: 10, y: 20, displayErrorState: true } });
+    expect(yaml).toContain('displayErrorState: true');
+    expect(yaml).not.toContain('displayErrorState: false');
+  });
+
   test('empty map round-trips to empty', () => {
     expect(parseLayout(yamlParse(serializeLayout({})))).toEqual({});
   });

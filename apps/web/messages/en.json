@@ -73,7 +73,15 @@
     "labels": {
       "name": "Name",
       "kind": "Kind",
-      "fidelity": "Fidelity"
+      "fidelity": "Fidelity",
+      "errorMessage": "Error message"
+    },
+    "traits": {
+      "showErrorBanner": "Show error banner on canvas",
+      "hideErrorBanner": "Hide error banner on canvas"
+    },
+    "placeholders": {
+      "errorMessage": "Shown on error-banner screens when this step fails"
     },
     "kind": {
       "chooseFromList": "Choose from list",

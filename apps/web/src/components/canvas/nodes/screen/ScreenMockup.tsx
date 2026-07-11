@@ -11,6 +11,8 @@
 import type { Branding, Field, ScreenNode, TraitId } from '@authprint/dsl';
 import { humanize, screenCta } from './screenCopy.ts';
 import {
+  ErrorBannerPlaceholder,
+  hasErrorBannerTrait,
   PasswordStrengthMeter,
   postCtaTraits,
   ShowPasswordToggle,
@@ -121,7 +123,15 @@ function FieldRow({ field, traits }: { field: Field; traits: ReadonlySet<TraitId
   );
 }
 
-export function ScreenMockup({ node, branding }: { node: ScreenNode; branding?: Branding }) {
+export function ScreenMockup({
+  node,
+  branding,
+  displayErrorState = false,
+}: {
+  node: ScreenNode;
+  branding?: Branding;
+  displayErrorState?: boolean;
+}) {
   const cta = screenCta(node.kind);
   const traitSet = new Set(node.traits);
   const traitsAfterCta = postCtaTraits(node.traits);
@@ -152,6 +162,7 @@ export function ScreenMockup({ node, branding }: { node: ScreenNode; branding?: 
         <div className="text-center text-[13px] font-semibold leading-tight text-zinc-900 flow-dark:text-zinc-100">
           {node.name}
         </div>
+        {hasErrorBannerTrait(node.traits) && displayErrorState ? <ErrorBannerPlaceholder /> : null}
         {node.fields.length > 0 ? (
           <div className="space-y-2">
             {node.fields.map((f) => (

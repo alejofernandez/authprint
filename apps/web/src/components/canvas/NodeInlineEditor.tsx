@@ -27,15 +27,18 @@ import {
 } from '@authprint/dsl';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import type { NodeLayoutRecord } from './ydoc/schema.ts';
 
 export type NodeEditActions = {
   setName: (id: string, name: string) => void;
   setKind: (id: string, kind: string) => void;
+  setErrorMessage: (id: string, errorMessage: string) => void;
   setFidelity: (id: string, fidelity: 'lo-fi' | 'wireframe' | 'mockup') => void;
   setTraits: (id: string, traits: string[]) => void;
   setFields: (id: string, fields: Field[]) => void;
   setPredicate: (id: string, predicate: Predicate) => void;
   declareSlot: (name: string, slot: ContextSlot) => void;
+  setDisplayErrorState: (id: string, display: boolean) => void;
 };
 
 const OPS_FOR_TYPE: Record<SlotType, readonly PredicateOp[]> = {
@@ -145,18 +148,48 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function ErrorBannerVisibilityIcon({ visible }: { visible: boolean }) {
+  if (visible) {
+    return (
+      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" aria-hidden="true">
+        <path
+          d="M1.5 8s2.5-4 6.5-4 6.5 4 6.5 4-2.5 4-6.5 4S1.5 8 1.5 8Z"
+          stroke="currentColor"
+          strokeWidth="1.2"
+        />
+        <circle cx="8" cy="8" r="1.75" stroke="currentColor" strokeWidth="1.2" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" aria-hidden="true">
+      <path
+        d="M1.5 8s2.5-4 6.5-4 6.5 4 6.5 4-2.5 4-6.5 4S1.5 8 1.5 8Z"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        opacity="0.45"
+      />
+      <path d="M3 3l10 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function NodeInlineEditor({
   node,
   context,
   actions,
+  screenLayout,
 }: {
   node: DslNode;
   context: Context;
   actions: NodeEditActions;
+  /** Layout view state for screen nodes (position + preview flags). */
+  screenLayout?: NodeLayoutRecord;
 }) {
   const t = useTranslations('inspector');
   const screen = node.type === 'screen' ? node : null;
   const decision = node.type === 'decision' ? node : null;
+  const errorSource = node.type === 'action' || node.type === 'external' ? node : null;
 
   return (
     <div className="space-y-4">
@@ -210,6 +243,23 @@ export function NodeInlineEditor({
             </select>
           </label>
         )}
+
+        {errorSource && (
+          <label className="block space-y-1">
+            <span className="text-xs text-fg-subtle dark:text-fg-subtle">
+              {t('labels.errorMessage')}
+            </span>
+            <input
+              className={inputCls}
+              defaultValue={errorSource.errorMessage ?? ''}
+              placeholder={t('placeholders.errorMessage')}
+              onBlur={(e) => actions.setErrorMessage(node.id, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur();
+              }}
+            />
+          </label>
+        )}
       </Section>
 
       {screen && (
@@ -217,6 +267,40 @@ export function NodeInlineEditor({
           <div className="flex flex-wrap gap-1">
             {TRAIT_IDS.map((trait) => {
               const on = screen.traits.includes(trait);
+              if (trait === 'error-banner' && on) {
+                const visible = screenLayout?.displayErrorState === true;
+                return (
+                  <span
+                    key={trait}
+                    className="inline-flex items-center overflow-hidden rounded-full border border-accent-primary-border bg-accent-primary-selected-bg font-mono text-[11px] text-accent-primary-selected-fg"
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        actions.setTraits(
+                          node.id,
+                          screen.traits.filter((t) => t !== trait),
+                        )
+                      }
+                      className="px-2 py-0.5 hover:bg-accent-primary-selected-bg/80"
+                    >
+                      {trait}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={
+                        visible ? t('traits.hideErrorBanner') : t('traits.showErrorBanner')
+                      }
+                      aria-pressed={visible}
+                      title={visible ? t('traits.hideErrorBanner') : t('traits.showErrorBanner')}
+                      onClick={() => actions.setDisplayErrorState(node.id, !visible)}
+                      className="flex h-full items-center border-accent-primary-border border-l px-1.5 py-0.5 hover:bg-accent-primary-selected-bg/80"
+                    >
+                      <ErrorBannerVisibilityIcon visible={visible} />
+                    </button>
+                  </span>
+                );
+              }
               return (
                 <button
                   key={trait}

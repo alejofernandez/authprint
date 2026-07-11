@@ -58,6 +58,7 @@ export const ActionNodeSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   kind: z.string().min(1),
+  errorMessage: z.string().optional(),
 });
 export type ActionNode = z.infer<typeof ActionNodeSchema>;
 
@@ -70,6 +71,7 @@ export const ExternalNodeSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   kind: z.string().min(1),
+  errorMessage: z.string().optional(),
 });
 export type ExternalNode = z.infer<typeof ExternalNodeSchema>;
 

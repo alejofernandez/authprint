@@ -40,8 +40,17 @@ const EDGE_LAYOUT = 'edgeLayout';
 const META = 'meta';
 
 export type Position = { x: number; y: number };
-/** Node id → canvas position. The `layout` map's plain-object view (E25 artifact). */
-export type LayoutPositions = Record<string, Position>;
+/** Per-node layout view state (position + optional editor preview flags). */
+export type NodeLayoutRecord = Position & { displayErrorState?: boolean };
+/** Node id → layout record. The `layout` map's plain-object view (E25 artifact). */
+export type LayoutPositions = Record<string, NodeLayoutRecord>;
+
+/** Positions only — for elk merge and React Flow coordinates. */
+export function layoutPositionsOnly(layout: LayoutPositions): Record<string, Position> {
+  const out: Record<string, Position> = {};
+  for (const [id, { x, y }] of Object.entries(layout)) out[id] = { x, y };
+  return out;
+}
 
 export type ConnectionSide = 'top' | 'bottom' | 'left' | 'right';
 
@@ -107,7 +116,7 @@ export function createDoc(): Y.Doc {
 export const nodesMap = (doc: Y.Doc): Y.Map<Y.Map<unknown>> => doc.getMap(NODES);
 export const edgesMap = (doc: Y.Doc): Y.Map<Y.Map<unknown>> => doc.getMap(EDGES);
 export const contextMap = (doc: Y.Doc): Y.Map<Y.Map<unknown>> => doc.getMap(CONTEXT);
-export const layoutMap = (doc: Y.Doc): Y.Map<Position> => doc.getMap(LAYOUT);
+export const layoutMap = (doc: Y.Doc): Y.Map<NodeLayoutRecord> => doc.getMap(LAYOUT);
 export const edgeLayoutMap = (doc: Y.Doc): Y.Map<EdgeLayoutRecord> => doc.getMap(EDGE_LAYOUT);
 export const metaMap = (doc: Y.Doc): Y.Map<unknown> => doc.getMap(META);
 
@@ -133,6 +142,10 @@ export function buildNodeMap(node: DslNode): Y.Map<unknown> {
 
   if (node.type === 'decision') {
     map.set('predicate', buildPredicateMap(node.predicate));
+  }
+
+  if ((node.type === 'action' || node.type === 'external') && node.errorMessage !== undefined) {
+    map.set('errorMessage', node.errorMessage);
   }
 
   return map;
@@ -163,8 +176,18 @@ export function readNodeMap(map: Y.Map<unknown>): DslNode {
         kind: map.get('kind') as string,
         predicate: readPredicateMap(map.get('predicate') as Y.Map<unknown>),
       };
+    case 'action':
+    case 'external': {
+      const errorMessage = map.get('errorMessage') as string | undefined;
+      return {
+        type,
+        id,
+        name: map.get('name') as string,
+        kind: map.get('kind') as string,
+        ...(errorMessage !== undefined ? { errorMessage } : {}),
+      } as DslNode;
+    }
     default:
-      // action | external | outcome — all { type, id, name, kind }
       return {
         type,
         id,

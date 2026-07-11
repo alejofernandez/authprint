@@ -13,6 +13,8 @@ export type CanvasNodeData<TNode extends Node = Node> = {
   /** Flow-level branding (company name / primary color) — feeds mockup-tier
    *  screen rendering. Set on Screen nodes only. */
   branding?: Branding;
+  /** When true, wireframe/mockup tiers show the error-banner preview (layout view state). */
+  displayErrorState?: boolean;
   /** Scenario trace styling (US-061). Set when walking a scenario run. */
   traceState?: TraceNodeState;
   /** Divergence tooltip for `traceState: 'diverged'`. */

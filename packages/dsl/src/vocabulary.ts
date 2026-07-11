@@ -118,6 +118,7 @@ export const TRAIT_IDS = [
   'show-password-toggle',
   'social-login-buttons',
   'passkey-promotion',
+  'error-banner',
 ] as const;
 export type TraitId = (typeof TRAIT_IDS)[number];
 

@@ -98,9 +98,11 @@ import {
   setEdgeTrigger,
   setFlowName,
   setFlowTheme,
+  setNodeErrorMessage,
   setNodeKind,
   setNodeName,
   setPrimaryColor,
+  setScreenDisplayErrorState,
   setScreenFidelity,
   setScreenFields,
   setScreenTraits,
@@ -116,6 +118,7 @@ import {
   serializeSemantic,
   serializeSidecar,
 } from './ydoc/persist.ts';
+import { layoutPositionsOnly } from './ydoc/schema.ts';
 import { useFlowMeta } from './ydoc/useFlowMeta.ts';
 import { shouldDeferUndoToField, useUndoManager } from './ydoc/useUndoManager.ts';
 import { useYDocFlow } from './ydoc/useYDocFlow.ts';
@@ -962,11 +965,12 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
         : undefined;
     const base = flowToReactFlow(
       flow,
-      { ...autoPositions, ...layout },
+      { ...autoPositions, ...layoutPositionsOnly(layout) },
       edgeLayout,
       showOutlines ? validation : undefined,
       editorTheme,
       trace,
+      layout,
     );
     if (menu?.placement.kind !== 'aligned') return base;
     // Patch picker anchor into node data so React Flow re-renders the `+`.
@@ -1134,13 +1138,21 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
     () => ({
       setName: (id, v) => setNodeName(doc, id, v),
       setKind: (id, v) => setNodeKind(doc, id, v),
+      setErrorMessage: (id, v) => setNodeErrorMessage(doc, id, v),
       setFidelity: (id, v) => setScreenFidelity(doc, id, v),
       setTraits: (id, v) => setScreenTraits(doc, id, v),
       setFields: (id, v) => setScreenFields(doc, id, v),
       setPredicate: (id, p) => setDecisionPredicate(doc, id, p),
       declareSlot: (name, slot) => declareContextSlot(doc, name, slot),
+      setDisplayErrorState: (id, display) => {
+        const rfNode = getNode(id);
+        const pos = rfNode?.position ??
+          layoutPositionsOnly(layout)[id] ??
+          autoPositions?.[id] ?? { x: 0, y: 0 };
+        setScreenDisplayErrorState(doc, id, display, pos);
+      },
     }),
-    [doc],
+    [doc, getNode, layout, autoPositions],
   );
 
   const editingNode = editingId ? flow.nodes.find((n) => n.id === editingId) : undefined;
@@ -1195,7 +1207,12 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
                 node={editingNode}
                 onClose={() => setEditingId(null)}
               >
-                <NodeInlineEditor node={editingNode} context={flow.context} actions={editActions} />
+                <NodeInlineEditor
+                  node={editingNode}
+                  context={flow.context}
+                  actions={editActions}
+                  screenLayout={layout[editingId]}
+                />
               </NodeInspector>
             )}
             {!readOnly && edgeEditor && (

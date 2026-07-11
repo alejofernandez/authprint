@@ -21,6 +21,7 @@ import {
   isConnectionSide,
   type LayoutPositions,
   layoutMap,
+  type NodeLayoutRecord,
 } from './schema.ts';
 
 export type { EdgeLayoutEntry, EdgeLayoutRecord, EdgeRoutes, LayoutPositions };
@@ -49,12 +50,19 @@ export function docToArtifact(doc: Y.Doc): FlowArtifact {
 // `layout: { nodes: { nodeId: { x, y } }, edges: { edgeId: [{ x, y }, …] } }`.
 // `parseLayoutBlock` also accepts the legacy flat node map (all values `{x,y}`).
 
-function normalizeLayout(layout: LayoutPositions): Record<string, { x: number; y: number }> {
-  const out: Record<string, { x: number; y: number }> = {};
-  for (const [id, { x, y }] of Object.entries(layout).sort(([a], [b]) =>
+function normalizeLayout(
+  layout: LayoutPositions,
+): Record<string, { x: number; y: number; displayErrorState?: boolean }> {
+  const out: Record<string, { x: number; y: number; displayErrorState?: boolean }> = {};
+  for (const [id, record] of Object.entries(layout).sort(([a], [b]) =>
     a < b ? -1 : a > b ? 1 : 0,
   )) {
-    out[id] = { x: Math.round(x), y: Math.round(y) };
+    const entry: NodeLayoutRecord = {
+      x: Math.round(record.x),
+      y: Math.round(record.y),
+    };
+    if (record.displayErrorState) entry.displayErrorState = true;
+    out[id] = entry;
   }
   return out;
 }
@@ -141,7 +149,10 @@ function parseNodePositions(value: unknown): LayoutPositions {
       typeof y === 'number' &&
       Number.isFinite(y)
     ) {
-      out[id] = { x: Math.round(x), y: Math.round(y) };
+      const record: NodeLayoutRecord = { x: Math.round(x), y: Math.round(y) };
+      const displayErrorState = (pos as Record<string, unknown>).displayErrorState;
+      if (displayErrorState === true) record.displayErrorState = true;
+      out[id] = record;
     }
   }
   return out;

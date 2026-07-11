@@ -13,7 +13,7 @@ import type { CanvasNodeData } from './nodes/index.ts';
 import { buildNodeAriaLabel } from './nodes/nodeAriaLabel.ts';
 import { resolveScreenTheme } from './nodes/screen/screenTheme.ts';
 import type { TraceAttachment } from './scenario/scenarioTrace.ts';
-import { type EdgeRoutes, edgeLayoutPoints } from './ydoc/schema.ts';
+import { type EdgeRoutes, edgeLayoutPoints, type LayoutPositions } from './ydoc/schema.ts';
 
 export type NodePositionsMap = Record<string, { x: number; y: number }>;
 
@@ -125,6 +125,7 @@ export function flowToReactFlow(
   validation?: ValidationMaps,
   editorTheme: Theme | 'light' | 'dark' = 'light',
   trace?: TraceAttachment,
+  nodeLayout: LayoutPositions = {},
 ): FlowToReactFlowResult {
   // Physical handle ids with an outgoing edge (respects US-113 side overrides).
   const connectedHandles = new Map<string, Set<string>>();
@@ -171,6 +172,7 @@ export function flowToReactFlow(
       ...(node.type === 'screen' && {
         screenTheme: resolveScreenTheme(flow.branding.theme, editorTheme),
         branding: flow.branding,
+        displayErrorState: nodeLayout[node.id]?.displayErrorState === true,
       }),
       ...(trace && {
         traceState: trace.byNode.get(node.id),

@@ -3,7 +3,7 @@
 
 import type { Field, ScreenNode, TraitId } from '@authprint/dsl';
 import { screenCta } from './screenCopy.ts';
-import { postCtaTraits } from './traitChrome.tsx';
+import { ErrorBannerPlaceholder, hasErrorBannerTrait, postCtaTraits } from './traitChrome.tsx';
 
 const MASKED_TYPES = new Set(['password', 'new-password', 'confirm-password']);
 const STRENGTH_METER_TYPES = new Set(['password', 'new-password']);
@@ -100,7 +100,13 @@ function WireframeTraitBlock({ trait }: { trait: TraitId }) {
   }
 }
 
-export function ScreenWireframe({ node }: { node: ScreenNode }) {
+export function ScreenWireframe({
+  node,
+  displayErrorState = false,
+}: {
+  node: ScreenNode;
+  displayErrorState?: boolean;
+}) {
   const cta = screenCta(node.kind);
   const traitSet = new Set(node.traits);
   const traitsAfterCta = postCtaTraits(node.traits);
@@ -121,6 +127,7 @@ export function ScreenWireframe({ node }: { node: ScreenNode }) {
           <Bar className="h-2.5 w-10" />
         </div>
         <Bar className="mx-auto h-3.5 w-28" />
+        {hasErrorBannerTrait(node.traits) && displayErrorState ? <ErrorBannerPlaceholder /> : null}
         {node.fields.length > 0 ? (
           <div className="space-y-2">
             {node.fields.map((field) => (

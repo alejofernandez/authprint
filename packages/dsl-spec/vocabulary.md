@@ -143,6 +143,7 @@ Curated traits — declarative modifiers on Screens that don't add transitions.
 | `show-password-toggle` | Screen allows toggling password visibility |
 | `social-login-buttons` | Screen surfaces social-provider buttons |
 | `passkey-promotion` | Screen encourages passkey enrollment |
+| `error-banner` | Screen can show the most recent error inline (see [semantics](./semantics.md#error-display-on-screens)) |
 
 **v1 only allows traits from this list.** Custom trait identifiers are not accepted by the validator in v1; the vocabulary expands through review.
 

@@ -18,9 +18,11 @@ import {
   setEdgeTrigger,
   setFlowName,
   setFlowTheme,
+  setNodeErrorMessage,
   setNodeKind,
   setNodeName,
   setPrimaryColor,
+  setScreenDisplayErrorState,
   setScreenFidelity,
   setScreenFields,
   setScreenTraits,
@@ -108,8 +110,35 @@ describe('moveNode', () => {
     expect(moveNode(doc, 's1', { x: 100, y: 200 })).toEqual({ ok: true });
     expect(layoutMap(doc).get('s1')).toEqual({ x: 100, y: 200 });
   });
+  test('preserves displayErrorState when repositioning', () => {
+    const doc = base();
+    setScreenDisplayErrorState(doc, 's1', true, { x: 10, y: 20 });
+    moveNode(doc, 's1', { x: 100, y: 200 });
+    expect(layoutMap(doc).get('s1')).toEqual({ x: 100, y: 200, displayErrorState: true });
+  });
   test('rejects an unknown node', () => {
     expect(moveNode(base(), 'nope', { x: 0, y: 0 }).ok).toBe(false);
+  });
+});
+
+describe('setScreenDisplayErrorState', () => {
+  test('sets and clears the layout preview flag on screens', () => {
+    const doc = base();
+    expect(setScreenDisplayErrorState(doc, 's1', true, { x: 50, y: 60 })).toEqual({ ok: true });
+    expect(layoutMap(doc).get('s1')).toEqual({ x: 50, y: 60, displayErrorState: true });
+    expect(setScreenDisplayErrorState(doc, 's1', false, { x: 50, y: 60 })).toEqual({ ok: true });
+    expect(layoutMap(doc).get('s1')).toEqual({ x: 50, y: 60 });
+  });
+
+  test('preserves existing position when toggling', () => {
+    const doc = base();
+    moveNode(doc, 's1', { x: 10, y: 20 });
+    setScreenDisplayErrorState(doc, 's1', true, { x: 999, y: 999 });
+    expect(layoutMap(doc).get('s1')).toEqual({ x: 10, y: 20, displayErrorState: true });
+  });
+
+  test('rejects non-screen nodes', () => {
+    expect(setScreenDisplayErrorState(base(), 'd1', true, { x: 0, y: 0 }).ok).toBe(false);
   });
 });
 
@@ -186,6 +215,35 @@ describe('attribute edits', () => {
     const s = screenOf(doc);
     expect(s.name).toBe('Email');
     expect(s.kind).toBe('password');
+  });
+
+  test('setNodeErrorMessage writes through on action/external and clears when empty', () => {
+    const doc = hydrate({
+      id: 'f',
+      name: 'F',
+      branding: { theme: 'light' },
+      context: {},
+      nodes: [
+        { type: 'entry', id: 'entry' },
+        { type: 'action', id: 'a1', name: 'Validate', kind: 'validate-credentials' },
+        { type: 'external', id: 'x1', name: 'Google', kind: 'google' },
+      ],
+      edges: [],
+      annotations: [],
+      scenarios: [],
+    });
+    expect(setNodeErrorMessage(doc, 'a1', 'Bad password.').ok).toBe(true);
+    let a = readFlow(doc).nodes.find((n) => n.id === 'a1');
+    expect(a?.type === 'action' && a.errorMessage).toBe('Bad password.');
+
+    expect(setNodeErrorMessage(doc, 'x1', '  Provider unavailable  ').ok).toBe(true);
+    const x = readFlow(doc).nodes.find((n) => n.id === 'x1');
+    expect(x?.type === 'external' && x.errorMessage).toBe('Provider unavailable');
+
+    expect(setNodeErrorMessage(doc, 'a1', '   ').ok).toBe(true);
+    a = readFlow(doc).nodes.find((n) => n.id === 'a1');
+    expect(a?.type === 'action' && 'errorMessage' in a).toBe(false);
+    expect(setNodeErrorMessage(doc, 's1', 'nope').ok).toBe(false);
   });
 
   test('setScreenFidelity, traits, fields replace cleanly and round-trip', () => {

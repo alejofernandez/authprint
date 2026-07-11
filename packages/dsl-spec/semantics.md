@@ -29,6 +29,18 @@ A Screen MAY have multiple outgoing edges, one per distinct user action label (`
 
 `fidelity` denotes how richly the screen should render in lo-fi previews. v1 supports `lo-fi`, `wireframe`, `mockup` (the last two are display hints; v1 lo-fi rendering only).
 
+#### Error display on screens
+
+The `error-banner` trait declares that a screen can present the most recent error inline. On the static canvas, wireframe and mockup tiers render a danger-styled alert region with placeholder copy **only when the screen's layout record sets `displayErrorState: true`** (off by default so design-time canvases stay clean). During scenario playback, banner text is **derived from the run** regardless of that flag: a screen entered via an `on-error` edge shows which step failed.
+
+Banner copy resolves through a fallback chain on the failing `action` or `external` node:
+
+1. **`errorMessage`** — optional authored display copy on the node (same category as `name`; omitted from the DSL when unset).
+2. **Derived** — `"<node name> failed"` when `errorMessage` is absent.
+3. **Placeholder** — generic copy when there is no failing step to derive from (static canvas).
+
+Flows do not mutate context to carry errors. The transient vs terminal distinction is **topology, not an attribute**: an error edge looping back to a screen with `error-banner` models a retryable error; an error edge to a dedicated screen or terminal outcome models a non-transient one.
+
 ### Decision
 A **branching point with no UI**. The decision evaluates a `predicate` (single typed comparison in v1) over the flow's `Context`. Each outgoing edge carries a `branch` trigger with a value matching one possible predicate outcome.
 
@@ -43,6 +55,8 @@ Every Action MUST have **both** outgoing edges:
 
 This mandatory completeness is the model's way of forcing the author to think about failure paths — auth flows live and die by them. Validation enforces.
 
+Optional **`errorMessage`** — static display copy for the `error-banner` trait when this step fails. Omitted from the DSL when unset.
+
 ### External
 **Hand-off to an external system** (Google sign-in, OIDC provider, etc.). Distinguished from Action because the visual treatment must communicate "the user leaves the flow and returns."
 
@@ -53,6 +67,8 @@ May have outgoing edges with triggers:
 - `on-cancelled` (user backed out of the external flow)
 
 Not all four are required, but at minimum `on-success` and `on-error` are expected for a well-formed flow.
+
+Optional **`errorMessage`** — same as Action: authored banner copy when this external step fails.
 
 Passkey ceremonies are **inline on a Screen** (kind `passkey-auth` or `passkey-enroll`), NOT modeled as External — the user doesn't truly leave the app the way Google OAuth does.
 
