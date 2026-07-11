@@ -178,6 +178,18 @@ function expectedOutcomeMatches(scenario: Scenario | undefined, outcomeId: strin
   return scenario.expectedOutcome.outcomeId === outcomeId;
 }
 
+export function isSilentPlayerStep(nodeType: Node['type']): boolean {
+  return nodeType === 'action' || nodeType === 'external' || nodeType === 'decision';
+}
+
+/** Index of the most recent screen step strictly before `beforeIndex`, or null. */
+export function lastScreenStepIndex(steps: PlayerStep[], beforeIndex: number): number | null {
+  for (let i = beforeIndex - 1; i >= 0; i--) {
+    if (steps[i]?.nodeType === 'screen') return i;
+  }
+  return null;
+}
+
 export function divergedStepIndex(run: ScenarioRun): number | null {
   if (run.status !== 'diverged' || !run.divergence) return null;
 

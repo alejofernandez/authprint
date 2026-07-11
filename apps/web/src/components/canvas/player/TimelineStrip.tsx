@@ -40,15 +40,19 @@ export function TimelineStrip({
 
   return (
     <div className="w-full">
-      <div ref={scrollerRef} className="overflow-x-auto pb-2" data-timeline-scroller>
-        <div className="min-w-max px-1">
+      <div
+        ref={scrollerRef}
+        className="overflow-x-auto overflow-y-visible pb-2"
+        data-timeline-scroller
+      >
+        <div className="min-w-max px-1.5">
           <TimelineProgressBar
             stepCount={steps.length}
             activeIndex={activeIndex}
             diverged={divergedIndex !== null && activeIndex === divergedIndex}
           />
         </div>
-        <div className={`mb-1 flex min-w-max px-1`} style={{ gap: TIMELINE_CLIP_GAP }}>
+        <div className="mb-1 flex min-w-max" style={{ gap: TIMELINE_CLIP_GAP }}>
           {steps.map((step) => (
             <button
               key={`ruler-${step.nodeId}-${step.index}`}
@@ -60,7 +64,7 @@ export function TimelineStrip({
             </button>
           ))}
         </div>
-        <div className="flex min-w-max px-1" style={{ gap: TIMELINE_CLIP_GAP }}>
+        <div className="flex min-w-max" style={{ gap: TIMELINE_CLIP_GAP }}>
           {steps.map((step) => {
             const active = step.index === activeIndex;
             const diverged = divergedIndex !== null && step.index === divergedIndex;

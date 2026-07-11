@@ -2,7 +2,12 @@ import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parse, runScenario } from '@authprint/dsl';
-import { derivePlayerSteps, divergedStepIndex } from './steps.ts';
+import {
+  derivePlayerSteps,
+  divergedStepIndex,
+  isSilentPlayerStep,
+  lastScreenStepIndex,
+} from './steps.ts';
 import {
   timelineFillWidth,
   timelinePlayheadOffset,
@@ -171,14 +176,68 @@ describe('derivePlayerSteps — forced divergence', () => {
   });
 });
 
+describe('lastScreenStepIndex', () => {
+  test('walks backward to the most recent screen before the active step', () => {
+    const flow = loadLoginMfaFixture();
+    const scenario = flow.scenarios.find((s) => s.id === 'sc-retry');
+    expect(scenario).toBeDefined();
+    if (!scenario) return;
+
+    const run = runScenario(flow, scenario);
+    const { steps } = derivePlayerSteps(flow, run);
+
+    const verifyAction = steps.findIndex((s) => s.nodeId === 'a-verify');
+    expect(verifyAction).toBeGreaterThan(0);
+    const backdropIndex = lastScreenStepIndex(steps, verifyAction);
+    expect(backdropIndex).toBe(verifyAction - 1);
+    expect(steps[backdropIndex ?? -1]?.nodeType).toBe('screen');
+  });
+
+  test('returns null when no prior screen exists', () => {
+    expect(lastScreenStepIndex([], 0)).toBeNull();
+    expect(
+      lastScreenStepIndex(
+        [
+          {
+            index: 0,
+            nodeId: 'e1',
+            nodeType: 'entry',
+            displayName: 'Start',
+            exitTriggerLabel: null,
+            decisionQuestion: null,
+            decisionBranch: null,
+            resolution: null,
+            matchesExpectedOutcome: null,
+            enteredViaError: false,
+            errorBannerCopy: null,
+            context: {},
+          },
+        ],
+        1,
+      ),
+    ).toBeNull();
+  });
+});
+
+describe('isSilentPlayerStep', () => {
+  test('flags action, external, and decision only', () => {
+    expect(isSilentPlayerStep('action')).toBe(true);
+    expect(isSilentPlayerStep('external')).toBe(true);
+    expect(isSilentPlayerStep('decision')).toBe(true);
+    expect(isSilentPlayerStep('screen')).toBe(false);
+    expect(isSilentPlayerStep('outcome')).toBe(false);
+    expect(isSilentPlayerStep('entry')).toBe(false);
+  });
+});
+
 describe('timelineGeometry', () => {
-  test('playhead spans 0% at the first step and 100% at the last', () => {
+  test('playhead spans inset at the first step and stripWidth - inset at the last', () => {
     expect(timelineStripWidth(3)).toBe(380);
-    expect(timelinePlayheadOffset(0, 3)).toBe(0);
+    expect(timelinePlayheadOffset(0, 3)).toBe(6);
     expect(timelineFillWidth(0, 3)).toBe(0);
     expect(timelinePlayheadOffset(1, 3)).toBe(190);
-    expect(timelinePlayheadOffset(2, 3)).toBe(380);
-    expect(timelineFillWidth(2, 3)).toBe(380);
+    expect(timelinePlayheadOffset(2, 3)).toBe(374);
+    expect(timelineFillWidth(2, 3)).toBe(374);
   });
 });
 

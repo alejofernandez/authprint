@@ -28,7 +28,7 @@ export function TimelineProgressBar({
 
   return (
     <div
-      className="relative mb-3 shrink-0 px-1 py-1.5"
+      className="relative mb-3 shrink-0 py-1.5"
       style={{ width: stripWidth }}
       aria-hidden
       data-timeline-progress

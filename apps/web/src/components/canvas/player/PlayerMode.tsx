@@ -9,6 +9,7 @@ import { useTheme } from '@/components/theme';
 import { ContextPanel } from '../scenario/ContextPanel.tsx';
 import { usePlayerModeContext } from './PlayerModeContext.tsx';
 import { PlayerStage } from './PlayerStage.tsx';
+import { isSilentPlayerStep, lastScreenStepIndex } from './steps.ts';
 import { TimelineStrip } from './TimelineStrip.tsx';
 import { PLAYER_SPEEDS_SEC, type PlayerSpeed } from './usePlayer.ts';
 
@@ -47,6 +48,16 @@ export function PlayerMode() {
     return flow.nodes.find((n) => n.id === activeStep.nodeId) ?? null;
   }, [activeStep, flow]);
 
+  const backdrop = useMemo(() => {
+    if (!activeStep || !flow || !isSilentPlayerStep(activeStep.nodeType)) return null;
+    const screenIndex = lastScreenStepIndex(steps, index);
+    if (screenIndex === null) return null;
+    const backdropStep = steps[screenIndex];
+    const backdropNode = flow.nodes.find((n) => n.id === backdropStep?.nodeId);
+    if (!backdropStep || backdropNode?.type !== 'screen') return null;
+    return { step: backdropStep, node: backdropNode };
+  }, [activeStep, flow, steps, index]);
+
   if (!session || !activeStep || !node || !flow) return null;
 
   const { run, name, initialContext } = session;
@@ -79,6 +90,8 @@ export function PlayerMode() {
             divergence={isDivergedStep ? run.divergence : null}
             flow={flow}
             runTrace={run.trace}
+            backdropStep={backdrop?.step ?? null}
+            backdropNode={backdrop?.node ?? null}
           />
         </div>
         <ContextPanel

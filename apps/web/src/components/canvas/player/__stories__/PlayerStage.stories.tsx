@@ -2,19 +2,23 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { PlayerStage } from '../PlayerStage.tsx';
 import {
   fixtureAction,
+  fixtureActionVerify,
   fixtureDecision,
   fixtureEntry,
   fixtureOutcomeError,
   fixtureOutcomeSuccess,
   fixtureScreenLoFi,
+  fixtureScreenMfa,
   fixtureScreenMockup,
   fixtureScreenMockupWithErrorBanner,
   fixtureScreenWireframe,
   stepAction,
+  stepActionVerify,
   stepDecision,
   stepEntry,
   stepOutcomeError,
   stepOutcomeSuccess,
+  stepScreenMfa,
   stepScreenMockup,
   stepScreenMockupError,
 } from '../playerFixtures.ts';
@@ -116,6 +120,32 @@ export const InterstitialActionLight: Story = {
     theme: 'light',
     step: stepAction,
     node: fixtureAction,
+  },
+};
+
+export const InterstitialActionWithBackdropLight: Story = {
+  args: {
+    theme: 'light',
+    height: 420,
+    step: stepActionVerify,
+    node: fixtureActionVerify,
+    branding,
+    flowTheme: 'light',
+    backdropStep: stepScreenMfa,
+    backdropNode: fixtureScreenMfa,
+  },
+};
+
+export const InterstitialDecisionWithBackdropLight: Story = {
+  args: {
+    theme: 'light',
+    height: 420,
+    step: stepDecision,
+    node: fixtureDecision,
+    backdropStep: stepScreenMockup,
+    backdropNode: fixtureScreenMockup,
+    branding,
+    flowTheme: 'light',
   },
 };
 

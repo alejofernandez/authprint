@@ -58,6 +58,23 @@ export const fixtureScreenMockupWithErrorBanner: ScreenNode = {
   traits: ['error-banner'],
 };
 
+export const fixtureScreenMfa: ScreenNode = {
+  type: 'screen',
+  id: 's-otp',
+  name: 'Enter code',
+  kind: 'mfa-challenge',
+  traits: [],
+  fields: [{ name: 'code', type: 'otp', required: true }],
+  fidelity: 'mockup',
+};
+
+export const fixtureActionVerify: ActionNode = {
+  type: 'action',
+  id: 'a-verify',
+  name: 'POST /otp/verify',
+  kind: 'verify-otp',
+};
+
 export const fixtureDecision: DecisionNode = {
   type: 'decision',
   id: 'd1',
@@ -142,6 +159,30 @@ export const stepAction = step({
   nodeId: 'a1',
   nodeType: 'action',
   displayName: 'Send sign-in code',
+  exitTriggerLabel: 'success',
+  decisionQuestion: null,
+  decisionBranch: null,
+  resolution: 'success',
+  matchesExpectedOutcome: null,
+});
+
+export const stepScreenMfa = step({
+  index: 2,
+  nodeId: 's-otp',
+  nodeType: 'screen',
+  displayName: 'Enter code',
+  exitTriggerLabel: 'submit',
+  decisionQuestion: null,
+  decisionBranch: null,
+  resolution: null,
+  matchesExpectedOutcome: null,
+});
+
+export const stepActionVerify = step({
+  index: 3,
+  nodeId: 'a-verify',
+  nodeType: 'action',
+  displayName: 'POST /otp/verify',
   exitTriggerLabel: 'success',
   decisionQuestion: null,
   decisionBranch: null,

@@ -30,6 +30,9 @@ export type PlayerStageProps = {
   /** When set, screen error banners re-resolve from the live flow + trace. */
   flow?: Flow;
   runTrace?: ScenarioRun['trace'];
+  /** Screen shown dimmed beneath a silent step overlay (action/external/decision). */
+  backdropStep?: PlayerStep | null;
+  backdropNode?: ScreenNode | null;
 };
 
 export function PlayerStage({
@@ -42,6 +45,8 @@ export function PlayerStage({
   divergence = null,
   flow,
   runTrace,
+  backdropStep = null,
+  backdropNode = null,
 }: PlayerStageProps) {
   return (
     <div
@@ -59,6 +64,8 @@ export function PlayerStage({
           flowTheme={flowTheme}
           flow={flow}
           runTrace={runTrace}
+          backdropStep={backdropStep}
+          backdropNode={backdropNode}
         />
       )}
     </div>
@@ -73,6 +80,8 @@ function StageContent({
   flowTheme,
   flow,
   runTrace,
+  backdropStep,
+  backdropNode,
 }: {
   step: PlayerStep;
   node: Node;
@@ -81,6 +90,8 @@ function StageContent({
   flowTheme: FlowTheme;
   flow?: Flow;
   runTrace?: ScenarioRun['trace'];
+  backdropStep?: PlayerStep | null;
+  backdropNode?: ScreenNode | null;
 }) {
   switch (step.nodeType) {
     case 'screen':
@@ -98,6 +109,19 @@ function StageContent({
     case 'decision':
     case 'action':
     case 'external':
+      if (backdropStep && backdropNode) {
+        return (
+          <InterstitialOverlayStage
+            step={step}
+            node={node}
+            accent={step.nodeType === 'decision' ? 'decision' : 'action'}
+            backdropNode={backdropNode}
+            branding={branding}
+            editorTheme={editorTheme}
+            flowTheme={flowTheme}
+          />
+        );
+      }
       return (
         <InterstitialCard
           step={step}
@@ -151,14 +175,59 @@ function ScreenStageFrame({
   );
 }
 
-function InterstitialCard({
+function InterstitialOverlayStage({
   step,
   node,
   accent,
+  backdropNode,
+  branding,
+  editorTheme,
+  flowTheme,
 }: {
   step: PlayerStep;
   node: Node;
   accent: 'decision' | 'action';
+  backdropNode: ScreenNode;
+  branding?: Branding;
+  editorTheme: 'light' | 'dark';
+  flowTheme: FlowTheme;
+}) {
+  const screenTheme = resolveScreenTheme(flowTheme, editorTheme);
+
+  return (
+    <div
+      className={`${screenTheme === 'dark' ? 'flow-theme-dark ' : ''}relative inline-block origin-center`}
+      style={{ transform: `scale(${STAGE_PRESENTATION_SCALE})` }}
+      data-stage-overlay
+    >
+      <div
+        className="pointer-events-none select-none rounded-xl border border-border-default bg-bg-panel opacity-55 shadow-sm saturate-[0.88]"
+        aria-hidden
+      >
+        <ScreenFidelityView
+          node={backdropNode}
+          branding={branding}
+          errorBannerCopy={null}
+          stageLayout="player"
+        />
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-bg-canvas/25 dark:bg-bg-canvas/45">
+        <InterstitialCard step={step} node={node} accent={accent} variant="overlay" />
+      </div>
+    </div>
+  );
+}
+
+function InterstitialCard({
+  step,
+  node,
+  accent,
+  variant = 'standalone',
+}: {
+  step: PlayerStep;
+  node: Node;
+  accent: 'decision' | 'action';
+  variant?: 'standalone' | 'overlay';
 }) {
   const accentText =
     accent === 'decision'
@@ -177,8 +246,16 @@ function InterstitialCard({
           : null
       : step.resolution;
 
+  const overlay = variant === 'overlay';
+
   return (
-    <div className="w-[260px] rounded-xl border border-dashed border-border-default bg-bg-panel px-6 py-8 text-center shadow-sm dark:border-border-default dark:bg-bg-panel">
+    <div
+      className={
+        overlay
+          ? 'w-[200px] rounded-xl border border-dashed border-border-default bg-bg-panel/95 px-4 py-6 text-center shadow-md backdrop-blur-[2px] dark:border-border-default dark:bg-bg-panel/95'
+          : 'w-[260px] rounded-xl border border-dashed border-border-default bg-bg-panel px-6 py-8 text-center shadow-sm dark:border-border-default dark:bg-bg-panel'
+      }
+    >
       <StageSpinner />
       <div className="mt-4 text-sm font-semibold text-fg-default">{step.displayName}</div>
       {detail ? <div className="mt-1 text-xs text-fg-muted">{detail}</div> : null}
