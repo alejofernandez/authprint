@@ -19,10 +19,8 @@
       "exportBundled": "Export bundled (inline layout)…",
       "fitView": "Fit flow to screen",
       "theme": "Theme: {name}{mark}",
-      "runScenario": "Run scenario: {name}",
       "playScenario": "Play scenario: {name}",
       "noScenarios": "No scenarios in this flow",
-      "exitScenario": "Exit scenario: {name}",
       "exitPlayer": "Exit player: {name}",
       "home": "Home",
       "continueEditing": "Continue editing",
@@ -184,6 +182,7 @@
       "exit": "Exit"
     },
     "canvasPlay": "Play scenario: {name}",
-    "canvasPlayDisabled": "No scenarios to play"
+    "canvasPlayDisabled": "No scenarios to play",
+    "revealOnCanvas": "Reveal on canvas"
   }
 }

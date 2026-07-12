@@ -12,7 +12,7 @@ import type {
 import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
 import { ScreenFidelityView } from '../nodes/screen/ScreenFidelityView.tsx';
 import { resolveScreenTheme } from '../nodes/screen/screenTheme.ts';
-import { divergenceDetail, divergenceHeadline } from './divergenceCopy.ts';
+import { divergenceDetail, divergenceFocusNodeId, divergenceHeadline } from './divergenceCopy.ts';
 import { isWarmOutcomeKind, nodeKindLabel } from './playerClipTone.ts';
 import type { PlayerStep } from './steps.ts';
 import { screenErrorBannerCopyForStep } from './steps.ts';
@@ -36,6 +36,8 @@ export type PlayerStageProps = {
   backdropNode?: ScreenNode | null;
   /** Fill available height with minimal chrome — used by player mode. */
   immersive?: boolean;
+  onRevealOnCanvas?: (nodeId: string) => void;
+  revealLabel?: string;
 };
 
 export function PlayerStage({
@@ -51,6 +53,8 @@ export function PlayerStage({
   backdropStep = null,
   backdropNode = null,
   immersive = false,
+  onRevealOnCanvas,
+  revealLabel,
 }: PlayerStageProps) {
   return (
     <div
@@ -65,10 +69,18 @@ export function PlayerStage({
       {isDiverged && divergence ? (
         immersive ? (
           <StagePresentationFrame>
-            <DivergenceStageCard divergence={divergence} />
+            <DivergenceStageCard
+              divergence={divergence}
+              onRevealOnCanvas={onRevealOnCanvas}
+              revealLabel={revealLabel}
+            />
           </StagePresentationFrame>
         ) : (
-          <DivergenceStageCard divergence={divergence} />
+          <DivergenceStageCard
+            divergence={divergence}
+            onRevealOnCanvas={onRevealOnCanvas}
+            revealLabel={revealLabel}
+          />
         )
       ) : immersive ? (
         <StagePresentationFrame>
@@ -398,7 +410,17 @@ function EntryStartCard() {
   );
 }
 
-function DivergenceStageCard({ divergence }: { divergence: Divergence }) {
+function DivergenceStageCard({
+  divergence,
+  onRevealOnCanvas,
+  revealLabel,
+}: {
+  divergence: Divergence;
+  onRevealOnCanvas?: (nodeId: string) => void;
+  revealLabel?: string;
+}) {
+  const focusNodeId = divergenceFocusNodeId(divergence);
+
   return (
     <div className="w-[300px] rounded-xl border border-signal-danger-ring bg-signal-error-bg px-6 py-8 text-center dark:border-signal-danger dark:bg-signal-error-bg-muted">
       <div className="text-xs font-semibold uppercase tracking-wide text-signal-danger dark:text-signal-danger-fg">
@@ -410,6 +432,15 @@ function DivergenceStageCard({ divergence }: { divergence: Divergence }) {
       <div className="mt-2 text-xs leading-relaxed text-fg-muted dark:text-fg-subtle">
         {divergenceDetail(divergence)}
       </div>
+      {onRevealOnCanvas && revealLabel && focusNodeId ? (
+        <button
+          type="button"
+          onClick={() => onRevealOnCanvas(focusNodeId)}
+          className="mt-4 rounded-md border border-signal-danger-ring px-3 py-1.5 text-xs font-medium text-signal-error-label hover:bg-signal-error-bg/80 dark:border-signal-danger dark:text-signal-error-fg dark:hover:bg-signal-error-bg-muted/80"
+        >
+          {revealLabel}
+        </button>
+      ) : null}
     </div>
   );
 }

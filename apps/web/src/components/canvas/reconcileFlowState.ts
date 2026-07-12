@@ -46,8 +46,6 @@ function usedDecisionBranchesEqual(
 function canvasNodeDataEqual(a: CanvasNodeData, b: CanvasNodeData): boolean {
   if (a.ariaLabel !== b.ariaLabel) return false;
   if (a.screenTheme !== b.screenTheme) return false;
-  if (a.traceState !== b.traceState) return false;
-  if (a.traceTooltip !== b.traceTooltip) return false;
   if (a.pickerAnchorHandle !== b.pickerAnchorHandle) return false;
   if (!diagnosticsEqual(a.diagnostics, b.diagnostics)) return false;
   if (!connectedHandlesEqual(a.connectedHandles, b.connectedHandles)) return false;

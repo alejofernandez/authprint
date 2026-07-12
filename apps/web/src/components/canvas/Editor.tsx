@@ -76,11 +76,6 @@ import { useUnexportedChanges } from './recentFlows/useUnexportedChanges.ts';
 import { reconcileFlowEdges, reconcileFlowNodes } from './reconcileFlowState.ts';
 import { StartScreen } from './StartScreen.tsx';
 import { StatusCluster } from './StatusCluster.tsx';
-import { ContextPanel } from './scenario/ContextPanel.tsx';
-import { ScenarioControls } from './scenario/ScenarioControls.tsx';
-import { ScenarioModeProvider, useScenarioMode } from './scenario/ScenarioModeContext.tsx';
-import { buildTraceAttachment } from './scenario/scenarioTrace.ts';
-import { useScenarioRun } from './scenario/useScenarioRun.ts';
 import { Topbar } from './Topbar.tsx';
 import { UnexportedChangesConfirmDialog } from './UnexportedChangesConfirmDialog.tsx';
 import { useValidation } from './useValidation.ts';
@@ -204,12 +199,9 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   const [docPrefsOpen, setDocPrefsOpen] = useState(false);
   const [replaceConfirmOpen, setReplaceConfirmOpen] = useState(false);
   const pendingReplaceRef = useRef<(() => void) | null>(null);
-  const { fitView } = useReactFlow();
+  const { fitView, getNode, setCenter } = useReactFlow();
   const { theme, setTheme } = useTheme();
   const { undo, redo, canUndo, canRedo } = useUndoManager(doc);
-  // Scenario walk-through mode (US-060): null session = edit mode. Owned here so
-  // the palette can launch it and the canvas (+ US-061/062) consume it via context.
-  const scenario = useScenarioRun();
   // Scenario player overlay (US-110): stage + timeline playback over the canvas.
   const player = usePlayerMode();
   // Scenarios travel with the flow (carried opaquely in `meta`, E24). They don't
@@ -441,17 +433,6 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     return () => document.removeEventListener('keydown', onKey);
   }, [undo, redo]);
 
-  // Stable controls (useCallback in the hook) — destructured so the effects can
-  // depend on them precisely rather than the whole (per-render) scenario object.
-  const {
-    session: scenarioSession,
-    exit: exitScenario,
-    step: stepScenario,
-    back: backScenario,
-    reset: resetScenario,
-    enter: enterScenario,
-  } = scenario;
-
   const {
     session: playerSession,
     exit: exitPlayer,
@@ -461,18 +442,6 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     enter: enterPlayer,
   } = player;
 
-  const enterScenarioWalk = useCallback(
-    (
-      run: Parameters<typeof enterScenario>[0],
-      name: string,
-      initialContext: Record<string, unknown>,
-    ) => {
-      exitPlayer();
-      enterScenario(run, name, initialContext);
-    },
-    [enterScenario, exitPlayer],
-  );
-
   const enterPlayerMode = useCallback(
     (
       run: Parameters<typeof enterPlayer>[0],
@@ -480,10 +449,23 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
       flow: Parameters<typeof enterPlayer>[2],
       initialContext: Record<string, unknown>,
     ) => {
-      exitScenario();
       enterPlayer(run, name, flow, initialContext);
     },
-    [enterPlayer, exitScenario],
+    [enterPlayer],
+  );
+
+  const revealOnCanvas = useCallback(
+    (nodeId: string) => {
+      exitPlayer();
+      requestAnimationFrame(() => {
+        const node = getNode(nodeId);
+        if (!node) return;
+        const w = node.measured?.width ?? 0;
+        const h = node.measured?.height ?? 0;
+        setCenter(node.position.x + w / 2, node.position.y + h / 2, { zoom: 1.2, duration: 300 });
+      });
+    },
+    [exitPlayer, getNode, setCenter],
   );
 
   const playFirstScenario = useCallback(() => {
@@ -494,12 +476,11 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   }, [scenarios, doc, enterPlayerMode]);
 
   const goHome = useCallback(() => {
-    exitScenario();
     exitPlayer();
     setPaletteOpen(false);
     setNotice(null);
     setPhase('not-started');
-  }, [exitScenario, exitPlayer]);
+  }, [exitPlayer]);
 
   const saveFlow = useCallback(() => {
     const artifact = docToArtifact(doc);
@@ -548,36 +529,6 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     return () => document.removeEventListener('keydown', onKey);
   }, [phase, sessionId, paletteOpen, resumeEditing]);
 
-  // Scenario-mode keyboard: Esc exits; ← / → walk the trace; R resets. The
-  // visual step controls are US-062 — this keeps the mode usable + verifiable now.
-  useEffect(() => {
-    if (!scenarioSession || playerSession) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (paletteOpen) return;
-      if (shouldDeferUndoToField(event.target)) return;
-      if (event.key === 'Escape') exitScenario();
-      else if (event.key === 'ArrowRight') {
-        event.preventDefault();
-        stepScenario();
-      } else if (event.key === 'ArrowLeft') {
-        event.preventDefault();
-        backScenario();
-      } else if (event.key.toLowerCase() === 'r') {
-        resetScenario();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [
-    scenarioSession,
-    playerSession,
-    exitScenario,
-    stepScenario,
-    backScenario,
-    resetScenario,
-    paletteOpen,
-  ]);
-
   // Player-mode keyboard: Esc exits; space toggles; ← / → step.
   useEffect(() => {
     if (!playerSession) return;
@@ -602,12 +553,11 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     return () => document.removeEventListener('keydown', onKey);
   }, [playerSession, exitPlayer, togglePlayerPlay, stepPlayer, backPlayer, paletteOpen]);
 
-  // Loading a new flow drops out of scenario + player mode (runs are flow-scoped).
+  // Loading a new flow drops out of player mode (runs are flow-scoped).
   // biome-ignore lint/correctness/useExhaustiveDependencies: must re-run on each load (revision change), not just on exit identity.
   useEffect(() => {
-    exitScenario();
     exitPlayer();
-  }, [revision, exitScenario, exitPlayer]);
+  }, [revision, exitPlayer]);
 
   const commands = useMemo<PaletteCommand[]>(
     () => [
@@ -733,38 +683,24 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
         keywords: `dark light system appearance ${option}`,
         run: () => setTheme(option),
       })),
-      // Walk-through (US-060) and player (US-110) share one flat palette pick per scenario.
+      // Player (US-110): one flat palette pick per scenario.
       ...(scenarios.length > 0
-        ? scenarios.flatMap((sc) => [
-            {
-              id: `play-scenario-${sc.id}`,
-              group: tPalette('groups.scenario'),
-              label: tPalette('commands.playScenario', { name: sc.name }),
-              keywords: `play player simulate timeline ${sc.id}`,
-              run: () => {
-                const flow = docToArtifact(doc).flow;
-                enterPlayerMode(runScenario(flow, sc), sc.name, flow, sc.initialContext);
-              },
+        ? scenarios.map((sc) => ({
+            id: `play-scenario-${sc.id}`,
+            group: tPalette('groups.scenario'),
+            label: tPalette('commands.playScenario', { name: sc.name }),
+            keywords: `play player simulate timeline ${sc.id}`,
+            run: () => {
+              const flow = docToArtifact(doc).flow;
+              enterPlayerMode(runScenario(flow, sc), sc.name, flow, sc.initialContext);
             },
-            {
-              id: `run-scenario-${sc.id}`,
-              group: tPalette('groups.scenario'),
-              label: tPalette('commands.runScenario', { name: sc.name }),
-              keywords: `walk walk-through trace canvas simulate test ${sc.id}`,
-              run: () =>
-                enterScenarioWalk(
-                  runScenario(docToArtifact(doc).flow, sc),
-                  sc.name,
-                  sc.initialContext,
-                ),
-            },
-          ])
+          }))
         : [
             {
               id: 'no-scenarios',
               group: tPalette('groups.scenario'),
               label: tPalette('commands.noScenarios'),
-              keywords: 'run play walk-through simulate',
+              keywords: 'run play simulate',
               disabled: true,
               run: () => {},
             },
@@ -777,17 +713,6 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
               label: tPalette('commands.exitPlayer', { name: player.session.name }),
               keywords: 'stop close player esc',
               run: player.exit,
-            },
-          ]
-        : []),
-      ...(scenario.session
-        ? [
-            {
-              id: 'exit-scenario',
-              group: tPalette('groups.scenario'),
-              label: tPalette('commands.exitScenario', { name: scenario.session.name }),
-              keywords: 'stop close edit mode esc walk',
-              run: scenario.exit,
             },
           ]
         : []),
@@ -817,10 +742,8 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
       canUndo,
       canRedo,
       scenarios,
-      scenario,
       player,
       enterPlayerMode,
-      enterScenarioWalk,
       tPalette,
       markExported,
     ],
@@ -842,137 +765,113 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   );
 
   return (
-    <ScenarioModeProvider value={scenario}>
-      <PlayerModeProvider value={player}>
-        {phase === 'not-started' ? (
-          <>
-            <StartScreen
-              patterns={patterns}
-              dragging={dragging}
-              onDragStateChange={setDragging}
-              onDropFiles={onStartScreenDrop}
-              onBlank={startBlank}
-              onPattern={openPattern}
-              onOpenDisk={openFilePicker}
-              onResumeRecent={resumeRecent}
-            />
-            {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
-            <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
-          </>
-        ) : (
-          <div className="flex h-dvh w-full flex-col bg-bg-canvas">
-            <Topbar
-              flowName={flowName}
-              onGoHome={goHome}
-              onFlowNameClick={() => setDocPrefsOpen(true)}
-              hasUnexportedChanges={hasUnexportedChanges}
-            />
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: file drop zone; palette "Open file" is the keyboard equivalent. */}
-            <div
-              className="relative h-full min-h-0 flex-1"
-              onDragOver={(e) => {
-                e.preventDefault();
-                if (!dragging) setDragging(true);
-              }}
-              onDragLeave={(e) => {
-                if (e.currentTarget === e.target) setDragging(false);
-              }}
-              onDrop={onDrop}
-            >
-              <FlowCanvas key={revision} doc={doc} />
+    <PlayerModeProvider value={player}>
+      {phase === 'not-started' ? (
+        <>
+          <StartScreen
+            patterns={patterns}
+            dragging={dragging}
+            onDragStateChange={setDragging}
+            onDropFiles={onStartScreenDrop}
+            onBlank={startBlank}
+            onPattern={openPattern}
+            onOpenDisk={openFilePicker}
+            onResumeRecent={resumeRecent}
+          />
+          {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
+          <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
+        </>
+      ) : (
+        <div className="flex h-dvh w-full flex-col bg-bg-canvas">
+          <Topbar
+            flowName={flowName}
+            onGoHome={goHome}
+            onFlowNameClick={() => setDocPrefsOpen(true)}
+            hasUnexportedChanges={hasUnexportedChanges}
+          />
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: file drop zone; palette "Open file" is the keyboard equivalent. */}
+          <div
+            className="relative h-full min-h-0 flex-1"
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!dragging) setDragging(true);
+            }}
+            onDragLeave={(e) => {
+              if (e.currentTarget === e.target) setDragging(false);
+            }}
+            onDrop={onDrop}
+          >
+            <FlowCanvas key={revision} doc={doc} />
 
-              {dragging && (
-                <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-accent-primary/10 backdrop-blur-sm">
-                  <div className="rounded-xl border-2 border-accent-primary-border border-dashed bg-bg-panel/90 px-8 py-6 font-medium text-accent-primary-fg">
-                    {tPalette('dropOverlay')}
-                  </div>
+            {dragging && (
+              <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-accent-primary/10 backdrop-blur-sm">
+                <div className="rounded-xl border-2 border-accent-primary-border border-dashed bg-bg-panel/90 px-8 py-6 font-medium text-accent-primary-fg">
+                  {tPalette('dropOverlay')}
                 </div>
-              )}
+              </div>
+            )}
 
-              {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
+            {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
 
-              <div className="absolute bottom-4 left-14 z-20 flex items-center gap-2">
-                {!player.session && !scenario.session ? (
-                  <button
-                    type="button"
-                    onClick={playFirstScenario}
-                    disabled={scenarios.length === 0}
-                    aria-label={
-                      scenarios.length > 0
-                        ? tPlayer('canvasPlay', { name: scenarios[0]?.name ?? '' })
-                        : tPlayer('canvasPlayDisabled')
-                    }
-                    title={
-                      scenarios.length > 0
-                        ? tPlayer('canvasPlay', { name: scenarios[0]?.name ?? '' })
-                        : tPlayer('canvasPlayDisabled')
-                    }
-                    className="flex shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-bg-panel/95 px-2.5 py-1.5 text-accent-primary-fg-emphasis text-sm shadow-lg backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border disabled:cursor-not-allowed disabled:opacity-35 dark:border-border-default dark:bg-bg-panel/95 dark:text-accent-primary-fg-on-bg"
-                  >
-                    ▶
-                  </button>
-                ) : null}
+            <div className="absolute bottom-4 left-14 z-20 flex items-center gap-2">
+              {!player.session ? (
                 <button
                   type="button"
-                  onClick={() => setPaletteOpen(true)}
-                  aria-label={tPalette('openPalette')}
-                  className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-panel/95 px-2.5 py-1.5 text-fg-muted text-sm shadow-lg backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default dark:bg-bg-panel/95"
+                  onClick={playFirstScenario}
+                  disabled={scenarios.length === 0}
+                  aria-label={
+                    scenarios.length > 0
+                      ? tPlayer('canvasPlay', { name: scenarios[0]?.name ?? '' })
+                      : tPlayer('canvasPlayDisabled')
+                  }
+                  title={
+                    scenarios.length > 0
+                      ? tPlayer('canvasPlay', { name: scenarios[0]?.name ?? '' })
+                      : tPlayer('canvasPlayDisabled')
+                  }
+                  className="flex shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-bg-panel/95 px-2.5 py-1.5 text-accent-primary-fg-emphasis text-sm shadow-lg backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border disabled:cursor-not-allowed disabled:opacity-35 dark:border-border-default dark:bg-bg-panel/95 dark:text-accent-primary-fg-on-bg"
                 >
-                  {tPalette('searchButton')}
-                  <kbd className="rounded border border-border-default bg-bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-subtle">
-                    ⌘K
-                  </kbd>
+                  ▶
                 </button>
-              </div>
-
-              {scenario.session && !player.session && (
-                <>
-                  <ContextPanel
-                    context={
-                      scenario.session.run.contextSnapshots[scenario.stepIndex] ??
-                      scenario.session.initialContext
-                    }
-                    previousContext={
-                      scenario.stepIndex > 0
-                        ? scenario.session.run.contextSnapshots[scenario.stepIndex - 1]
-                        : null
-                    }
-                    divergence={scenario.session.run.divergence}
-                  />
-                  <ScenarioControls scenario={scenario} />
-                </>
-              )}
-
-              {player.session && <PlayerMode />}
-
-              <CommandPalette
-                open={paletteOpen}
-                onOpenChange={setPaletteOpen}
-                commands={commands}
-              />
-              <DocumentPreferencesModal
-                open={docPrefsOpen}
-                onOpenChange={setDocPrefsOpen}
-                flowName={flowName}
-                flowTheme={flowTheme}
-                companyName={flowBranding.companyName}
-                primaryColor={flowBranding.primaryColor}
-                onFlowNameChange={(name) => setFlowName(doc, name)}
-                onFlowThemeChange={(theme) => setFlowTheme(doc, theme)}
-                onCompanyNameChange={(name) => setCompanyName(doc, name)}
-                onPrimaryColorChange={(color) => setPrimaryColor(doc, color)}
-              />
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setPaletteOpen(true)}
+                aria-label={tPalette('openPalette')}
+                className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-panel/95 px-2.5 py-1.5 text-fg-muted text-sm shadow-lg backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default dark:bg-bg-panel/95"
+              >
+                {tPalette('searchButton')}
+                <kbd className="rounded border border-border-default bg-bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-subtle">
+                  ⌘K
+                </kbd>
+              </button>
             </div>
+
+            {player.session ? <PlayerMode onRevealOnCanvas={revealOnCanvas} /> : null}
+
+            <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
+            <DocumentPreferencesModal
+              open={docPrefsOpen}
+              onOpenChange={setDocPrefsOpen}
+              flowName={flowName}
+              flowTheme={flowTheme}
+              companyName={flowBranding.companyName}
+              primaryColor={flowBranding.primaryColor}
+              onFlowNameChange={(name) => setFlowName(doc, name)}
+              onFlowThemeChange={(theme) => setFlowTheme(doc, theme)}
+              onCompanyNameChange={(name) => setCompanyName(doc, name)}
+              onPrimaryColorChange={(color) => setPrimaryColor(doc, color)}
+            />
           </div>
-        )}
-        <AboutModal open={aboutOpen} onOpenChange={setAboutOpen} />
-        <UnexportedChangesConfirmDialog
-          open={replaceConfirmOpen}
-          onOpenChange={setReplaceConfirmOpen}
-          onConfirm={confirmReplace}
-        />
-      </PlayerModeProvider>
-    </ScenarioModeProvider>
+        </div>
+      )}
+      <AboutModal open={aboutOpen} onOpenChange={setAboutOpen} />
+      <UnexportedChangesConfirmDialog
+        open={replaceConfirmOpen}
+        onOpenChange={setReplaceConfirmOpen}
+        onConfirm={confirmReplace}
+      />
+    </PlayerModeProvider>
   );
 }
 
@@ -1087,11 +986,9 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const autoPositions = useElkLayout(flow, layout, edgeLayout);
   const validation = useValidation(flow);
   const reconnectingEdgeId = useRef<string | null>(null);
-  // Scenario mode makes the canvas read-only — no create / drag / delete / inline
-  // edit while walking a trace (US-060). US-061 adds the trace styling on top.
-  const scenario = useScenarioMode();
+  // Player mode makes the canvas read-only — no create / drag / delete / inline edit.
   const playerMode = useOptionalPlayerMode();
-  const readOnly = scenario.session !== null || playerMode?.session !== null;
+  const readOnly = playerMode?.session !== null;
   // Error outlines on the canvas are opt-in (off while building — the per-handle
   // `+` already hints at incompleteness; the Problems badge tracks the count).
   // Flip them on to review. Gates both node rings and edge recoloring.
@@ -1109,17 +1006,12 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   // Dragged + freshly-created nodes (in the layout map) win over auto-placed.
   const graph = useMemo(() => {
     if (!autoPositions) return null;
-    const trace =
-      scenario.session !== null
-        ? buildTraceAttachment(scenario.session.run, scenario.stepIndex)
-        : undefined;
     const base = flowToReactFlow(
       flow,
       { ...autoPositions, ...layoutPositionsOnly(layout) },
       edgeLayout,
       showOutlines ? validation : undefined,
       editorTheme,
-      trace,
       layout,
     );
     if (menu?.placement.kind !== 'aligned') return base;
@@ -1132,18 +1024,7 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
           : n,
       ),
     };
-  }, [
-    flow,
-    layout,
-    edgeLayout,
-    autoPositions,
-    menu,
-    validation,
-    showOutlines,
-    editorTheme,
-    scenario.session,
-    scenario.stepIndex,
-  ]);
+  }, [flow, layout, edgeLayout, autoPositions, menu, validation, showOutlines, editorTheme]);
 
   // A `+` was clicked: record the source handle side so the picker anchors to the
   // node (same placement as the inspector) and the new node aligns on pick.
@@ -1409,7 +1290,7 @@ function BoundCanvas({
   onReconnectEnd: () => void;
   isValidConnection: IsValidConnection;
   onNodeDoubleClick?: NodeMouseHandler;
-  /** Scenario mode (US-060): disable all editing; pan/zoom stay live. */
+  /** Player mode (US-110): disable all editing; pan/zoom stay live. */
   readOnly?: boolean;
 }) {
   const [nodes, setNodes, onNodesChangeLocal] = useNodesState(graph.nodes);

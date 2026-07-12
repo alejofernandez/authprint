@@ -1,5 +1,10 @@
 import type { Divergence } from '@authprint/dsl';
 
+export function divergenceFocusNodeId(divergence: Divergence): string | null {
+  if (divergence.kind === 'sequence-mismatch') return null;
+  return divergence.nodeId;
+}
+
 export function divergenceHeadline(divergence: Divergence): string {
   switch (divergence.kind) {
     case 'no-matching-edge':

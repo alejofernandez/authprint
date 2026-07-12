@@ -11,7 +11,6 @@ import { effectiveSourceHandle, effectiveTargetHandle } from './connectionSides.
 import type { CanvasNodeData } from './nodes/index.ts';
 import { buildNodeAriaLabel } from './nodes/nodeAriaLabel.ts';
 import { resolveScreenTheme } from './nodes/screen/screenTheme.ts';
-import type { TraceAttachment } from './scenario/scenarioTrace.ts';
 import { defaultScreenSourceSideForAction } from './screenInteractionSides.ts';
 import { type EdgeRoutes, edgeLayoutPoints, type LayoutPositions } from './ydoc/schema.ts';
 
@@ -25,17 +24,10 @@ export type ValidationMaps = {
 
 // Stroke color for an edge with diagnostics (red error / amber warning).
 const EDGE_STROKE = { error: '#ef4444', warning: '#f59e0b' } as const;
-const TRACE_EDGE_STROKE = { active: '#6366f1', diverged: '#ef4444' } as const;
 
 function edgeStroke(diagnostics: Diagnostic[] | undefined): string | null {
   if (!diagnostics || diagnostics.length === 0) return null;
   return diagnostics.some((d) => d.severity === 'error') ? EDGE_STROKE.error : EDGE_STROKE.warning;
-}
-
-function edgeTraceStroke(traceState: 'active' | 'diverged' | undefined): string | null {
-  if (traceState === 'diverged') return TRACE_EDGE_STROKE.diverged;
-  if (traceState === 'active') return TRACE_EDGE_STROKE.active;
-  return null;
 }
 
 // Which source handle an edge leaves from. Handle ids match the ones declared
@@ -124,7 +116,6 @@ export function flowToReactFlow(
   edgeRoutes: EdgeRoutes = {},
   validation?: ValidationMaps,
   editorTheme: Theme | 'light' | 'dark' = 'light',
-  trace?: TraceAttachment,
   nodeLayout: LayoutPositions = {},
 ): FlowToReactFlowResult {
   // Physical handle ids with an outgoing edge (respects US-113 side overrides).
@@ -174,17 +165,12 @@ export function flowToReactFlow(
         branding: flow.branding,
         displayErrorState: nodeLayout[node.id]?.displayErrorState === true,
       }),
-      ...(trace && {
-        traceState: trace.byNode.get(node.id),
-        traceTooltip: trace.tooltips.get(node.id),
-      }),
     },
   }));
 
   const edges: RfEdge[] = flow.edges.map((edge) => {
-    const traceStroke = edgeTraceStroke(trace?.byEdge.get(edge.id));
     const validationStroke = edgeStroke(validation?.byEdge.get(edge.id));
-    const stroke = traceStroke ?? validationStroke;
+    const stroke = validationStroke;
     const layout = edgeRoutes[edge.id];
     const waypoints = edgeLayoutPoints(layout);
     const sourceNode = flow.nodes.find((n) => n.id === edge.source);
@@ -202,7 +188,7 @@ export function flowToReactFlow(
       data: { waypoints },
       reconnectable: true,
       ...(stroke && {
-        style: { stroke, strokeWidth: traceStroke ? 3 : 2 },
+        style: { stroke, strokeWidth: 2 },
         markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: stroke },
       }),
     };

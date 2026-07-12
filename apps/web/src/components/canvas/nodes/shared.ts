@@ -2,7 +2,6 @@
 // nodes. Each per-structural-type view receives this wrapped in `NodeProps`.
 
 import type { Branding, Diagnostic, Node } from '@authprint/dsl';
-import type { TraceNodeState } from '../scenario/scenarioTrace.ts';
 import type { ResolvedScreenTheme } from './screen/screenTheme.ts';
 
 export type CanvasNodeData<TNode extends Node = Node> = {
@@ -15,10 +14,6 @@ export type CanvasNodeData<TNode extends Node = Node> = {
   branding?: Branding;
   /** When true, wireframe/mockup tiers show the error-banner preview (layout view state). */
   displayErrorState?: boolean;
-  /** Scenario trace styling (US-061). Set when walking a scenario run. */
-  traceState?: TraceNodeState;
-  /** Divergence tooltip for `traceState: 'diverged'`. */
-  traceTooltip?: string;
   /** Live validation diagnostics targeting this node (E33). Absent = clean. */
   diagnostics?: Diagnostic[];
   /**

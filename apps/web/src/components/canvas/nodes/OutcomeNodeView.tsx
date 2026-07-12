@@ -17,8 +17,8 @@ export function OutcomeNodeView({ data }: OutcomeNodeProps) {
     <CanvasNodeRoot
       nodeId={node.id}
       ariaLabel={data.ariaLabel ?? node.id}
-      title={canvasNodeTitle(data.diagnostics, data.traceTooltip)}
-      className={`rounded-full bg-node-outcome-bg border border-node-outcome-border ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
+      title={canvasNodeTitle(data.diagnostics)}
+      className={`rounded-full bg-node-outcome-bg border border-node-outcome-border ${canvasNodeRing(data.diagnostics)} ${canvasNodeOpacity()}`}
     >
       <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />

@@ -21,8 +21,8 @@ export function ActionNodeView({ data, selected }: ActionNodeProps) {
     <CanvasNodeRoot
       nodeId={node.id}
       ariaLabel={data.ariaLabel ?? node.id}
-      title={canvasNodeTitle(data.diagnostics, data.traceTooltip)}
-      className={`group relative rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 border-t-4 border-t-sky-500 dark:border-t-sky-400 ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
+      title={canvasNodeTitle(data.diagnostics)}
+      className={`group relative rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800 border-t-4 border-t-sky-500 dark:border-t-sky-400 ${canvasNodeRing(data.diagnostics)} ${canvasNodeOpacity()}`}
     >
       <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />

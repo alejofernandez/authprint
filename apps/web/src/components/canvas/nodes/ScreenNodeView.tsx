@@ -28,8 +28,8 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
     <CanvasNodeRoot
       nodeId={node.id}
       ariaLabel={data.ariaLabel ?? node.id}
-      title={canvasNodeTitle(data.diagnostics, data.traceTooltip)}
-      className={`group relative ${isCardTier ? 'rounded-xl' : 'rounded-lg'} ${canvasNodeRing(data.diagnostics, data.traceState)} ${canvasNodeOpacity(data.traceState)}`}
+      title={canvasNodeTitle(data.diagnostics)}
+      className={`group relative ${isCardTier ? 'rounded-xl' : 'rounded-lg'} ${canvasNodeRing(data.diagnostics)} ${canvasNodeOpacity()}`}
     >
       <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />

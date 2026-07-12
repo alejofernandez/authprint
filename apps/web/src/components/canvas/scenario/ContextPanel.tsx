@@ -1,10 +1,15 @@
 'use client';
 
-// Read-only Context panel for scenario mode (US-062). Shows the context state at
-// the active trace step; slots patched by the previous step are highlighted.
+// Read-only Context panel for scenario playback. Shows the context state at the
+// active step; slots patched by the previous step are highlighted.
 
 import type { Divergence } from '@authprint/dsl';
-import { divergenceContextSlots } from './scenarioTrace.ts';
+
+function divergenceContextSlots(divergence: Divergence | null): ReadonlySet<string> {
+  if (!divergence) return new Set();
+  if (divergence.kind === 'unknown-slot') return new Set([divergence.slot]);
+  return new Set();
+}
 
 export function contextSlotsChangedByPreviousStep(
   previous: Record<string, unknown> | null | undefined,

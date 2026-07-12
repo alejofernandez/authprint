@@ -13,7 +13,7 @@ import { PlayerStage } from './PlayerStage.tsx';
 import { isSilentPlayerStep, lastScreenStepIndex } from './steps.ts';
 import { TimelineStrip } from './TimelineStrip.tsx';
 
-export function PlayerMode() {
+export function PlayerMode({ onRevealOnCanvas }: { onRevealOnCanvas?: (nodeId: string) => void }) {
   const player = usePlayerModeContext();
   const { theme } = useTheme();
   const t = useTranslations('player');
@@ -137,6 +137,8 @@ export function PlayerMode() {
           runTrace={run.trace}
           backdropStep={backdrop?.step ?? null}
           backdropNode={backdrop?.node ?? null}
+          onRevealOnCanvas={onRevealOnCanvas}
+          revealLabel={t('revealOnCanvas')}
         />
 
         <PlayerTransportPill
@@ -177,6 +179,8 @@ export function PlayerMode() {
           divergedIndex={divergedIndex}
           onScrubBegin={pause}
           onSeek={seek}
+          onRevealOnCanvas={onRevealOnCanvas}
+          revealLabel={t('revealOnCanvas')}
         />
       </div>
     </div>

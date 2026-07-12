@@ -14,6 +14,8 @@ export type TimelineStripProps = {
   /** When false, the playhead does not auto-scroll into view (Storybook baselines). */
   autoScroll?: boolean;
   onScrubBegin?: () => void;
+  onRevealOnCanvas?: (nodeId: string) => void;
+  revealLabel?: string;
 };
 
 export function TimelineStrip({
@@ -23,6 +25,8 @@ export function TimelineStrip({
   onSeek,
   autoScroll = true,
   onScrubBegin,
+  onRevealOnCanvas,
+  revealLabel,
 }: TimelineStripProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLDivElement>(null);
@@ -87,6 +91,10 @@ export function TimelineStrip({
                     active={active}
                     diverged={diverged}
                     onSeek={onSeek ? () => seekTo(step.index) : undefined}
+                    onRevealOnCanvas={
+                      onRevealOnCanvas ? () => onRevealOnCanvas(step.nodeId) : undefined
+                    }
+                    revealLabel={revealLabel}
                   />
                 </div>
               );
