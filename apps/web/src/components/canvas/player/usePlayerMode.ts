@@ -1,4 +1,4 @@
-// US-110 — player-mode session + headless playback (mirrors useScenarioRun seam).
+// US-110 — player-mode session + headless playback.
 
 import type { Flow, ScenarioRun } from '@authprint/dsl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
