@@ -212,6 +212,50 @@
         "title": "set: after this step",
         "none": "—"
       }
+    },
+    "recordMode": {
+      "screen": {
+        "caption": "Click an action to record it ·"
+      },
+      "resolve": {
+        "caption": "How does this resolve in this scenario?",
+        "result": {
+          "success": "succeeds",
+          "error": "fails",
+          "denied": "denied",
+          "cancelled": "cancelled"
+        }
+      },
+      "decision": {
+        "badge": "decision",
+        "caption": "Decisions aren't script steps — context drives them. Taking the other branch means changing context.",
+        "emptyValue": "—",
+        "contextSays": "context says {value} → takes",
+        "branch": {
+          "yes": "yes",
+          "no": "no"
+        },
+        "continue": "Continue ({branch})",
+        "takeOther": "Take {branch} instead…",
+        "fix": {
+          "initialContext": "Start with {slot} = {value}",
+          "stepPatch": "Add set: {slot} = {value} to “{step}”",
+          "previousStep": "previous step",
+          "needsValue": "Enter a value for {slot} ({op}) that takes the other branch:",
+          "valuePlaceholder": "value",
+          "apply": "Apply",
+          "thenTakes": "then takes {branch} → {dest}"
+        }
+      },
+      "outcome": {
+        "expectCheckbox": "Expect this outcome",
+        "done": "Done",
+        "caption": "Recording complete"
+      },
+      "entry": {
+        "badge": "Entry",
+        "title": "Session starts"
+      }
     }
   }
 }

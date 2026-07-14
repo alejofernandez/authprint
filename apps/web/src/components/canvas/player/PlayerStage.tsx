@@ -14,13 +14,21 @@ import { ScreenFidelityView } from '../nodes/screen/ScreenFidelityView.tsx';
 import { resolveScreenTheme } from '../nodes/screen/screenTheme.ts';
 import { divergenceDetail, divergenceFocusNodeId, divergenceHeadline } from './divergenceCopy.ts';
 import { isWarmOutcomeKind, nodeKindLabel } from './playerClipTone.ts';
+import {
+  RecordModeDecisionStage,
+  RecordModeEntryStage,
+  RecordModeOutcomeStage,
+  RecordModeResolveStage,
+  RecordModeScreenStage,
+} from './RecordModeStage.tsx';
+import type { PlayerStageRecordProps, PlayerStageViewProps } from './stageRecordTypes.ts';
 import type { PlayerStep } from './steps.ts';
 import { screenErrorBannerCopyForStep } from './steps.ts';
 
 /** Scale mockup-tier screens for presentation legibility (verified ≥1.15 in stories). */
 export const STAGE_PRESENTATION_SCALE = 1.2;
 
-export type PlayerStageProps = {
+type PlayerStageSharedProps = {
   step: PlayerStep;
   node: Node;
   branding?: Branding;
@@ -40,22 +48,60 @@ export type PlayerStageProps = {
   revealLabel?: string;
 };
 
-export function PlayerStage({
-  step,
-  node,
-  branding,
-  editorTheme = 'light',
-  flowTheme = 'light',
-  isDiverged = false,
-  divergence = null,
-  flow,
-  runTrace,
-  backdropStep = null,
-  backdropNode = null,
-  immersive = false,
-  onRevealOnCanvas,
-  revealLabel,
-}: PlayerStageProps) {
+export type PlayerStageProps = PlayerStageSharedProps &
+  (PlayerStageViewProps | (Omit<PlayerStageRecordProps, 'mode'> & { mode: 'record' }));
+
+export function PlayerStage(props: PlayerStageProps) {
+  const {
+    step,
+    node,
+    branding,
+    editorTheme = 'light',
+    flowTheme = 'light',
+    isDiverged = false,
+    divergence = null,
+    flow,
+    runTrace,
+    backdropStep = null,
+    backdropNode = null,
+    immersive = false,
+    onRevealOnCanvas,
+    revealLabel,
+  } = props;
+
+  const isRecord = props.mode === 'record';
+
+  const inner =
+    isDiverged && divergence ? (
+      <DivergenceStageCard
+        divergence={divergence}
+        onRevealOnCanvas={onRevealOnCanvas}
+        revealLabel={revealLabel}
+      />
+    ) : isRecord ? (
+      <RecordStageContent
+        step={step}
+        branding={branding}
+        editorTheme={editorTheme}
+        flowTheme={flowTheme}
+        immersive={immersive}
+        record={props}
+      />
+    ) : (
+      <StageContent
+        step={step}
+        node={node}
+        branding={branding}
+        editorTheme={editorTheme}
+        flowTheme={flowTheme}
+        flow={flow}
+        runTrace={runTrace}
+        backdropStep={backdropStep}
+        backdropNode={backdropNode}
+        immersive={immersive}
+      />
+    );
+
   return (
     <div
       className={
@@ -65,53 +111,97 @@ export function PlayerStage({
       }
       data-stage-scale={STAGE_PRESENTATION_SCALE}
       data-stage-immersive={immersive || undefined}
+      data-stage-mode={isRecord ? 'record' : 'view'}
     >
-      {isDiverged && divergence ? (
-        immersive ? (
-          <StagePresentationFrame>
-            <DivergenceStageCard
-              divergence={divergence}
-              onRevealOnCanvas={onRevealOnCanvas}
-              revealLabel={revealLabel}
-            />
-          </StagePresentationFrame>
-        ) : (
-          <DivergenceStageCard
-            divergence={divergence}
-            onRevealOnCanvas={onRevealOnCanvas}
-            revealLabel={revealLabel}
-          />
-        )
-      ) : immersive ? (
-        <StagePresentationFrame>
-          <StageContent
-            step={step}
-            node={node}
-            branding={branding}
-            editorTheme={editorTheme}
-            flowTheme={flowTheme}
-            flow={flow}
-            runTrace={runTrace}
-            backdropStep={backdropStep}
-            backdropNode={backdropNode}
-            immersive
-          />
-        </StagePresentationFrame>
+      {immersive && !(isDiverged && divergence) ? (
+        <StagePresentationFrame>{inner}</StagePresentationFrame>
       ) : (
-        <StageContent
-          step={step}
-          node={node}
-          branding={branding}
-          editorTheme={editorTheme}
-          flowTheme={flowTheme}
-          flow={flow}
-          runTrace={runTrace}
-          backdropStep={backdropStep}
-          backdropNode={backdropNode}
-        />
+        inner
       )}
     </div>
   );
+}
+
+function RecordStageContent({
+  step,
+  branding,
+  editorTheme,
+  flowTheme,
+  immersive,
+  record,
+}: {
+  step: PlayerStep;
+  branding?: Branding;
+  editorTheme: 'light' | 'dark';
+  flowTheme: FlowTheme;
+  immersive: boolean;
+  record: Extract<PlayerStageProps, { mode: 'record' }>;
+}) {
+  const {
+    flow,
+    headNode,
+    contextAtHead,
+    pendingDecision,
+    previousStepName,
+    expectOutcomeChecked,
+    onRecordAction,
+    onRecordResult,
+    onContinueDecision,
+    onApplyBranchFix,
+    onToggleExpectedOutcome,
+    onDone,
+  } = record;
+
+  if (pendingDecision) {
+    return (
+      <RecordModeDecisionStage
+        pending={pendingDecision}
+        contextAtHead={contextAtHead}
+        flow={flow}
+        previousStepName={previousStepName}
+        onContinueDecision={onContinueDecision}
+        onApplyBranchFix={onApplyBranchFix}
+      />
+    );
+  }
+
+  switch (headNode.type) {
+    case 'screen':
+      return (
+        <RecordModeScreenStage
+          node={headNode}
+          flow={flow}
+          branding={branding}
+          editorTheme={editorTheme}
+          flowTheme={flowTheme}
+          immersive={immersive}
+          onRecordAction={onRecordAction}
+        />
+      );
+    case 'action':
+    case 'external':
+      return (
+        <RecordModeResolveStage
+          node={headNode}
+          nodeType={headNode.type}
+          onRecordResult={onRecordResult}
+        />
+      );
+    case 'outcome':
+      return (
+        <RecordModeOutcomeStage
+          step={step}
+          node={headNode}
+          expectOutcomeChecked={expectOutcomeChecked}
+          onToggleExpectedOutcome={onToggleExpectedOutcome}
+          onDone={onDone}
+        />
+      );
+    case 'entry':
+      return <RecordModeEntryStage />;
+    case 'decision':
+      return null;
+  }
 }
 
 function StagePresentationFrame({ children }: { children: ReactNode }) {

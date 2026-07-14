@@ -3,6 +3,7 @@ import type {
   DecisionNode,
   EntryNode,
   ExternalNode,
+  Flow,
   OutcomeNode,
   ScreenNode,
 } from '@authprint/dsl';
@@ -236,6 +237,114 @@ export const stepOutcomeError = step({
   displayName: 'User left',
   matchesExpectedOutcome: false,
 });
+
+/** Minimal flow for record-mode stage stories (screen exit actions + decision destinations). */
+export const fixtureRecordFlow: Flow = {
+  id: 'record-fixture',
+  name: 'Record fixture',
+  branding: { theme: 'light' },
+  context: { 'user.exists': { type: 'boolean' } },
+  nodes: [
+    fixtureEntry,
+    fixtureScreenMockup,
+    fixtureDecision,
+    fixtureAction,
+    fixtureExternal,
+    fixtureOutcomeSuccess,
+  ],
+  edges: [
+    { id: 'e-entry-screen', source: 'e1', target: 's-mock', trigger: { type: 'unconditional' } },
+    {
+      id: 'e-screen-submit',
+      source: 's-mock',
+      target: 'd1',
+      trigger: { type: 'interaction', action: 'submit' },
+      label: 'submit',
+    },
+    {
+      id: 'e-screen-back',
+      source: 's-mock',
+      target: 'e1',
+      trigger: { type: 'interaction', action: 'back' },
+      label: 'back',
+    },
+    {
+      id: 'e-screen-forgot',
+      source: 's-mock',
+      target: 'a1',
+      trigger: { type: 'interaction', action: 'forgot-password' },
+      label: 'forgot-password',
+    },
+    {
+      id: 'e-decision-yes',
+      source: 'd1',
+      target: 'a1',
+      trigger: { type: 'branch', value: true },
+      label: 'yes',
+    },
+    {
+      id: 'e-decision-no',
+      source: 'd1',
+      target: 'o1',
+      trigger: { type: 'branch', value: false },
+      label: 'no',
+    },
+    {
+      id: 'e-action-success',
+      source: 'a1',
+      target: 'o1',
+      trigger: { type: 'on-success' },
+      label: 'success',
+    },
+    {
+      id: 'e-action-error',
+      source: 'a1',
+      target: 'o1',
+      trigger: { type: 'on-error' },
+      label: 'error',
+    },
+    {
+      id: 'e-external-success',
+      source: 'x1',
+      target: 'o1',
+      trigger: { type: 'on-success' },
+    },
+    {
+      id: 'e-external-error',
+      source: 'x1',
+      target: 'o1',
+      trigger: { type: 'on-error' },
+    },
+    {
+      id: 'e-external-denied',
+      source: 'x1',
+      target: 'o1',
+      trigger: { type: 'on-denied' },
+    },
+    {
+      id: 'e-external-cancelled',
+      source: 'x1',
+      target: 'o1',
+      trigger: { type: 'on-cancelled' },
+    },
+  ],
+  annotations: [],
+  scenarios: [],
+};
+
+export const fixturePendingDecision = {
+  nodeId: 'd1',
+  question: 'user.exists equals true?',
+  predicate: { slot: 'user.exists', op: 'equals' as const, value: true },
+  takenBranch: false,
+  takenDestinationId: 'o1',
+  otherBranch: true,
+  otherDestinationId: 'a1',
+  fixes: [
+    { kind: 'initial-context' as const, slot: 'user.exists', value: true },
+    { kind: 'step-patch' as const, stepIndex: 0, slot: 'user.exists', value: true },
+  ],
+};
 
 export function buildLongStripSteps(count = 15): PlayerStep[] {
   const names = [
