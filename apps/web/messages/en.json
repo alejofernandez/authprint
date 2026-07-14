@@ -183,6 +183,35 @@
     },
     "canvasPlay": "Play scenario: {name}",
     "canvasPlayDisabled": "No scenarios to play",
-    "revealOnCanvas": "Reveal on canvas"
+    "revealOnCanvas": "Reveal on canvas",
+    "ghostHead": {
+      "chooseOnStage": "choose on the stage"
+    },
+    "stepEditor": {
+      "title": "Edit step",
+      "close": "Close step editor",
+      "derived": {
+        "badge": "derived",
+        "entry": "Where every run starts.",
+        "decision": "Decisions follow context. To take another branch, change an initial value or a set: patch on an earlier step.",
+        "outcome": "Where this run ends. Use the checkbox on the end-card to assert it.",
+        "generic": "Derived from the trace, not part of the input script."
+      },
+      "scripted": {
+        "badge": "scripted",
+        "screenKind": "screen step",
+        "actionKind": "action step",
+        "actionLabel": "Action",
+        "resultLabel": "Result",
+        "rerouteAction": "action",
+        "rerouteResult": "result",
+        "rerouteWarning": "Changing the {target} or a patch reroutes the trace — later steps that no longer apply are dropped.",
+        "deleteFromHere": "Delete from here"
+      },
+      "setPatch": {
+        "title": "set: after this step",
+        "none": "—"
+      }
+    }
   }
 }

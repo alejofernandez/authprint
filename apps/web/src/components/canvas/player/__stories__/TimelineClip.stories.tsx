@@ -6,23 +6,41 @@ import {
   stepOutcomeSuccess,
   stepScreenMockup,
 } from '../playerFixtures.ts';
-import { TimelineClip } from '../TimelineClip.tsx';
+import type { PlayerStep } from '../steps.ts';
+import { GhostHeadClip, TimelineClip } from '../TimelineClip.tsx';
+import { PlayerStoryIntl } from './PlayerStoryIntl.tsx';
 
-type ClipStoryArgs = React.ComponentProps<typeof TimelineClip> & {
+type ClipStoryArgs = {
   theme?: 'light' | 'dark';
+  step: PlayerStep;
+  active?: boolean;
+  diverged?: boolean;
+  onSeek?: () => void;
+  onRevealOnCanvas?: () => void;
+  revealLabel?: string;
+  mode?: 'view' | 'edit';
+  scripted?: boolean;
+  hasSetPatch?: boolean;
+  onEdit?: () => void;
 };
 
 const meta = {
   title: 'Canvas/Player/TimelineClip',
-  component: TimelineClip,
   parameters: { layout: 'fullscreen' },
+  decorators: [
+    (Story) => (
+      <PlayerStoryIntl>
+        <Story />
+      </PlayerStoryIntl>
+    ),
+  ],
   render: ({ theme = 'light', ...clipProps }: ClipStoryArgs) => (
     <div
       data-testid="player-canvas"
       className={`${theme === 'dark' ? 'dark ' : ''}bg-bg-canvas p-6`}
       style={{ width: 160, height: 120 }}
     >
-      <TimelineClip {...clipProps} />
+      <TimelineClip {...(clipProps as React.ComponentProps<typeof TimelineClip>)} />
     </div>
   ),
 } satisfies Meta<ClipStoryArgs>;
@@ -54,4 +72,71 @@ export const DivergedLight: Story = {
 };
 export const ActiveDark: Story = {
   args: { theme: 'dark', step: stepScreenMockup, active: true },
+};
+
+export const EditableScreenLight: Story = {
+  args: {
+    theme: 'light',
+    step: stepScreenMockup,
+    mode: 'edit',
+    scripted: true,
+    hasSetPatch: false,
+  },
+};
+
+export const EditableScreenWithSetLight: Story = {
+  args: {
+    theme: 'light',
+    step: stepScreenMockup,
+    mode: 'edit',
+    scripted: true,
+    hasSetPatch: true,
+  },
+};
+
+export const EditableActionDark: Story = {
+  args: {
+    theme: 'dark',
+    step: stepAction,
+    mode: 'edit',
+    scripted: true,
+    hasSetPatch: false,
+  },
+};
+
+export const EditableDerivedDecisionLight: Story = {
+  args: {
+    theme: 'light',
+    step: stepDecision,
+    mode: 'edit',
+    scripted: false,
+  },
+};
+
+type GhostArgs = React.ComponentProps<typeof GhostHeadClip> & { theme?: 'light' | 'dark' };
+
+export const GhostHeadLight: StoryObj<GhostArgs> = {
+  render: ({ theme = 'light', ...props }) => (
+    <PlayerStoryIntl>
+      <div
+        data-testid="player-canvas"
+        className={`${theme === 'dark' ? 'dark ' : ''}bg-bg-canvas p-6`}
+        style={{ width: 160, height: 120 }}
+      >
+        <GhostHeadClip {...props} />
+      </div>
+    </PlayerStoryIntl>
+  ),
+  args: {
+    theme: 'light',
+    nextDisplayName: 'Enter code',
+  },
+};
+
+export const GhostHeadDark: StoryObj<GhostArgs> = {
+  ...GhostHeadLight,
+  args: {
+    theme: 'dark',
+    nextDisplayName: 'Enter code',
+  },
 };
