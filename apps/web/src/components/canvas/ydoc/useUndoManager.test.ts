@@ -2,8 +2,23 @@ import { describe, expect, test } from 'bun:test';
 import { emptyFlow } from '../emptyFlow.ts';
 import { createConnectedNode } from './create.ts';
 import { hydrate } from './hydrate.ts';
-import { moveNode, removeNode, setFlowName, setFlowTheme, setNodeName } from './ops.ts';
-import { edgesMap, layoutMap, metaMap, nodesMap } from './schema.ts';
+import {
+  moveNode,
+  putScenario,
+  removeNode,
+  removeScenario,
+  setFlowName,
+  setFlowTheme,
+  setNodeName,
+} from './ops.ts';
+import {
+  edgesMap,
+  layoutMap,
+  metaMap,
+  nodesMap,
+  readScenarioOrder,
+  scenariosMap,
+} from './schema.ts';
 import { createUndoManager } from './useUndoManager.ts';
 
 function entryDoc() {
@@ -151,6 +166,40 @@ describe('createUndoManager', () => {
     expect((metaMap(doc).get('branding') as { theme: string }).theme).toBe('light');
     manager.undo();
     expect(metaMap(doc).get('name')).toBe('F');
+
+    manager.destroy();
+  });
+
+  test('putScenario and removeScenario undo in one step each', () => {
+    const doc = wiredDoc();
+    const manager = createUndoManager(doc);
+    const scenario = {
+      id: 'sc-1',
+      name: 'Recorded',
+      initialContext: {},
+      inputScript: [],
+    };
+
+    putScenario(doc, scenario);
+    expect(readScenarioOrder(doc)).toEqual(['sc-1']);
+    expect(scenariosMap(doc).has('sc-1')).toBe(true);
+
+    manager.undo();
+    expect(scenariosMap(doc).has('sc-1')).toBe(false);
+    expect(readScenarioOrder(doc)).toEqual([]);
+
+    manager.redo();
+    expect(scenariosMap(doc).has('sc-1')).toBe(true);
+
+    putScenario(doc, { ...scenario, name: 'Renamed' });
+    manager.undo();
+    expect(scenariosMap(doc).get('sc-1')).toContain('Recorded');
+
+    removeScenario(doc, 'sc-1');
+    expect(scenariosMap(doc).has('sc-1')).toBe(false);
+    manager.undo();
+    expect(scenariosMap(doc).has('sc-1')).toBe(true);
+    expect(readScenarioOrder(doc)).toEqual(['sc-1']);
 
     manager.destroy();
   });

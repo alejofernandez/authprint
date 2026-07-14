@@ -1,4 +1,4 @@
-// Y.UndoManager wiring for E27 / US-053. Tracks the six editable maps, scoped
+// Y.UndoManager wiring for E27 / US-053. Tracks the seven editable maps, scoped
 // to LOCAL_ORIGIN so v2 remote edits never land on the local undo stack.
 // Construct the manager only after hydrate — the loaded baseline is not undoable.
 
@@ -13,6 +13,7 @@ import {
   layoutMap,
   metaMap,
   nodesMap,
+  scenariosMap,
 } from './schema.ts';
 
 export type UndoStackSnapshot = { canUndo: boolean; canRedo: boolean };
@@ -40,6 +41,7 @@ export function createUndoManager(doc: Y.Doc): UndoManager {
       layoutMap(doc),
       edgeLayoutMap(doc),
       metaMap(doc),
+      scenariosMap(doc),
     ],
     {
       trackedOrigins: new Set([LOCAL_ORIGIN]),

@@ -9,8 +9,10 @@ import {
   declareContextSlot,
   incidentEdgeIds,
   moveNode,
+  putScenario,
   removeEdge,
   removeNode,
+  removeScenario,
   setCompanyName,
   setDecisionPredicate,
   setEdgeRoute,
@@ -28,7 +30,15 @@ import {
   setScreenTraits,
   swapEdgeTriggers,
 } from './ops.ts';
-import { edgeLayoutMap, edgesMap, layoutMap, metaMap, nodesMap } from './schema.ts';
+import {
+  edgeLayoutMap,
+  edgesMap,
+  layoutMap,
+  metaMap,
+  nodesMap,
+  readScenarioOrder,
+  scenariosMap,
+} from './schema.ts';
 
 // Minimal flow: entry → screen → (decision) → outcome, decision has both branches.
 function base() {
@@ -432,5 +442,58 @@ describe('swapEdgeTriggers', () => {
     expect(nodes.find((n) => n.id === 'd1')?.data.connectedHandles?.has('top-out')).toBe(true);
     expect(edges.find((e) => e.id === 'e3')?.sourceHandle).toBe('top-out');
     expect(edges.find((e) => e.id === 'e4')?.sourceHandle).toBe('false');
+  });
+});
+
+describe('scenario ops', () => {
+  const scenarioA = {
+    id: 'sc-a',
+    name: 'A',
+    initialContext: { 'user.exists': false },
+    inputScript: [],
+  };
+  const scenarioB = {
+    id: 'sc-b',
+    name: 'B',
+    initialContext: {},
+    inputScript: [{ type: 'screen' as const, nodeId: 's1', action: 'submit' }],
+  };
+
+  test('putScenario creates and replaces whole records', () => {
+    const doc = hydrate({
+      id: 'f',
+      name: 'F',
+      branding: { theme: 'light' },
+      context: {},
+      nodes: [{ type: 'entry', id: 'entry' }],
+      edges: [],
+      annotations: [],
+      scenarios: [scenarioA],
+    });
+
+    expect(putScenario(doc, { ...scenarioA, name: 'A renamed' }).ok).toBe(true);
+    expect(readFlow(doc).scenarios[0]?.name).toBe('A renamed');
+
+    expect(putScenario(doc, scenarioB).ok).toBe(true);
+    expect(readFlow(doc).scenarios.map((s) => s.id)).toEqual(['sc-a', 'sc-b']);
+    expect(readScenarioOrder(doc)).toEqual(['sc-a', 'sc-b']);
+  });
+
+  test('removeScenario drops record and order entry', () => {
+    const doc = hydrate({
+      id: 'f',
+      name: 'F',
+      branding: { theme: 'light' },
+      context: {},
+      nodes: [{ type: 'entry', id: 'entry' }],
+      edges: [],
+      annotations: [],
+      scenarios: [scenarioA, scenarioB],
+    });
+
+    expect(removeScenario(doc, 'sc-a').ok).toBe(true);
+    expect(scenariosMap(doc).has('sc-a')).toBe(false);
+    expect(readFlow(doc).scenarios.map((s) => s.id)).toEqual(['sc-b']);
+    expect(readScenarioOrder(doc)).toEqual(['sc-b']);
   });
 });

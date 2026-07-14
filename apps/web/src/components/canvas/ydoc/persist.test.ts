@@ -100,6 +100,14 @@ describe('round-trip', () => {
     );
     expect(artifact.layout).toEqual(layout);
   });
+
+  test('scenarios round-trip byte-identically through bundle save/load', async () => {
+    const demo = await loadDemoFlowZero();
+    const artifact = docToArtifact(hydrate(demo));
+    const reloaded = reload(serializeBundle(artifact));
+    expect(reloaded.flow.scenarios).toEqual(demo.scenarios);
+    expect(serialize(reloaded.flow)).toBe(serialize(demo));
+  });
 });
 
 describe('serializeLayout / parseLayout', () => {

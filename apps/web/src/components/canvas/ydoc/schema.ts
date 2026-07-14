@@ -5,10 +5,10 @@
 // refactor. It is NOT the persisted form — on save we serialize to DSL +
 // layout JSON (E25); Yjs binary blobs are never the canonical artifact.
 //
-// The document is five top-level Y.Maps — `nodes`, `edges`, `context`,
-// `layout`, `edgeLayout` — plus a `meta` map for flow-level scalars (id/name/theme) and, for
-// now, the not-yet-canvas-edited `annotations` / `scenarios` carried opaquely
-// so a hydrate→read cycle is lossless. Node attributes are modeled as a nested
+// The document is six top-level Y.Maps — `nodes`, `edges`, `context`,
+// `layout`, `edgeLayout`, `scenarios` — plus a `meta` map for flow-level
+// scalars (id/name/theme) and, for now, the not-yet-canvas-edited
+// `annotations` carried opaquely so a hydrate→read cycle is lossless. Node attributes are modeled as a nested
 // Y.Map (traits → Y.Array, fields → Y.Array<Y.Map>, predicate → Y.Map) rather
 // than an opaque blob, so field-level CRDT merge works when collab arrives —
 // the entire point of Yjs-from-MVP. That costs more thought per edit — an
@@ -22,6 +22,7 @@ import type {
   Field,
   Flow,
   Predicate,
+  Scenario,
   Trigger,
 } from '@authprint/dsl';
 import * as Y from 'yjs';
@@ -37,7 +38,11 @@ const EDGES = 'edges';
 const CONTEXT = 'context';
 const LAYOUT = 'layout';
 const EDGE_LAYOUT = 'edgeLayout';
+const SCENARIOS = 'scenarios';
 const META = 'meta';
+
+/** Meta key — ordered scenario ids for stable `readFlow` serialization. */
+export const SCENARIO_ORDER_KEY = 'scenarioOrder';
 
 export type Position = { x: number; y: number };
 /** Per-node layout view state (position + optional editor preview flags). */
@@ -109,6 +114,7 @@ export function createDoc(): Y.Doc {
   doc.getMap(CONTEXT);
   doc.getMap(LAYOUT);
   doc.getMap(EDGE_LAYOUT);
+  doc.getMap(SCENARIOS);
   doc.getMap(META);
   return doc;
 }
@@ -118,6 +124,8 @@ export const edgesMap = (doc: Y.Doc): Y.Map<Y.Map<unknown>> => doc.getMap(EDGES)
 export const contextMap = (doc: Y.Doc): Y.Map<Y.Map<unknown>> => doc.getMap(CONTEXT);
 export const layoutMap = (doc: Y.Doc): Y.Map<NodeLayoutRecord> => doc.getMap(LAYOUT);
 export const edgeLayoutMap = (doc: Y.Doc): Y.Map<EdgeLayoutRecord> => doc.getMap(EDGE_LAYOUT);
+/** Scenario id → JSON-serialized whole record (whole-record replace per edit). */
+export const scenariosMap = (doc: Y.Doc): Y.Map<string> => doc.getMap(SCENARIOS);
 export const metaMap = (doc: Y.Doc): Y.Map<unknown> => doc.getMap(META);
 
 // ─── Node ⇄ Y.Map ────────────────────────────────────────────────────────────
@@ -290,15 +298,56 @@ export function readContext(doc: Y.Doc): Context {
   return context;
 }
 
+// ─── Scenarios ───────────────────────────────────────────────────────────────
+// Whole-record JSON per id; order lives in meta (`scenarioOrder`). Per-scenario
+// is the collaboration grain — scripts are small enough to replace atomically.
+
+export function writeScenarioRecord(map: Y.Map<string>, scenario: Scenario): void {
+  map.set(scenario.id, JSON.stringify(scenario));
+}
+
+export function readScenarioRecord(map: Y.Map<string>, id: string): Scenario | undefined {
+  const raw = map.get(id);
+  if (typeof raw !== 'string') return undefined;
+  return JSON.parse(raw) as Scenario;
+}
+
+export function readScenarioOrder(doc: Y.Doc): string[] {
+  const order = metaMap(doc).get(SCENARIO_ORDER_KEY);
+  return Array.isArray(order) ? [...(order as string[])] : [];
+}
+
+export function readScenarios(doc: Y.Doc): Scenario[] {
+  const map = scenariosMap(doc);
+  const order = readScenarioOrder(doc);
+  const out: Scenario[] = [];
+  const seen = new Set<string>();
+
+  for (const id of order) {
+    if (!map.has(id)) continue;
+    const scenario = readScenarioRecord(map, id);
+    if (!scenario) continue;
+    out.push(scenario);
+    seen.add(id);
+  }
+
+  for (const [id] of map) {
+    if (seen.has(id)) continue;
+    const scenario = readScenarioRecord(map, id);
+    if (scenario) out.push(scenario);
+  }
+
+  return out;
+}
+
 // ─── Flow-level meta ─────────────────────────────────────────────────────────
 // id / name / description are scalars; branding (which now nests `theme`
 // alongside companyName/primaryColor — grouped because all three answer "how
-// does this flow's screens look"), annotations, and scenarios are carried
-// opaquely (plain JSON) until they become canvas-editable — E24 only needs
-// them to survive a hydrate→read cycle, not to merge granularly. Branding's
-// three fields are independently settable (setFlowTheme / setCompanyName /
-// setPrimaryColor in ops.ts) via read-modify-write on the one blob, rather
-// than exploding into their own meta keys — it's document metadata, not
-// something that needs node-level collab-merge granularity.
+// does this flow's screens look") and annotations are carried opaquely (plain
+// JSON) until they become canvas-editable. Branding's three fields are
+// independently settable (setFlowTheme / setCompanyName / setPrimaryColor in
+// ops.ts) via read-modify-write on the one blob, rather than exploding into
+// their own meta keys — it's document metadata, not something that needs
+// node-level collab-merge granularity.
 
 export type FlowMeta = Pick<Flow, 'id' | 'name' | 'description' | 'branding'>;

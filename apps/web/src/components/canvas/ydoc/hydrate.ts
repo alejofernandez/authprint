@@ -5,7 +5,7 @@
 // no layout (a fresh/semantic-only flow), the map stays empty and elkjs
 // auto-places everything (hybrid-C layout policy).
 
-import type { Annotation, Flow, Scenario } from '@authprint/dsl';
+import type { Annotation, Flow } from '@authprint/dsl';
 import type * as Y from 'yjs';
 import {
   buildContextSlotMap,
@@ -26,6 +26,10 @@ import {
   readContext,
   readEdgeMap,
   readNodeMap,
+  readScenarios,
+  SCENARIO_ORDER_KEY,
+  scenariosMap,
+  writeScenarioRecord,
 } from './schema.ts';
 
 export function hydrate(flow: Flow, layout?: LayoutPositions, edgeLayout?: EdgeRoutes): Y.Doc {
@@ -37,9 +41,17 @@ export function hydrate(flow: Flow, layout?: LayoutPositions, edgeLayout?: EdgeR
     if (flow.description !== undefined) meta.set('description', flow.description);
     meta.set('branding', flow.branding);
     // Not canvas-edited yet — carried opaquely so a hydrate→read cycle is
-    // lossless. E25 gives these a granular home if/when they become editable.
+    // lossless.
     meta.set('annotations', flow.annotations);
-    meta.set('scenarios', flow.scenarios);
+
+    const scenarios = scenariosMap(doc);
+    meta.set(
+      SCENARIO_ORDER_KEY,
+      flow.scenarios.map((s) => s.id),
+    );
+    for (const scenario of flow.scenarios) {
+      writeScenarioRecord(scenarios, scenario);
+    }
 
     const nodes = nodesMap(doc);
     for (const node of flow.nodes) nodes.set(node.id, buildNodeMap(node));
@@ -89,6 +101,6 @@ export function readFlow(doc: Y.Doc): Flow {
     nodes: [...nodesMap(doc).values()].map(readNodeMap),
     edges: [...edgesMap(doc).values()].map(readEdgeMap),
     annotations: (meta.get('annotations') as Annotation[] | undefined) ?? [],
-    scenarios: (meta.get('scenarios') as Scenario[] | undefined) ?? [],
+    scenarios: readScenarios(doc),
   };
 }

@@ -15,6 +15,9 @@ import {
   readContextSlotMap,
   readEdgeMap,
   readNodeMap,
+  readScenarioRecord,
+  scenariosMap,
+  writeScenarioRecord,
 } from './schema.ts';
 
 // Y types only serve `.get()` once integrated into a doc; the build helpers are
@@ -37,9 +40,17 @@ function roundTripSlot(slot: ContextSlot): ContextSlot {
 }
 
 describe('createDoc', () => {
-  test('a fresh doc has the five maps plus meta, all empty', () => {
+  test('a fresh doc has the six maps plus meta, all empty', () => {
     const doc = createDoc();
-    for (const map of [nodesMap, edgesMap, contextMap, layoutMap, edgeLayoutMap, metaMap]) {
+    for (const map of [
+      nodesMap,
+      edgesMap,
+      contextMap,
+      layoutMap,
+      edgeLayoutMap,
+      scenariosMap,
+      metaMap,
+    ]) {
       expect(map(doc).size).toBe(0);
     }
   });
@@ -150,5 +161,21 @@ describe('context slot round-trip', () => {
   test('enum slot preserves values', () => {
     const slot: ContextSlot = { type: 'enum', values: ['low', 'high'] };
     expect(roundTripSlot(slot)).toEqual(slot);
+  });
+});
+
+describe('scenario round-trip', () => {
+  const scenario = {
+    id: 'sc-1',
+    name: 'Happy path',
+    initialContext: { 'user.exists': true },
+    inputScript: [{ type: 'screen' as const, nodeId: 's1', action: 'submit' }],
+    expectedOutcome: { outcomeId: 'o1' },
+  };
+
+  test('writeScenarioRecord / readScenarioRecord preserves JSON', () => {
+    const doc = createDoc();
+    writeScenarioRecord(scenariosMap(doc), scenario);
+    expect(readScenarioRecord(scenariosMap(doc), 'sc-1')).toEqual(scenario);
   });
 });

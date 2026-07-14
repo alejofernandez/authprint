@@ -17,6 +17,7 @@ import type {
   Field,
   FlowTheme,
   Predicate,
+  Scenario,
   Trigger,
 } from '@authprint/dsl';
 import * as Y from 'yjs';
@@ -45,7 +46,11 @@ import {
   type NodeLayoutRecord,
   nodesMap,
   type Position,
+  readScenarioOrder,
   readTriggerMap,
+  SCENARIO_ORDER_KEY,
+  scenariosMap,
+  writeScenarioRecord,
 } from './schema.ts';
 
 export type OpResult = { ok: true } | { ok: false; reason: string };
@@ -394,5 +399,33 @@ export function setCompanyName(doc: Y.Doc, companyName: string): OpResult {
 
 export function setPrimaryColor(doc: Y.Doc, primaryColor: string): OpResult {
   doc.transact(() => patchBranding(doc, { primaryColor }), LOCAL_ORIGIN);
+  return ok;
+}
+
+// ─── Scenario edits (US-116) ─────────────────────────────────────────────────
+
+export function putScenario(doc: Y.Doc, scenario: Scenario): OpResult {
+  if (scenario.id.length === 0) return fail('scenario id is required');
+  doc.transact(() => {
+    const map = scenariosMap(doc);
+    const isCreate = !map.has(scenario.id);
+    writeScenarioRecord(map, scenario);
+    if (isCreate) {
+      const order = readScenarioOrder(doc);
+      if (!order.includes(scenario.id)) {
+        metaMap(doc).set(SCENARIO_ORDER_KEY, [...order, scenario.id]);
+      }
+    }
+  }, LOCAL_ORIGIN);
+  return ok;
+}
+
+export function removeScenario(doc: Y.Doc, id: string): OpResult {
+  if (!scenariosMap(doc).has(id)) return fail(`scenario '${id}' not found`);
+  doc.transact(() => {
+    scenariosMap(doc).delete(id);
+    const order = readScenarioOrder(doc).filter((entry) => entry !== id);
+    metaMap(doc).set(SCENARIO_ORDER_KEY, order);
+  }, LOCAL_ORIGIN);
   return ok;
 }

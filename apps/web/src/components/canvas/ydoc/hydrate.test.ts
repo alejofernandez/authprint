@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { type Flow, parse } from '@authprint/dsl';
 import { emptyFlow } from '../emptyFlow.ts';
 import { hydrate, readFlow } from './hydrate.ts';
-import { layoutMap } from './schema.ts';
+import { layoutMap, metaMap } from './schema.ts';
 
 // Resolve relative to this file so the test passes regardless of cwd.
 const DEMO_PATH = join(
@@ -105,5 +105,31 @@ describe('hydrate → readFlow', () => {
     expect(new Set(out.nodes.map((n) => n.id))).toEqual(new Set(demo.nodes.map((n) => n.id)));
     expect(new Set(out.edges.map((e) => e.id))).toEqual(new Set(demo.edges.map((e) => e.id)));
     expect(out.context).toEqual(demo.context);
+    expect(out.scenarios).toEqual(demo.scenarios);
+  });
+
+  test('scenarios preserve file order and drop stale order entries', () => {
+    const flow: Flow = {
+      ...sampleFlow,
+      scenarios: [
+        {
+          id: 'sc-a',
+          name: 'A',
+          initialContext: {},
+          inputScript: [],
+        },
+        {
+          id: 'sc-b',
+          name: 'B',
+          initialContext: {},
+          inputScript: [],
+        },
+      ],
+    };
+    const doc = hydrate(flow);
+    const meta = metaMap(doc);
+    meta.set('scenarioOrder', ['sc-a', 'ghost', 'sc-b']);
+
+    expect(readFlow(doc).scenarios.map((s) => s.id)).toEqual(['sc-a', 'sc-b']);
   });
 });
