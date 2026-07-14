@@ -10,7 +10,7 @@ import type {
   ScriptStep,
   TraceStep,
 } from '@authprint/dsl';
-import { runScenario } from '@authprint/dsl';
+import { evaluatePredicate, runScenario } from '@authprint/dsl';
 import { derivePlayerSteps, type PlayerStep } from './steps.ts';
 
 export type RecordingHead = {
@@ -84,12 +84,6 @@ function formatPredicateQuestion(predicate: Predicate): string {
   return `${predicate.slot} ${predicate.op} ${value}?`;
 }
 
-function evaluatePredicateValue(predicate: Predicate, slotValue: unknown): boolean | 'needs-value' {
-  if (predicate.op === 'equals') return slotValue === predicate.value;
-  if (predicate.op === 'not-equals') return slotValue !== predicate.value;
-  return 'needs-value';
-}
-
 function branchEdge(edges: Edge[], value: boolean): Edge | undefined {
   return edges.find((e) => e.trigger.type === 'branch' && e.trigger.value === value);
 }
@@ -119,9 +113,11 @@ function applyStepPatch(
   return { ...currentContext, ...step.set };
 }
 
+// Only booleans have a single derivable "other" value; anything else must
+// prompt — a null write would fail the slot's declared-type validation.
 function negateEqualsValue(value: unknown): unknown {
   if (typeof value === 'boolean') return !value;
-  return null;
+  return undefined;
 }
 
 function buildPendingDecision(
@@ -131,9 +127,8 @@ function buildPendingDecision(
   lastScriptedStepIndex: number | null,
 ): PendingDecision | null {
   const edges = edgesBySource(flow).get(node.id) ?? [];
-  const slotValue = context[node.predicate.slot];
-  const evalResult = evaluatePredicateValue(node.predicate, slotValue);
-  if (evalResult === 'needs-value') {
+  const evalResult = evaluatePredicate(flow, node.id, node.predicate, context);
+  if (evalResult.kind === 'error') {
     const trueEdge = branchEdge(edges, true);
     const falseEdge = branchEdge(edges, false);
     return {
@@ -148,7 +143,7 @@ function buildPendingDecision(
     };
   }
 
-  const takenBranch = evalResult;
+  const takenBranch = evalResult.value;
   const otherBranch = !takenBranch;
   const takenEdge = branchEdge(edges, takenBranch);
   const otherEdge = branchEdge(edges, otherBranch);

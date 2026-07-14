@@ -313,7 +313,9 @@ function findResultEdge(
   return edges.find((e) => e.trigger.type === triggerType) ?? null;
 }
 
-function evaluatePredicate(
+// Exported so app-side consumers (the scenario recorder) share the
+// interpreter's predicate semantics instead of re-implementing them.
+export function evaluatePredicate(
   flow: Flow,
   nodeId: string,
   predicate: Predicate,

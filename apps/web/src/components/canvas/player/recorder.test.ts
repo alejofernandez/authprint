@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { type Flow, parse, type Scenario } from '@authprint/dsl';
+import { type Flow, FlowSchema, parse, type Scenario } from '@authprint/dsl';
 import {
   appendResolutionStep,
   appendScreenStep,
@@ -229,5 +229,72 @@ scenarios: []`);
     draft = setStepPatch(flow, draft, 1, 'code.valid', true);
     expect(deriveRecording(flow, draft).head.nodeId).toBe('o1');
     expect(draft.expectedOutcome?.outcomeId).toBe('o1');
+  });
+});
+
+describe('predicate semantics parity with the interpreter', () => {
+  function gateFlow(predicate: Record<string, unknown>, slotType: string): Flow {
+    return FlowSchema.parse({
+      id: 'f-gate',
+      name: 'Gate',
+      context: { [predicate.slot as string]: { type: slotType } },
+      nodes: [
+        { type: 'entry', id: 'e' },
+        { type: 'screen', id: 's-start', name: 'Start', kind: 'identifier-collect' },
+        { type: 'decision', id: 'd-gate', kind: 'risk', predicate },
+        { type: 'screen', id: 's-high', name: 'High', kind: 'mfa-challenge' },
+        { type: 'screen', id: 's-low', name: 'Low', kind: 'confirmation' },
+      ],
+      edges: [
+        { id: 'edge-entry', source: 'e', target: 's-start', trigger: { type: 'unconditional' } },
+        {
+          id: 'edge-continue',
+          source: 's-start',
+          target: 'd-gate',
+          trigger: { type: 'interaction', action: 'continue' },
+        },
+        {
+          id: 'edge-true',
+          source: 'd-gate',
+          target: 's-high',
+          trigger: { type: 'branch', value: true },
+        },
+        {
+          id: 'edge-false',
+          source: 'd-gate',
+          target: 's-low',
+          trigger: { type: 'branch', value: false },
+        },
+      ],
+    });
+  }
+
+  function draftAtGate(initialContext: Record<string, unknown>): Scenario {
+    return {
+      id: 'sc-gate',
+      name: 'Gate draft',
+      initialContext,
+      inputScript: [{ type: 'screen', nodeId: 's-start', action: 'continue' }],
+    };
+  }
+
+  test('numeric decision head reports the branch context dictates', () => {
+    const flow = gateFlow({ slot: 'risk.score', op: 'greater-than', value: 50 }, 'number');
+    const { head, pendingDecision } = deriveRecording(flow, draftAtGate({ 'risk.score': 80 }));
+    expect(head.nodeId).toBe('d-gate');
+    expect(pendingDecision?.takenBranch).toBe(true);
+    expect(pendingDecision?.takenDestinationId).toBe('s-high');
+    expect(pendingDecision?.fixes).toEqual([
+      { kind: 'needs-value', slot: 'risk.score', op: 'greater-than' },
+    ]);
+  });
+
+  test('string equals back-solve degrades to needs-value, never a null write', () => {
+    const flow = gateFlow({ slot: 'user.type', op: 'equals', value: 'admin' }, 'string');
+    const { pendingDecision } = deriveRecording(flow, draftAtGate({ 'user.type': 'admin' }));
+    expect(pendingDecision?.takenBranch).toBe(true);
+    expect(pendingDecision?.fixes).toEqual([
+      { kind: 'needs-value', slot: 'user.type', op: 'equals' },
+    ]);
   });
 });

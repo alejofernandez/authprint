@@ -4,6 +4,7 @@ export * from './diagnostic.ts';
 export * from './errorBanner.ts';
 export {
   type Divergence,
+  evaluatePredicate,
   runScenario,
   type ScenarioRun,
   type TraceStep,
