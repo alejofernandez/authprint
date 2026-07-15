@@ -8,7 +8,6 @@ import {
   scriptStepIndexForPlayerStep,
 } from './editStepMapping.ts';
 import { StepEditorPopover } from './StepEditorPopover.tsx';
-import type { EditableScriptStep } from './stepEditorTypes.ts';
 import type { PlayerStep } from './steps.ts';
 import { GhostHeadClip, TimelineClip } from './TimelineClip.tsx';
 import { TimelineProgressBar } from './TimelineProgressBar.tsx';
@@ -61,7 +60,6 @@ export function TimelineStrip(props: TimelineStripProps) {
   const clipRefs = useRef(new Map<number, HTMLDivElement>());
   const [editor, setEditor] = useState<{
     anchor: { left: number; top: number; right: number; bottom: number };
-    editable: EditableScriptStep | null;
     step: PlayerStep;
     draftId: string;
   } | null>(null);
@@ -89,16 +87,21 @@ export function TimelineStrip(props: TimelineStripProps) {
     const el = clipRefs.current.get(step.index);
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const editable = buildEditableScriptStep(editProps.flow, editProps.draft, steps, step.index);
     setEditor({
       anchor: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom },
-      editable,
       step,
       draftId: editProps.draft.id,
     });
   };
 
   const editorOpen = editProps && editor && editor.draftId === editProps.draft.id ? editor : null;
+  // Rebuilt from the live draft every render — an edit applied from the open
+  // popover (a set: patch) must read back immediately; a snapshot taken at
+  // open time goes stale the moment the draft changes.
+  const editorEditable =
+    editorOpen && editProps
+      ? buildEditableScriptStep(editProps.flow, editProps.draft, steps, editorOpen.step.index)
+      : null;
 
   return (
     <div className="w-full">
@@ -194,34 +197,30 @@ export function TimelineStrip(props: TimelineStripProps) {
           contextSlots={editProps.flow.context}
           anchor={editorOpen.anchor}
           onClose={() => setEditor(null)}
-          {...(editorOpen.editable
+          {...(editorEditable
             ? {
                 variant: 'scripted' as const,
-                editable: editorOpen.editable,
+                editable: editorEditable,
                 onActionChange: (action: string) => {
-                  const idx = editorOpen.editable?.scriptStepIndex;
-                  if (idx === undefined) return;
-                  editProps.editCallbacks.onActionChange(idx, action);
+                  editProps.editCallbacks.onActionChange(editorEditable.scriptStepIndex, action);
                   setEditor(null);
                 },
                 onResultChange: (result: string) => {
-                  const idx = editorOpen.editable?.scriptStepIndex;
-                  if (idx === undefined) return;
                   editProps.editCallbacks.onResultChange(
-                    idx,
+                    editorEditable.scriptStepIndex,
                     result as 'success' | 'error' | 'denied' | 'cancelled',
                   );
                   setEditor(null);
                 },
                 onSetPatchChange: (slot: string, value: unknown | null) => {
-                  const idx = editorOpen.editable?.scriptStepIndex;
-                  if (idx === undefined) return;
-                  editProps.editCallbacks.onSetPatchChange(idx, slot, value);
+                  editProps.editCallbacks.onSetPatchChange(
+                    editorEditable.scriptStepIndex,
+                    slot,
+                    value,
+                  );
                 },
                 onDeleteFromHere: () => {
-                  const idx = editorOpen.editable?.scriptStepIndex;
-                  if (idx === undefined) return;
-                  editProps.editCallbacks.onDeleteFromHere(idx);
+                  editProps.editCallbacks.onDeleteFromHere(editorEditable.scriptStepIndex);
                   setEditor(null);
                 },
               }

@@ -49,6 +49,7 @@ export type RecordModeDecisionProps = {
 };
 
 export type RecordModeResolveProps = {
+  flow: Flow;
   node: Node;
   nodeType: 'action' | 'external';
   onRecordResult?: (result: string) => void;

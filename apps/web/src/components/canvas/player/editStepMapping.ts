@@ -1,5 +1,5 @@
 import type { Flow, Scenario, ScriptStep } from '@authprint/dsl';
-import { nodeDisplayName, screenExitActions } from './screenExitActions.ts';
+import { actionExternalResults, nodeDisplayName, screenExitActions } from './screenExitActions.ts';
 import type { EditableScriptStep } from './stepEditorTypes.ts';
 import type { PlayerStep } from './steps.ts';
 
@@ -56,7 +56,10 @@ export function buildEditableScriptStep(
       scriptStepIndex: scriptIndex,
       displayName,
       step: scriptStep,
-      legalResults: ['success', 'error'] as const,
+      legalResults: actionExternalResults(flow, scriptStep.nodeId, 'action') as (
+        | 'success'
+        | 'error'
+      )[],
     };
   }
   return {
@@ -64,7 +67,12 @@ export function buildEditableScriptStep(
     scriptStepIndex: scriptIndex,
     displayName,
     step: scriptStep,
-    legalResults: ['success', 'error', 'denied', 'cancelled'] as const,
+    legalResults: actionExternalResults(flow, scriptStep.nodeId, 'external') as (
+      | 'success'
+      | 'error'
+      | 'denied'
+      | 'cancelled'
+    )[],
   };
 }
 

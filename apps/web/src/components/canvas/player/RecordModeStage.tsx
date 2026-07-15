@@ -191,9 +191,14 @@ function RecordActionChip({
   );
 }
 
-export function RecordModeResolveStage({ node, nodeType, onRecordResult }: RecordModeResolveProps) {
+export function RecordModeResolveStage({
+  node,
+  nodeType,
+  flow,
+  onRecordResult,
+}: RecordModeResolveProps) {
   const t = useTranslations('player.recordMode.resolve');
-  const results = actionExternalResults(nodeType);
+  const results = actionExternalResults(flow, node.id, nodeType);
   const kind = nodeKindLabel(node);
 
   return (
@@ -203,18 +208,22 @@ export function RecordModeResolveStage({ node, nodeType, onRecordResult }: Recor
         {nodeDisplayNameFromNode(node)}
       </div>
       {kind ? <div className="mt-1 text-xs text-fg-muted">{kind}</div> : null}
-      <div className="mt-4 flex flex-wrap justify-center gap-2">
-        {results.map((result) => (
-          <button
-            key={result}
-            type="button"
-            onClick={() => onRecordResult?.(result)}
-            className={`flex-1 rounded-md border border-border-default px-3 py-1.5 text-xs font-medium motion-reduce:transition-none transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle ${resolveResultTone(result)}`}
-          >
-            {t(`result.${result}`)}
-          </button>
-        ))}
-      </div>
+      {results.length > 0 ? (
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          {results.map((result) => (
+            <button
+              key={result}
+              type="button"
+              onClick={() => onRecordResult?.(result)}
+              className={`flex-1 rounded-md border border-border-default px-3 py-1.5 text-xs font-medium motion-reduce:transition-none transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle ${resolveResultTone(result)}`}
+            >
+              {t(`result.${result}`)}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 text-xs leading-relaxed text-signal-warning-fg">{t('noEdges')}</p>
+      )}
     </RecordGhostCard>
   );
 }
@@ -242,7 +251,7 @@ export function RecordModeDecisionStage({
   onApplyBranchFix,
 }: RecordModeDecisionProps) {
   const t = useTranslations('player.recordMode.decision');
-  const [showFixes, setShowFixes] = useState(false);
+  const [showFixes, setShowFixes] = useState(!pending.dictated);
   const fixPanelId = useId();
 
   const slotValue = contextAtHead[pending.predicate.slot];
@@ -265,28 +274,36 @@ export function RecordModeDecisionStage({
       </div>
       <div className="mt-2 text-sm font-semibold text-fg-default">{decisionName}</div>
       <div className="mt-1 font-mono text-xs text-fg-muted">{pending.question}</div>
-      <div className="mt-3 text-xs leading-relaxed text-fg-muted">
-        {t('contextSays', { value: slotDisplay })}{' '}
-        <span className="font-semibold text-node-decision-fg">{takenLabel}</span>
-        <br />
-        <span className="text-fg-subtle">&rarr; {takenDest}</span>
-      </div>
-      <button
-        type="button"
-        onClick={() => onContinueDecision?.()}
-        className="mt-4 w-full rounded-md bg-accent-primary-solid px-3 py-2 text-sm font-medium text-white motion-reduce:transition-none transition-opacity duration-[var(--duration-fast)] ease-standard hover:opacity-90"
-      >
-        {t('continue', { branch: takenLabel })}
-      </button>
-      <button
-        type="button"
-        aria-expanded={showFixes}
-        aria-controls={fixPanelId}
-        onClick={() => setShowFixes((open) => !open)}
-        className="mt-2 w-full rounded-md border border-border-default px-3 py-1.5 text-xs font-medium text-fg-muted motion-reduce:transition-none transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle"
-      >
-        {t('takeOther', { branch: otherLabel })}
-      </button>
+      {pending.dictated ? (
+        <>
+          <div className="mt-3 text-xs leading-relaxed text-fg-muted">
+            {t('contextSays', { value: slotDisplay })}{' '}
+            <span className="font-semibold text-node-decision-fg">{takenLabel}</span>
+            <br />
+            <span className="text-fg-subtle">&rarr; {takenDest}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onContinueDecision?.()}
+            className="mt-4 w-full rounded-md bg-accent-primary-solid px-3 py-2 text-sm font-medium text-white motion-reduce:transition-none transition-opacity duration-[var(--duration-fast)] ease-standard hover:opacity-90"
+          >
+            {t('continue', { branch: takenLabel })}
+          </button>
+          <button
+            type="button"
+            aria-expanded={showFixes}
+            aria-controls={fixPanelId}
+            onClick={() => setShowFixes((open) => !open)}
+            className="mt-2 w-full rounded-md border border-border-default px-3 py-1.5 text-xs font-medium text-fg-muted motion-reduce:transition-none transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle"
+          >
+            {t('takeOther', { branch: otherLabel })}
+          </button>
+        </>
+      ) : (
+        <p className="mt-3 text-xs leading-relaxed text-fg-muted">
+          {t('noValue', { slot: pending.predicate.slot })}
+        </p>
+      )}
       {showFixes ? (
         <div
           id={fixPanelId}

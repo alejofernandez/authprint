@@ -336,6 +336,7 @@ export const fixturePendingDecision = {
   nodeId: 'd1',
   question: 'user.exists equals true?',
   predicate: { slot: 'user.exists', op: 'equals' as const, value: true },
+  dictated: true,
   takenBranch: false,
   takenDestinationId: 'o1',
   otherBranch: true,

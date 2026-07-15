@@ -41,10 +41,21 @@ export function screenExitActions(flow: Flow, screenNodeId: string): ScreenExitA
   return actions.sort((a, b) => a.actionId.localeCompare(b.actionId));
 }
 
-export function actionExternalResults(nodeType: 'action' | 'external'): readonly string[] {
-  return nodeType === 'external'
-    ? (['success', 'error', 'denied', 'cancelled'] as const)
-    : (['success', 'error'] as const);
+// Only offer resolutions the flow can actually take — an on-<result> edge
+// must exist. Externals may legally omit denied/cancelled; offering them
+// anyway would record a step no walk can consume.
+export function actionExternalResults(
+  flow: Flow,
+  nodeId: string,
+  nodeType: 'action' | 'external',
+): readonly string[] {
+  const candidates =
+    nodeType === 'external'
+      ? (['success', 'error', 'denied', 'cancelled'] as const)
+      : (['success', 'error'] as const);
+  return candidates.filter((result) =>
+    flow.edges.some((e) => e.source === nodeId && e.trigger.type === `on-${result}`),
+  );
 }
 
 export function nodeDisplayName(flow: Flow, nodeId: string): string {

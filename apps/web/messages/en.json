@@ -249,6 +249,7 @@
       },
       "resolve": {
         "caption": "How does this resolve in this scenario?",
+        "noEdges": "No outgoing result edges — fix the flow on the canvas to keep recording.",
         "result": {
           "success": "succeeds",
           "error": "fails",
@@ -261,6 +262,7 @@
         "caption": "Decisions aren't script steps — context drives them. Taking the other branch means changing context.",
         "emptyValue": "—",
         "contextSays": "context says {value} → takes",
+        "noValue": "Context has no value for {slot} yet — set one to choose a branch:",
         "branch": {
           "yes": "yes",
           "no": "no"

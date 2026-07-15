@@ -459,11 +459,11 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
 
   const openPlayerEntry = useCallback(() => {
     const flow = docToArtifact(doc).flow;
-    if (flow.scenarios.length === 0) {
+    const [first] = flow.scenarios;
+    if (!first) {
       enterEmpty(flow);
       return;
     }
-    const first = flow.scenarios[0]!;
     enterPlay(first, flow);
   }, [doc, enterEmpty, enterPlay]);
 

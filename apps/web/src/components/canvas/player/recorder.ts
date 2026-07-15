@@ -27,6 +27,14 @@ export type PendingDecision = {
   nodeId: string;
   question: string;
   predicate: Predicate;
+  /**
+   * True when current context determines the branch. False (unevaluable slot)
+   * means takenBranch/otherBranch are placeholders: the walk must pause here —
+   * never auto-complete, auto-traverse, or accept a Continue — and the UI asks
+   * for a value instead of offering Continue (a branch walked without context
+   * support would diverge on replay).
+   */
+  dictated: boolean;
   takenBranch: boolean;
   takenDestinationId: string;
   otherBranch: boolean;
@@ -135,6 +143,7 @@ function buildPendingDecision(
       nodeId: node.id,
       question: formatPredicateQuestion(node.predicate),
       predicate: node.predicate,
+      dictated: false,
       takenBranch: false,
       takenDestinationId: falseEdge?.target ?? '',
       otherBranch: true,
@@ -179,6 +188,7 @@ function buildPendingDecision(
     nodeId: node.id,
     question: formatPredicateQuestion(node.predicate),
     predicate: node.predicate,
+    dictated: true,
     takenBranch,
     takenDestinationId: takenEdge.target,
     otherBranch,
@@ -243,7 +253,7 @@ function recordingWalk(
     if (current.type === 'decision') {
       const pending = buildPendingDecision(flow, current, currentContext, lastScriptedStepIndex);
       const nextStep = scriptQueue[0];
-      if (pending && nextStep) {
+      if (pending?.dictated && nextStep) {
         const takenEdge = branchEdge(bySource.get(current.id) ?? [], pending.takenBranch);
         if (takenEdge && stepMatchesDownstream(flow, takenEdge.target, nextStep)) {
           const target = nodes.get(takenEdge.target);
@@ -257,7 +267,7 @@ function recordingWalk(
         }
       }
 
-      if (pending && !nextStep) {
+      if (pending?.dictated && !nextStep) {
         const takenEdge = branchEdge(bySource.get(current.id) ?? [], pending.takenBranch);
         const target = takenEdge ? nodes.get(takenEdge.target) : undefined;
         if (target?.type === 'outcome' && takenEdge) {

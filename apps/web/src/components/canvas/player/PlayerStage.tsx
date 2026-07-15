@@ -184,6 +184,7 @@ function RecordStageContent({
         <RecordModeResolveStage
           node={headNode}
           nodeType={headNode.type}
+          flow={flow}
           onRecordResult={onRecordResult}
         />
       );

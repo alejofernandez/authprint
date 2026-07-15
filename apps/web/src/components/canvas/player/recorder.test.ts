@@ -289,6 +289,62 @@ describe('predicate semantics parity with the interpreter', () => {
     ]);
   });
 
+  test('unevaluable decision pauses even when a branch lands on an outcome', () => {
+    // Regression: with the slot absent from context, the fabricated false
+    // branch used to auto-complete to its outcome — recording finished
+    // without ever asking for the value.
+    const flow = FlowSchema.parse({
+      id: 'f-risk-outcome',
+      name: 'Risk to outcome',
+      context: { 'risk.elevated': { type: 'boolean' } },
+      nodes: [
+        { type: 'entry', id: 'e' },
+        {
+          type: 'decision',
+          id: 'd-risk',
+          kind: 'risk-elevated',
+          predicate: { slot: 'risk.elevated', op: 'equals', value: true },
+        },
+        { type: 'screen', id: 's-mfa', name: 'MFA', kind: 'mfa-challenge' },
+        { type: 'outcome', id: 'o-ok', name: 'Authenticated', kind: 'authenticated' },
+      ],
+      edges: [
+        { id: 'edge-entry', source: 'e', target: 'd-risk', trigger: { type: 'unconditional' } },
+        {
+          id: 'edge-low',
+          source: 'd-risk',
+          target: 'o-ok',
+          trigger: { type: 'branch', value: false },
+        },
+        {
+          id: 'edge-high',
+          source: 'd-risk',
+          target: 's-mfa',
+          trigger: { type: 'branch', value: true },
+        },
+      ],
+    });
+    const draft: Scenario = { id: 'sc', name: 'Fresh', initialContext: {}, inputScript: [] };
+
+    const recording = deriveRecording(flow, draft);
+    expect(recording.head).toEqual({ nodeId: 'd-risk', nodeType: 'decision' });
+    expect(recording.pendingDecision?.dictated).toBe(false);
+    expect(recording.pendingDecision?.fixes).toEqual([
+      { kind: 'needs-value', slot: 'risk.elevated', op: 'equals' },
+    ]);
+
+    const fixed = applyBranchFix(
+      flow,
+      draft,
+      { kind: 'needs-value', slot: 'risk.elevated', op: 'equals' },
+      true,
+    );
+    const after = deriveRecording(flow, fixed);
+    expect(after.pendingDecision?.dictated).toBe(true);
+    expect(after.pendingDecision?.takenBranch).toBe(true);
+    expect(after.pendingDecision?.takenDestinationId).toBe('s-mfa');
+  });
+
   test('string equals back-solve degrades to needs-value, never a null write', () => {
     const flow = gateFlow({ slot: 'user.type', op: 'equals', value: 'admin' }, 'string');
     const { pendingDecision } = deriveRecording(flow, draftAtGate({ 'user.type': 'admin' }));

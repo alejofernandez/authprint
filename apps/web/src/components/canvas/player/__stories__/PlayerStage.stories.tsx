@@ -63,7 +63,7 @@ const meta = {
     ),
   ],
   render: ({ theme = 'light', width = 480, height = 360, editorTheme, step, node, ...rest }) => {
-    if (!step || !node) return <></>;
+    if (!step || !node) return <div hidden />;
     return (
       <div
         data-testid="player-canvas"
@@ -338,11 +338,12 @@ export const RecordDecisionNeedsValueDark: Story = {
     node: fixtureScreenMockup,
     flow: fixtureRecordFlow,
     headNode: fixtureScreenMockup,
-    contextAtHead: { score: 3 },
+    contextAtHead: {},
     pendingDecision: {
       nodeId: 'd1',
       question: 'score greater-than 10?',
       predicate: { slot: 'score', op: 'greater-than', value: 10 },
+      dictated: false,
       takenBranch: false,
       takenDestinationId: 'o1',
       otherBranch: true,
