@@ -63,7 +63,7 @@ const meta = {
     ),
   ],
   render: ({ theme = 'light', width = 480, height = 360, editorTheme, step, node, ...rest }) => {
-    if (!step || !node) return null;
+    if (!step || !node) return <></>;
     return (
       <div
         data-testid="player-canvas"

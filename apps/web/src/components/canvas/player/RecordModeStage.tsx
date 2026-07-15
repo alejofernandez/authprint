@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useId, useState } from 'react';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { ScreenFidelityView } from '../nodes/screen/ScreenFidelityView.tsx';
 import { PLAYER_ACTION_HIGHLIGHT_CLASS } from '../nodes/screen/screenActionHighlight.tsx';
 import { resolveScreenTheme } from '../nodes/screen/screenTheme.ts';
@@ -57,6 +57,43 @@ function RecordSpinner() {
   );
 }
 
+// A bare `transform: scale()` doesn't affect layout: the frame paints past its
+// box and occludes the action-chips row below on tall screens. Reserve the
+// scaled footprint by measuring the unscaled content.
+function PresentationScaleBlock({
+  scale,
+  className,
+  children,
+}: {
+  scale: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    const update = () => setSize({ w: el.offsetWidth, h: el.offsetHeight });
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      className="flex items-center justify-center"
+      style={size ? { width: size.w * scale, height: size.h * scale } : undefined}
+    >
+      <div ref={innerRef} className={className} style={{ transform: `scale(${scale})` }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /** Screen at recording head — fidelity view + clickable exit actions. */
 export function RecordModeScreenStage({
   node,
@@ -71,13 +108,11 @@ export function RecordModeScreenStage({
   const screenTheme = resolveScreenTheme(flowTheme, editorTheme);
   const actions = screenExitActions(flow, node.id);
 
-  const scaleStyle = immersive ? undefined : { transform: 'scale(1.2)' };
-
   return (
     <div className="flex flex-col items-center">
-      <div
+      <PresentationScaleBlock
+        scale={immersive ? 1 : 1.2}
         className={`${screenTheme === 'dark' ? 'flow-theme-dark ' : ''}origin-center`}
-        style={scaleStyle}
       >
         <div className="rounded-xl border border-border-default bg-bg-panel shadow-sm">
           <ScreenFidelityView
@@ -87,7 +122,7 @@ export function RecordModeScreenStage({
             highlightedAction={null}
           />
         </div>
-      </div>
+      </PresentationScaleBlock>
 
       {actions.length > 0 ? (
         <div className="mt-3 flex max-w-[280px] flex-wrap justify-center gap-2">
