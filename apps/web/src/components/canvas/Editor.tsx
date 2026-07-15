@@ -10,7 +10,7 @@
 
 import '@xyflow/react/dist/style.css';
 
-import { type Flow, runScenario } from '@authprint/dsl';
+import type { Flow } from '@authprint/dsl';
 import {
   Background,
   type Connection,
@@ -90,6 +90,8 @@ import {
 import { hydrate } from './ydoc/hydrate.ts';
 import {
   declareContextSlot,
+  putScenario,
+  removeScenario,
   setCompanyName,
   setDecisionPredicate,
   setEdgeRoute,
@@ -118,6 +120,7 @@ import {
 } from './ydoc/persist.ts';
 import { layoutPositionsOnly } from './ydoc/schema.ts';
 import { useFlowMeta } from './ydoc/useFlowMeta.ts';
+import { useScenarios } from './ydoc/useScenarios.ts';
 import { shouldDeferUndoToField, useUndoManager } from './ydoc/useUndoManager.ts';
 import { useYDocFlow } from './ydoc/useYDocFlow.ts';
 
@@ -202,11 +205,20 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   const { fitView, getNode, setCenter } = useReactFlow();
   const { theme, setTheme } = useTheme();
   const { undo, redo, canUndo, canRedo } = useUndoManager(doc);
-  // Scenario player overlay (US-110): stage + timeline playback over the canvas.
-  const player = usePlayerMode();
-  // Scenarios travel with the flow (carried opaquely in `meta`, E24). They don't
-  // change during a session, so deriving them off `doc` identity is enough.
-  const scenarios = useMemo(() => docToArtifact(doc).flow.scenarios ?? [], [doc]);
+  // Scenario player overlay (US-110 / US-120): Play + Edit shell over the canvas.
+  const playerPersist = useMemo(
+    () => ({
+      persistScenario: (scenario: Parameters<typeof putScenario>[1]) => {
+        putScenario(doc, scenario);
+      },
+      removeScenario: (id: string) => {
+        removeScenario(doc, id);
+      },
+    }),
+    [doc],
+  );
+  const player = usePlayerMode(playerPersist);
+  const scenarios = useScenarios(doc);
   const { name: flowName, branding: flowBranding } = useFlowMeta(doc);
   const flowTheme = flowBranding.theme;
   useRecentFlowAutosave(sessionId ?? '', doc, flowName);
@@ -434,25 +446,31 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   }, [undo, redo]);
 
   const {
-    session: playerSession,
+    shellMode: playerShellMode,
     exit: exitPlayer,
     next: stepPlayer,
     prev: backPlayer,
     togglePlay: togglePlayerPlay,
-    enter: enterPlayer,
+    enterEmpty,
+    enterPlay,
+    enterEdit,
+    startRecording,
   } = player;
 
-  const enterPlayerMode = useCallback(
-    (
-      run: Parameters<typeof enterPlayer>[0],
-      name: string,
-      flow: Parameters<typeof enterPlayer>[2],
-      initialContext: Record<string, unknown>,
-    ) => {
-      enterPlayer(run, name, flow, initialContext);
-    },
-    [enterPlayer],
-  );
+  const openPlayerEntry = useCallback(() => {
+    const flow = docToArtifact(doc).flow;
+    if (flow.scenarios.length === 0) {
+      enterEmpty(flow);
+      return;
+    }
+    const first = flow.scenarios[0]!;
+    enterPlay(first, flow);
+  }, [doc, enterEmpty, enterPlay]);
+
+  const recordNewScenario = useCallback(() => {
+    const flow = docToArtifact(doc).flow;
+    startRecording(flow, tPlayer('defaultScenarioName'));
+  }, [doc, startRecording, tPlayer]);
 
   const revealOnCanvas = useCallback(
     (nodeId: string) => {
@@ -468,12 +486,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     [exitPlayer, getNode, setCenter],
   );
 
-  const playFirstScenario = useCallback(() => {
-    const first = scenarios[0];
-    if (!first) return;
-    const flow = docToArtifact(doc).flow;
-    enterPlayerMode(runScenario(flow, first), first.name, flow, first.initialContext);
-  }, [scenarios, doc, enterPlayerMode]);
+  const playFirstScenario = openPlayerEntry;
 
   const goHome = useCallback(() => {
     exitPlayer();
@@ -529,16 +542,19 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     return () => document.removeEventListener('keydown', onKey);
   }, [phase, sessionId, paletteOpen, resumeEditing]);
 
-  // Player-mode keyboard: Esc exits; space toggles; ← / → step.
+  // Player-mode keyboard: Esc exits; space/arrows only in Play (not Edit/empty).
   useEffect(() => {
-    if (!playerSession) return;
+    if (!playerShellMode) return;
     const onKey = (event: KeyboardEvent) => {
       if (paletteOpen) return;
       if (shouldDeferUndoToField(event.target)) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         exitPlayer();
-      } else if (event.key === ' ' || event.code === 'Space') {
+        return;
+      }
+      if (playerShellMode !== 'play') return;
+      if (event.key === ' ' || event.code === 'Space') {
         event.preventDefault();
         togglePlayerPlay();
       } else if (event.key === 'ArrowRight') {
@@ -551,7 +567,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [playerSession, exitPlayer, togglePlayerPlay, stepPlayer, backPlayer, paletteOpen]);
+  }, [playerShellMode, exitPlayer, togglePlayerPlay, stepPlayer, backPlayer, paletteOpen]);
 
   // Loading a new flow drops out of player mode (runs are flow-scoped).
   // biome-ignore lint/correctness/useExhaustiveDependencies: must re-run on each load (revision change), not just on exit identity.
@@ -683,34 +699,46 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
         keywords: `dark light system appearance ${option}`,
         run: () => setTheme(option),
       })),
-      // Player (US-110): one flat palette pick per scenario.
+      // Player (US-110 / US-120): play, record, edit per scenario.
+      {
+        id: 'record-scenario',
+        group: tPalette('groups.scenario'),
+        label: tPalette('commands.recordScenario'),
+        keywords: 'record new scenario edit author create',
+        run: recordNewScenario,
+      },
       ...(scenarios.length > 0
-        ? scenarios.map((sc) => ({
-            id: `play-scenario-${sc.id}`,
-            group: tPalette('groups.scenario'),
-            label: tPalette('commands.playScenario', { name: sc.name }),
-            keywords: `play player simulate timeline ${sc.id}`,
-            run: () => {
-              const flow = docToArtifact(doc).flow;
-              enterPlayerMode(runScenario(flow, sc), sc.name, flow, sc.initialContext);
-            },
-          }))
-        : [
-            {
-              id: 'no-scenarios',
+        ? [
+            ...scenarios.map((sc) => ({
+              id: `play-scenario-${sc.id}`,
               group: tPalette('groups.scenario'),
-              label: tPalette('commands.noScenarios'),
-              keywords: 'run play simulate',
-              disabled: true,
-              run: () => {},
-            },
-          ]),
-      ...(player.session
+              label: tPalette('commands.playScenario', { name: sc.name }),
+              keywords: `play player simulate timeline ${sc.id}`,
+              run: () => {
+                const flow = docToArtifact(doc).flow;
+                enterPlay(sc, flow);
+              },
+            })),
+            ...scenarios.map((sc) => ({
+              id: `edit-scenario-${sc.id}`,
+              group: tPalette('groups.scenario'),
+              label: tPalette('commands.editScenario', { name: sc.name }),
+              keywords: `edit record author scenario ${sc.id}`,
+              run: () => {
+                const flow = docToArtifact(doc).flow;
+                enterEdit(sc, flow);
+              },
+            })),
+          ]
+        : []),
+      ...(playerShellMode
         ? [
             {
               id: 'exit-player',
               group: tPalette('groups.scenario'),
-              label: tPalette('commands.exitPlayer', { name: player.session.name }),
+              label: tPalette('commands.exitPlayer', {
+                name: player.draft?.name ?? player.session?.name ?? '',
+              }),
               keywords: 'stop close player esc',
               run: player.exit,
             },
@@ -743,7 +771,10 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
       canRedo,
       scenarios,
       player,
-      enterPlayerMode,
+      playerShellMode,
+      enterPlay,
+      enterEdit,
+      recordNewScenario,
       tPalette,
       markExported,
     ],
@@ -814,22 +845,21 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
             {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
 
             <div className="absolute bottom-4 left-14 z-20 flex items-center gap-2">
-              {!player.session ? (
+              {!playerShellMode ? (
                 <button
                   type="button"
                   onClick={playFirstScenario}
-                  disabled={scenarios.length === 0}
                   aria-label={
                     scenarios.length > 0
                       ? tPlayer('canvasPlay', { name: scenarios[0]?.name ?? '' })
-                      : tPlayer('canvasPlayDisabled')
+                      : tPlayer('canvasPlayEmpty')
                   }
                   title={
                     scenarios.length > 0
                       ? tPlayer('canvasPlay', { name: scenarios[0]?.name ?? '' })
-                      : tPlayer('canvasPlayDisabled')
+                      : tPlayer('canvasPlayEmpty')
                   }
-                  className="flex shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-bg-panel/95 px-2.5 py-1.5 text-accent-primary-fg-emphasis text-sm shadow-lg backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border disabled:cursor-not-allowed disabled:opacity-35 dark:border-border-default dark:bg-bg-panel/95 dark:text-accent-primary-fg-on-bg"
+                  className="flex shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-bg-panel/95 px-2.5 py-1.5 text-accent-primary-fg-emphasis text-sm shadow-lg backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default dark:bg-bg-panel/95 dark:text-accent-primary-fg-on-bg"
                 >
                   ▶
                 </button>
@@ -847,7 +877,9 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
               </button>
             </div>
 
-            {player.session ? <PlayerMode onRevealOnCanvas={revealOnCanvas} /> : null}
+            {playerShellMode ? (
+              <PlayerMode onRevealOnCanvas={revealOnCanvas} onNewScenario={recordNewScenario} />
+            ) : null}
 
             <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={commands} />
             <DocumentPreferencesModal
@@ -988,7 +1020,7 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const reconnectingEdgeId = useRef<string | null>(null);
   // Player mode makes the canvas read-only — no create / drag / delete / inline edit.
   const playerMode = useOptionalPlayerMode();
-  const readOnly = playerMode?.session !== null;
+  const readOnly = playerMode?.shellMode != null;
   // Error outlines on the canvas are opt-in (off while building — the per-handle
   // `+` already hints at incompleteness; the Problems badge tracks the count).
   // Flip them on to review. Gates both node rings and edge recoloring.

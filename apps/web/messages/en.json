@@ -20,6 +20,8 @@
       "fitView": "Fit flow to screen",
       "theme": "Theme: {name}{mark}",
       "playScenario": "Play scenario: {name}",
+      "editScenario": "Edit scenario: {name}",
+      "recordScenario": "Record a scenario",
       "noScenarios": "No scenarios in this flow",
       "exitPlayer": "Exit player: {name}",
       "home": "Home",
@@ -167,10 +169,6 @@
       "close": "Close context panel",
       "title": "Context"
     },
-    "scenarioPicker": {
-      "open": "Switch scenario",
-      "current": "Current scenario"
-    },
     "transport": {
       "stepBack": "Step back",
       "stepForward": "Step forward",
@@ -182,8 +180,40 @@
       "exit": "Exit"
     },
     "canvasPlay": "Play scenario: {name}",
+    "canvasPlayEmpty": "Record your first scenario",
     "canvasPlayDisabled": "No scenarios to play",
+    "defaultScenarioName": "Scenario",
     "revealOnCanvas": "Reveal on canvas",
+    "mode": {
+      "edit": "Edit",
+      "play": "Play"
+    },
+    "empty": {
+      "title": "No scenarios yet",
+      "body": "Record a walk through this flow — decisions and outcomes included.",
+      "cta": "Record your first scenario"
+    },
+    "edit": {
+      "recording": "Recording",
+      "loading": "Preparing recorder…"
+    },
+    "scenarioPicker": {
+      "open": "Switch scenario",
+      "current": "Current scenario",
+      "new": "+ New scenario"
+    },
+    "scenarioCrud": {
+      "panelTitle": "Scenario",
+      "nameLabel": "Name",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "deleteTitle": "Delete scenario?",
+      "deleteMessage": "Delete “{name}”? This cannot be undone from here — use canvas Undo if you change your mind.",
+      "deleteConfirm": "Delete",
+      "cancel": "Cancel",
+      "expects": "Expects: {outcome}",
+      "expectsNone": "none (run only)"
+    },
     "ghostHead": {
       "chooseOnStage": "choose on the stage"
     },

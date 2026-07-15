@@ -187,8 +187,21 @@ function buildPendingDecision(
   };
 }
 
+export type DeriveRecordingOptions = {
+  /**
+   * Session-ephemeral Continue confirmations (US-120). Decisions aren't script
+   * steps — Continue advances past a pause without mutating the Scenario.
+   */
+  confirmedDecisionIds?: ReadonlySet<string>;
+};
+
 /** Recording walk — pauses at decisions (§7) and script-exhausted nodes. */
-function recordingWalk(flow: Flow, draft: Scenario): WalkResult {
+function recordingWalk(
+  flow: Flow,
+  draft: Scenario,
+  options: DeriveRecordingOptions = {},
+): WalkResult {
+  const confirmed = options.confirmedDecisionIds;
   const entry = flow.nodes.find((n) => n.type === 'entry');
   if (!entry) {
     return {
@@ -259,6 +272,14 @@ function recordingWalk(flow: Flow, draft: Scenario): WalkResult {
             complete: true,
             reachedOutcomeId: target.id,
           };
+        }
+        // US-120 Continue: author accepted the context-dictated branch.
+        if (takenEdge && target && confirmed?.has(current.id)) {
+          trace.push({ nodeId: target.id, viaEdgeId: takenEdge.id });
+          contextSnapshots.push(cloneContext(currentContext));
+          current = target;
+          iterations++;
+          continue;
         }
       }
 
@@ -395,8 +416,12 @@ function toScenarioRun(draft: Scenario, walk: WalkResult): ScenarioRun {
   };
 }
 
-export function deriveRecording(flow: Flow, draft: Scenario): RecordingModel {
-  const walk = recordingWalk(flow, draft);
+export function deriveRecording(
+  flow: Flow,
+  draft: Scenario,
+  options: DeriveRecordingOptions = {},
+): RecordingModel {
+  const walk = recordingWalk(flow, draft, options);
   const run = toScenarioRun(draft, walk);
   const { steps } = derivePlayerSteps(flowWithDraft(flow, draft), run);
   const headIndex = Math.max(walk.trace.length - 1, 0);
@@ -467,13 +492,13 @@ export function appendResolutionStep(
   flow: Flow,
   draft: Scenario,
   nodeId: string,
-  result: Extract<ScriptStep, { type: 'action' }>['result'],
+  result: Extract<ScriptStep, { type: 'action' | 'external' }>['result'],
   nodeType: 'action' | 'external' = 'action',
 ): Scenario {
   const step: ScriptStep =
     nodeType === 'external'
       ? { type: 'external', nodeId, result: result as 'success' | 'error' | 'denied' | 'cancelled' }
-      : { type: 'action', nodeId, result };
+      : { type: 'action', nodeId, result: result as 'success' | 'error' };
   const next = withReconcile(flow, {
     ...draft,
     inputScript: [...draft.inputScript, step],
