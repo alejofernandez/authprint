@@ -60,7 +60,18 @@ const STACK_EVENTS = [
 export function useUndoManager(doc: Y.Doc) {
   const manager = useMemo(() => createUndoManager(doc), [doc]);
 
-  useEffect(() => () => manager.destroy(), [manager]);
+  // Destroy only superseded managers, never the current one. StrictMode runs
+  // the mount effect's cleanup with the memoized instance still cached, so a
+  // paired `() => manager.destroy()` leaves a dead manager that captures
+  // nothing for the whole dev session. The final manager is released with the
+  // doc it observes.
+  const previous = useRef(manager);
+  useEffect(() => {
+    if (previous.current !== manager) {
+      previous.current.destroy();
+      previous.current = manager;
+    }
+  }, [manager]);
 
   const cache = useRef<{ manager: UndoManager; snapshot: UndoStackSnapshot } | null>(null);
 
