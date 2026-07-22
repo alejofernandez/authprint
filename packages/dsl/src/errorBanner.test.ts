@@ -21,6 +21,19 @@ describe('resolveErrorBannerCopy', () => {
     ).toBe('Google sign-in failed');
   });
 
+  test('scenario-step message overrides the authored errorMessage', () => {
+    expect(
+      resolveErrorBannerCopy(
+        {
+          type: 'action',
+          name: 'Validate credentials',
+          errorMessage: 'Invalid username or password.',
+        },
+        'Account locked. Try again in 10 minutes.',
+      ),
+    ).toBe('Account locked. Try again in 10 minutes.');
+  });
+
   test('falls back to placeholder when no failing node', () => {
     expect(resolveErrorBannerCopy(null)).toBe(ERROR_BANNER_PLACEHOLDER);
   });

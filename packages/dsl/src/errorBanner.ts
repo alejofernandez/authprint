@@ -5,8 +5,16 @@ export type ErrorBannerSource = Pick<ActionNode | ExternalNode, 'type' | 'name' 
 
 export const ERROR_BANNER_PLACEHOLDER = 'Something went wrong. Try again.';
 
-/** Fallback chain for inline error-banner copy (static canvas + future player). */
-export function resolveErrorBannerCopy(failingNode: ErrorBannerSource | null): string {
+/**
+ * Fallback chain for inline error-banner copy: scenario-step override, then
+ * the node's authored errorMessage, then derived, then placeholder. The
+ * override lets a failure scenario say exactly what the user would read.
+ */
+export function resolveErrorBannerCopy(
+  failingNode: ErrorBannerSource | null,
+  scenarioMessage?: string | null,
+): string {
+  if (scenarioMessage) return scenarioMessage;
   if (failingNode?.errorMessage) return failingNode.errorMessage;
   if (failingNode?.name) return `${failingNode.name} failed`;
   return ERROR_BANNER_PLACEHOLDER;

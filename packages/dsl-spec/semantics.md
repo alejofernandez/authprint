@@ -33,11 +33,12 @@ A Screen MAY have multiple outgoing edges, one per distinct user action label (`
 
 The `error-banner` trait declares that a screen can present the most recent error inline. On the static canvas, wireframe and mockup tiers render a danger-styled alert region with placeholder copy **only when the screen's layout record sets `displayErrorState: true`** (off by default so design-time canvases stay clean). During scenario playback, banner text is **derived from the run** regardless of that flag: a screen entered via an `on-error` edge shows which step failed.
 
-Banner copy resolves through a fallback chain on the failing `action` or `external` node:
+Banner copy resolves through a fallback chain:
 
-1. **`errorMessage`** — optional authored display copy on the node (same category as `name`; omitted from the DSL when unset).
-2. **Derived** — `"<node name> failed"` when `errorMessage` is absent.
-3. **Placeholder** — generic copy when there is no failing step to derive from (static canvas).
+1. **Scenario step `errorMessage`** — optional copy on the failing script step. A failure scenario can state exactly what the user reads, per scenario, without touching the flow.
+2. **Node `errorMessage`** — optional authored display copy on the failing `action` or `external` node (same category as `name`; omitted from the DSL when unset).
+3. **Derived** — `"<node name> failed"` when both are absent.
+4. **Placeholder** — generic copy when there is no failing step to derive from (static canvas).
 
 Flows do not mutate context to carry errors. The transient vs terminal distinction is **topology, not an attribute**: an error edge looping back to a screen with `error-banner` models a retryable error; an error edge to a dedicated screen or terminal outcome models a non-transient one.
 
@@ -123,8 +124,8 @@ Composition:
 - **`initialContext`** — values for the flow's declared Context slots. Type-checked against slot declarations.
 - **`inputScript`** — for each node visited that requires input:
   - `screen` step: which user action label was taken.
-  - `action` step: which result (`success` / `error`) to inject.
-  - `external` step: which result (`success` / `error` / `denied` / `cancelled`) to inject.
+  - `action` step: which result (`success` / `error`) to inject. Optional **`errorMessage`**: the banner copy this failure shows on the next screen with the `error-banner` trait; overrides the node's authored copy for this scenario only.
+  - `external` step: which result (`success` / `error` / `denied` / `cancelled`) to inject. Optional **`errorMessage`**, as on action steps.
   - Optional **`set:`** on any script step: a patch applied to context **after the step resolves, before the next transition**. Keys must be declared context slots; values are type-checked like `initialContext`. Omitted when unchanged. Enables loops whose predicates must answer differently on a revisit (OTP retry) and before/after checks around a step.
 - **`expectedOutcome`** (optional) — assertion about where the trace should end and (optionally) the exact sequence of nodes visited.
 

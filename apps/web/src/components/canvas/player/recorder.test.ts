@@ -12,6 +12,7 @@ import {
   pendingDecisionAt,
   reconcileDraft,
   setInitialContextValue,
+  setStepErrorMessage,
   setStepPatch,
 } from './recorder.ts';
 
@@ -254,6 +255,28 @@ describe('initial-context edits reroute past a dictated decision (UF-031)', () =
     expect(rec.head).toEqual({ nodeId: 'd-user-exists', nodeType: 'decision' });
     expect(rec.pendingDecision?.dictated).toBe(true);
     expect(rec.pendingDecision?.takenBranch).toBe(false);
+  });
+});
+
+describe('setStepErrorMessage', () => {
+  const flow = loadPasskeyEnrollment();
+
+  test('sets, trims, clears; screen steps are a no-op', () => {
+    let draft = emptyDraft();
+    draft = appendScreenStep(flow, draft, 's-identifier', 'submit');
+    draft = appendResolutionStep(flow, draft, 'a-send-otp', 'error');
+
+    const withMessage = setStepErrorMessage(flow, draft, 1, '  Could not send the code.  ');
+    const step = withMessage.inputScript[1];
+    if (step?.type !== 'action') throw new Error('expected action step');
+    expect(step.errorMessage).toBe('Could not send the code.');
+
+    const cleared = setStepErrorMessage(flow, withMessage, 1, null);
+    const clearedStep = cleared.inputScript[1];
+    if (clearedStep?.type !== 'action') throw new Error('expected action step');
+    expect('errorMessage' in clearedStep).toBe(false);
+
+    expect(setStepErrorMessage(flow, draft, 0, 'nope')).toBe(draft);
   });
 });
 

@@ -232,6 +232,11 @@
       "setPatch": {
         "title": "set: after this step",
         "none": "–"
+      },
+      "errorMessage": {
+        "title": "error message",
+        "placeholder": "What the user reads when this fails",
+        "hint": "Shown by the next screen when it has the error banner trait."
       }
     },
     "recordMode": {

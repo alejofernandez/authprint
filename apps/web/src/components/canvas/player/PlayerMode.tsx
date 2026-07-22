@@ -455,6 +455,9 @@ function EditChrome({
                   onSetPatchChange={(slot, value) =>
                     player.editStepPatch(focusedEditable.scriptStepIndex, slot, value)
                   }
+                  onErrorMessageChange={(message) =>
+                    player.editStepErrorMessage(focusedEditable.scriptStepIndex, message)
+                  }
                 />
               </div>
             </StagePresentationFrame>

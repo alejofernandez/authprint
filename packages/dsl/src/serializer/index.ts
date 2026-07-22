@@ -244,6 +244,7 @@ function canonicalizeScriptStep(step: ScriptStep): Record<string, unknown> {
         nodeId: step.nodeId,
         result: step.result,
       };
+      if (step.errorMessage !== undefined) out.errorMessage = step.errorMessage;
       if (step.set !== undefined && Object.keys(step.set).length > 0) out.set = step.set;
       return out;
     }
@@ -253,6 +254,7 @@ function canonicalizeScriptStep(step: ScriptStep): Record<string, unknown> {
         nodeId: step.nodeId,
         result: step.result,
       };
+      if (step.errorMessage !== undefined) out.errorMessage = step.errorMessage;
       if (step.set !== undefined && Object.keys(step.set).length > 0) out.set = step.set;
       return out;
     }

@@ -8,6 +8,7 @@ import type {
   Predicate,
   Scenario,
   ScenarioRun,
+  ScriptStep,
 } from '@authprint/dsl';
 import { resolveErrorBannerCopy } from '@authprint/dsl';
 import { labelFor } from '../flowToReactFlow.ts';
@@ -65,7 +66,14 @@ export function derivePlayerSteps(flow: Flow, run: ScenarioRun): PlayerModel {
     const enteredViaError = incomingEdge?.trigger.type === 'on-error';
     const errorBannerCopy =
       node.type === 'screen' && enteredViaError
-        ? screenErrorBannerCopyForStep(flow, run.trace, index, edgeById, nodeById)
+        ? screenErrorBannerCopyForStep(
+            flow,
+            run.trace,
+            index,
+            edgeById,
+            nodeById,
+            scenario?.inputScript,
+          )
         : null;
 
     const base = {
@@ -129,6 +137,7 @@ export function screenErrorBannerCopyForStep(
   stepIndex: number,
   edgeById?: Map<string, Edge>,
   nodeById?: Map<string, Node>,
+  script?: readonly ScriptStep[],
 ): string | null {
   const traceStep = trace[stepIndex];
   if (!traceStep?.viaEdgeId || stepIndex <= 0) return null;
@@ -138,17 +147,41 @@ export function screenErrorBannerCopyForStep(
   const incomingEdge = edges.get(traceStep.viaEdgeId);
   if (incomingEdge?.trigger.type !== 'on-error') return null;
 
-  const prevNode = nodes.get(trace[stepIndex - 1]?.nodeId ?? '');
+  // Scenario-step override: the failing node's script entry may carry the
+  // exact copy this scenario wants the banner to show. Each scripted trace
+  // node before the failing one consumed one script step, so counting maps
+  // the trace position to the script position.
+  const failingIndex = stepIndex - 1;
+  let scenarioMessage: string | null = null;
+  if (script) {
+    let scriptedBefore = 0;
+    for (let i = 0; i < failingIndex; i++) {
+      const n = nodes.get(trace[i]?.nodeId ?? '');
+      if (n && (n.type === 'screen' || n.type === 'action' || n.type === 'external')) {
+        scriptedBefore++;
+      }
+    }
+    const entry = script[scriptedBefore];
+    if (
+      entry &&
+      entry.nodeId === trace[failingIndex]?.nodeId &&
+      (entry.type === 'action' || entry.type === 'external')
+    ) {
+      scenarioMessage = entry.errorMessage ?? null;
+    }
+  }
+
+  const prevNode = nodes.get(trace[failingIndex]?.nodeId ?? '');
   if (prevNode?.type === 'action' || prevNode?.type === 'external') {
-    return resolveErrorBannerCopy(prevNode);
+    return resolveErrorBannerCopy(prevNode, scenarioMessage);
   }
 
   const edgeSource = nodes.get(incomingEdge.source);
   if (edgeSource?.type === 'action' || edgeSource?.type === 'external') {
-    return resolveErrorBannerCopy(edgeSource);
+    return resolveErrorBannerCopy(edgeSource, scenarioMessage);
   }
 
-  return resolveErrorBannerCopy(null);
+  return resolveErrorBannerCopy(null, scenarioMessage);
 }
 
 function formatExitLabel(edge: Edge): string {

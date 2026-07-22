@@ -18,6 +18,7 @@ import {
   reconcileDraft,
   setExpectedOutcome,
   setInitialContextValue,
+  setStepErrorMessage,
   setStepPatch,
 } from './recorder.ts';
 import { createBlankScenario, duplicateScenarioName, uniqueScenarioId } from './scenarioNames.ts';
@@ -87,6 +88,8 @@ export type PlayerModeValue = {
   editStepPatch: (scriptStepIndex: number, slot: string, value: unknown | null) => void;
   /** Focused-entry editing (UF-031): set or clear an initialContext slot. */
   editInitialContext: (slot: string, value: unknown | null) => void;
+  /** Failure copy on an action/external step; null clears (UF-034). */
+  editStepErrorMessage: (scriptStepIndex: number, message: string | null) => void;
   deleteFrom: (scriptStepIndex: number) => void;
   doneRecording: () => void;
   /** Legacy play entry (US-110 call sites). */
@@ -469,6 +472,16 @@ export function usePlayerMode(persist?: PlayerModePersist): PlayerModeValue {
     [draft, flow, writeDraft],
   );
 
+  const editStepErrorMessage = useCallback(
+    (scriptStepIndex: number, message: string | null) => {
+      if (!draft || !flow) return;
+      writeDraft(setStepErrorMessage(flow, draft, scriptStepIndex, message), flow, {
+        resetConfirmed: false,
+      });
+    },
+    [draft, flow, writeDraft],
+  );
+
   const editInitialContext = useCallback(
     (slot: string, value: unknown | null) => {
       if (!draft || !flow) return;
@@ -539,6 +552,7 @@ export function usePlayerMode(persist?: PlayerModePersist): PlayerModeValue {
     editStepResult,
     editStepPatch,
     editInitialContext,
+    editStepErrorMessage,
     deleteFrom,
     doneRecording,
     enter,

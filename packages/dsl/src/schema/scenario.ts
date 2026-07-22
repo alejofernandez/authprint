@@ -20,6 +20,9 @@ export const ActionStepSchema = z.object({
   type: z.literal('action'),
   nodeId: z.string().min(1),
   result: z.enum(['success', 'error']),
+  // Scenario-authored copy for the error banner when this failure is walked;
+  // overrides the node's own errorMessage for this scenario only.
+  errorMessage: z.string().min(1).optional(),
   set: ContextPatchSchema.optional(),
 });
 
@@ -27,6 +30,7 @@ export const ExternalStepSchema = z.object({
   type: z.literal('external'),
   nodeId: z.string().min(1),
   result: z.enum(['success', 'error', 'denied', 'cancelled']),
+  errorMessage: z.string().min(1).optional(),
   set: ContextPatchSchema.optional(),
 });
 

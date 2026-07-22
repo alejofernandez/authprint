@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { parse, runScenario } from '@authprint/dsl';
+import { FlowSchema, parse, runScenario, type Scenario } from '@authprint/dsl';
 import {
   derivePlayerSteps,
   divergedStepIndex,
@@ -275,5 +275,77 @@ describe('usePlayer — playback helpers', () => {
 
   test('advancePlayerPlayback stops at last step', () => {
     expect(advancePlayerPlayback(4, 5, null)).toEqual({ index: 4, stop: true });
+  });
+});
+
+describe('scenario-step errorMessage reaches the banner copy (UF-034)', () => {
+  const flow = FlowSchema.parse({
+    id: 'f-retry',
+    name: 'Retry',
+    context: {},
+    nodes: [
+      { type: 'entry', id: 'e' },
+      {
+        type: 'screen',
+        id: 's-code',
+        name: 'Enter code',
+        kind: 'otp-challenge',
+        traits: ['error-banner'],
+      },
+      { type: 'action', id: 'a-verify', name: 'Verify code', kind: 'verify-otp' },
+      { type: 'outcome', id: 'o-ok', name: 'Authenticated', kind: 'authenticated' },
+    ],
+    edges: [
+      { id: 'e-entry', source: 'e', target: 's-code', trigger: { type: 'unconditional' } },
+      {
+        id: 'e-submit',
+        source: 's-code',
+        target: 'a-verify',
+        trigger: { type: 'interaction', action: 'submit' },
+      },
+      { id: 'e-ok', source: 'a-verify', target: 'o-ok', trigger: { type: 'on-success' } },
+      { id: 'e-retry', source: 'a-verify', target: 's-code', trigger: { type: 'on-error' } },
+    ],
+  });
+
+  test('override wins; authored fallback holds without it', () => {
+    const scenario: Scenario = {
+      id: 'sc-retry',
+      name: 'Wrong code once',
+      initialContext: {},
+      inputScript: [
+        { type: 'screen', nodeId: 's-code', action: 'submit' },
+        {
+          type: 'action',
+          nodeId: 'a-verify',
+          result: 'error',
+          errorMessage: 'Invalid code. 2 attempts remaining.',
+        },
+        { type: 'screen', nodeId: 's-code', action: 'submit' },
+        { type: 'action', nodeId: 'a-verify', result: 'success' },
+      ],
+      expectedOutcome: { outcomeId: 'o-ok' },
+    };
+    const withScenario = { ...flow, scenarios: [scenario] };
+    const run = runScenario(withScenario, scenario);
+    expect(run.status).toBe('passed');
+
+    const { steps } = derivePlayerSteps(withScenario, run);
+    // trace: e, s-code, a-verify, s-code(via on-error), a-verify, o-ok
+    const errorScreen = steps[3];
+    expect(errorScreen?.nodeId).toBe('s-code');
+    expect(errorScreen?.errorBannerCopy).toBe('Invalid code. 2 attempts remaining.');
+
+    const plain: Scenario = {
+      ...scenario,
+      id: 'sc-plain',
+      inputScript: scenario.inputScript.map((st) =>
+        st.type === 'action' ? { type: st.type, nodeId: st.nodeId, result: st.result } : st,
+      ),
+    };
+    const plainFlow = { ...flow, scenarios: [plain] };
+    const plainRun = runScenario(plainFlow, plain);
+    const plainSteps = derivePlayerSteps(plainFlow, plainRun).steps;
+    expect(plainSteps[3]?.errorBannerCopy).toBe('Verify code failed');
   });
 });

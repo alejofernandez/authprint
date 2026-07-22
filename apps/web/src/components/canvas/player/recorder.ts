@@ -618,6 +618,24 @@ export function clearStepPatch(
   return withReconcile(flow, { ...draft, inputScript: script });
 }
 
+export function setStepErrorMessage(
+  flow: Flow,
+  draft: Scenario,
+  stepIndex: number,
+  message: string | null,
+): Scenario {
+  const script = [...draft.inputScript];
+  const step = script[stepIndex];
+  if (!step || step.type === 'screen') return draft;
+  if (message?.trim()) {
+    script[stepIndex] = { ...step, errorMessage: message.trim() };
+  } else {
+    const { errorMessage: _dropped, ...rest } = step;
+    script[stepIndex] = rest as typeof step;
+  }
+  return withReconcile(flow, { ...draft, inputScript: script });
+}
+
 export function deleteFromStep(flow: Flow, draft: Scenario, stepIndex: number): Scenario {
   return withReconcile(flow, {
     ...draft,

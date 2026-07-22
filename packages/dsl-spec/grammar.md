@@ -206,12 +206,14 @@ scenarios:                      # optional, default: []
       - type: action
         nodeId: <NodeId>
         result: success | error
+        errorMessage: <string?>       # optional: banner copy for this failure
         set:                          # optional
           <slot-name>: <value>
       # external step:
       - type: external
         nodeId: <NodeId>
         result: success | error | denied | cancelled
+        errorMessage: <string?>       # optional: banner copy for this failure
         set:                          # optional
           <slot-name>: <value>
     expectedOutcome:             # optional assertion

@@ -162,6 +162,42 @@ describe('round-trip — hand-built flows', () => {
     expect(serialize(withoutSet)).not.toContain('\n        set:');
   });
 
+  test('script-step errorMessage round-trips and omits when absent', () => {
+    const base = {
+      id: 'sc1',
+      name: 'failure path',
+      initialContext: {},
+      inputScript: [{ type: 'action' as const, nodeId: 'a1', result: 'error' as const }],
+    };
+    const withoutMessage = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      context: {},
+      nodes: [{ type: 'entry', id: 'e1' }],
+      scenarios: [base],
+    });
+    const withMessage = FlowSchema.parse({
+      ...withoutMessage,
+      scenarios: [
+        {
+          ...base,
+          inputScript: [
+            {
+              type: 'action' as const,
+              nodeId: 'a1',
+              result: 'error' as const,
+              errorMessage: 'Invalid code. 2 attempts remaining.',
+            },
+          ],
+        },
+      ],
+    });
+    expect(reparse(withoutMessage)).toEqual(withoutMessage);
+    expect(reparse(withMessage)).toEqual(withMessage);
+    expect(serialize(withoutMessage)).not.toContain('errorMessage');
+    expect(serialize(withMessage)).toContain('Invalid code. 2 attempts remaining.');
+  });
+
   test('all theme values round-trip', () => {
     for (const theme of ['light', 'dark', 'both'] as const) {
       const flow = FlowSchema.parse({
