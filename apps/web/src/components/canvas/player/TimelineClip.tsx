@@ -82,15 +82,20 @@ export function TimelineClip(props: TimelineClipProps) {
 export function GhostHeadClip({ nextDisplayName }: { nextDisplayName: string }) {
   const t = useTranslations('player.ghostHead');
 
+  // Mirrors TimelineClip's row skeleton exactly (caption / min-h-8 name /
+  // min-h-[14px] footer + the same paddings) so the strip's height never
+  // changes when the ghost appears or leaves (UF-033).
   return (
-    <div className="flex w-[120px] shrink-0 flex-col items-center justify-center rounded-lg border border-accent-primary-border-muted border-dashed bg-transparent px-2 py-3 text-center">
-      <span className="text-xs text-accent-primary-fg" aria-hidden>
+    <div className="flex w-[120px] shrink-0 flex-col rounded-lg border border-accent-primary-border-muted border-dashed bg-transparent px-2.5 py-1.5 text-left">
+      <div className="mb-0.5 text-[11px] uppercase tracking-wide text-accent-primary-fg opacity-75">
         ⏸
-      </span>
-      <span className="mt-1 line-clamp-2 text-xs font-medium leading-snug text-fg-default">
+      </div>
+      <div className="line-clamp-2 min-h-8 text-xs font-medium leading-snug text-fg-default">
         {nextDisplayName}
-      </span>
-      <span className="mt-1 text-[11px] text-fg-subtle">{t('chooseOnStage')}</span>
+      </div>
+      <div className="mt-0.5 min-h-[14px] truncate text-[11px] text-fg-subtle opacity-70">
+        {t('chooseOnStage')}
+      </div>
     </div>
   );
 }
