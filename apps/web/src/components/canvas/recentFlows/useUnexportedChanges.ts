@@ -10,6 +10,7 @@ import {
   layoutMap,
   metaMap,
   nodesMap,
+  scenariosMap,
 } from '../ydoc/schema.ts';
 
 export type UnexportedChangesTracker = {
@@ -26,6 +27,7 @@ export function trackedDocMaps(doc: Y.Doc) {
     layoutMap(doc),
     edgeLayoutMap(doc),
     metaMap(doc),
+    scenariosMap(doc),
   ];
 }
 

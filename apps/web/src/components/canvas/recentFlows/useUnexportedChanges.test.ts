@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { emptyFlow } from '../emptyFlow.ts';
 import { hydrate } from '../ydoc/hydrate.ts';
-import { setNodeName } from '../ydoc/ops.ts';
+import { putScenario, setNodeName } from '../ydoc/ops.ts';
 import { createUnexportedChangesTracker, trackedDocMaps } from './useUnexportedChanges.ts';
 
 function entryDoc() {
@@ -32,8 +32,19 @@ describe('createUnexportedChangesTracker', () => {
     tracker.destroy();
   });
 
-  test('observes all six editable maps', () => {
+  test('scenario edits mark unexported (UF-032)', () => {
     const doc = entryDoc();
-    expect(trackedDocMaps(doc)).toHaveLength(6);
+    const tracker = createUnexportedChangesTracker(doc);
+    expect(tracker.hasUnexportedChanges()).toBe(false);
+
+    putScenario(doc, { id: 'sc-1', name: 'One', initialContext: {}, inputScript: [] });
+    expect(tracker.hasUnexportedChanges()).toBe(true);
+
+    tracker.destroy();
+  });
+
+  test('observes all seven editable maps', () => {
+    const doc = entryDoc();
+    expect(trackedDocMaps(doc)).toHaveLength(7);
   });
 });

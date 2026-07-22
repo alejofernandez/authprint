@@ -10,6 +10,7 @@ import {
   layoutMap,
   metaMap,
   nodesMap,
+  scenariosMap,
 } from '../ydoc/schema.ts';
 import { saveRecentFlow } from './store.ts';
 
@@ -61,6 +62,7 @@ export function createRecentFlowAutosave(
     layoutMap(doc),
     edgeLayoutMap(doc),
     metaMap(doc),
+    scenariosMap(doc),
   ];
 
   const markDirty = () => {
