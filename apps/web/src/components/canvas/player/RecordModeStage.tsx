@@ -431,7 +431,7 @@ function NeedsValuePrompt({
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder={t('valuePlaceholder')}
-        className="min-w-0 flex-1 rounded border border-border-default bg-bg-panel px-2 py-1 font-mono text-xs text-fg-default outline-none focus:border-accent-primary-border"
+        className="min-w-0 flex-1 select-text rounded border border-border-default bg-bg-panel px-2 py-1 font-mono text-xs text-fg-default outline-none focus:border-accent-primary-border"
       />
       <button
         type="button"

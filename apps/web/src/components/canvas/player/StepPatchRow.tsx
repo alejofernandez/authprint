@@ -4,7 +4,7 @@ import type { ContextSlot } from '@authprint/dsl';
 import { useTranslations } from 'next-intl';
 
 const rowSelectCls =
-  'w-full rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-fg-default outline-none focus:border-accent-primary-border focus-visible:ring-2 focus-visible:ring-accent-primary-border focus-visible:ring-offset-1 dark:focus-visible:ring-offset-bg-panel';
+  'w-full select-text rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-fg-default outline-none focus:border-accent-primary-border focus-visible:ring-2 focus-visible:ring-accent-primary-border focus-visible:ring-offset-1 dark:focus-visible:ring-offset-bg-panel';
 
 /** One typed `set:` patch input for a declared context slot. */
 export function StepPatchRow({

@@ -429,7 +429,7 @@ export function PlayerTransportPill({
             <button
               type="button"
               onClick={onEnterEdit}
-              className="shrink-0 rounded-full bg-black/5 px-2.5 py-0.5 text-xs font-medium text-fg-muted hover:text-fg-default dark:bg-white/10"
+              className="shrink-0 cursor-pointer rounded-full border border-accent-primary-border-muted px-2.5 py-0.5 text-xs font-medium text-accent-primary-fg-emphasis transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-accent-primary-bg"
             >
               {editLabel}
             </button>
@@ -549,7 +549,7 @@ function ManageScenarioPopover({
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur();
           }}
-          className="mt-1 h-8 w-full rounded-md border border-border-strong bg-bg-canvas px-2 text-sm font-medium text-fg-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default"
+          className="mt-1 h-8 w-full select-text rounded-md border border-border-strong bg-bg-canvas px-2 text-sm font-medium text-fg-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default"
         />
         <div className="mt-3 flex items-center gap-2">
           <button
@@ -637,7 +637,7 @@ export function PlayerTransportDock({
       <button
         type="button"
         onClick={onEnterPlay}
-        className="shrink-0 rounded-full bg-black/5 px-2.5 py-0.5 text-xs font-medium text-fg-muted hover:text-fg-default dark:bg-white/10"
+        className="shrink-0 cursor-pointer rounded-full border border-accent-primary-border-muted px-2.5 py-0.5 text-xs font-medium text-accent-primary-fg-emphasis transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-accent-primary-bg"
       >
         {playLabel}
       </button>

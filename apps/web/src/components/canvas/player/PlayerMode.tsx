@@ -71,10 +71,10 @@ export function PlayerMode({
   // Focus resets when the scenario changes and can't outlive a shrunken strip
   // (delete-from-here, tail-drop). Adjusted during render — React's
   // "adjusting state when props change" pattern, no effect round-trip.
-  const draftId = draft?.id ?? null;
-  const [focusDraftId, setFocusDraftId] = useState(draftId);
-  if (focusDraftId !== draftId) {
-    setFocusDraftId(draftId);
+  const focusScenarioId = draft?.id ?? session?.run.scenarioId ?? null;
+  const [focusScenarioKey, setFocusScenarioKey] = useState(focusScenarioId);
+  if (focusScenarioKey !== focusScenarioId) {
+    setFocusScenarioKey(focusScenarioId);
     setFocusIndex(null);
   } else if (focusIndex !== null && focusIndex >= steps.length) {
     setFocusIndex(null);
@@ -87,7 +87,10 @@ export function PlayerMode({
 
   if (shellMode === 'empty') {
     return (
-      <div className="absolute inset-0 z-40 flex flex-col bg-bg-canvas" data-testid="player-mode">
+      <div
+        className="absolute inset-0 z-40 flex select-none flex-col bg-bg-canvas"
+        data-testid="player-mode"
+      >
         <div className="relative flex min-h-0 flex-1 items-center justify-center p-6">
           <div className="w-full max-w-sm rounded-xl border border-border-subtle bg-bg-panel p-8 text-center shadow-sm dark:border-border-default">
             <p className="text-base font-semibold text-fg-default">{t('empty.title')}</p>
@@ -122,8 +125,33 @@ export function PlayerMode({
       ? buildEditableScriptStep(flow, draft, steps, focusIndex)
       : null;
 
+  // Mode switches carry the current step across (UF-030): edit's focused step
+  // (or head) becomes play's position; play's position becomes edit's focus
+  // when the step is editable there.
+  const switchToPlay = () => {
+    const target = focusIndex ?? Math.max(steps.length - 1, 0);
+    player.setShellMode('play');
+    seek(target);
+  };
+  const switchToEdit = () => {
+    const target = index;
+    const playSession = session;
+    const scenario = playSession?.flow.scenarios.find((sc) => sc.id === playSession.run.scenarioId);
+    player.setShellMode('edit');
+    if (!playSession || !scenario) return;
+    const step = steps[target];
+    const focusable =
+      step &&
+      (step.nodeType === 'decision' ||
+        buildEditableScriptStep(playSession.flow, scenario, steps, target) !== null);
+    setFocusIndex(focusable ? target : null);
+  };
+
   return (
-    <div className="absolute inset-0 z-40 flex flex-col bg-bg-canvas" data-testid="player-mode">
+    <div
+      className="absolute inset-0 z-40 flex select-none flex-col bg-bg-canvas"
+      data-testid="player-mode"
+    >
       <div ref={previewRef} className="relative min-h-0 flex-1 overflow-hidden">
         {isEdit && draft ? (
           <EditChrome
@@ -168,7 +196,7 @@ export function PlayerMode({
             onExit={player.exit}
             stepCurrent={index + 1}
             stepTotal={Math.max(steps.length, 1)}
-            onEnterEdit={() => player.setShellMode('edit')}
+            onEnterEdit={switchToEdit}
             editLabel={t('mode.edit')}
             onNewScenario={onNewScenario}
             newScenarioLabel={t('scenarioPicker.new')}
@@ -191,7 +219,7 @@ export function PlayerMode({
       {isEdit && draft ? (
         <PlayerTransportDock
           name={activeName}
-          onEnterPlay={() => player.setShellMode('play')}
+          onEnterPlay={switchToPlay}
           playLabel={t('mode.play')}
           stepActions={{
             onDeleteFromHere: dockFocusedEditable
