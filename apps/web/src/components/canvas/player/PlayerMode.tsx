@@ -91,14 +91,6 @@ export function PlayerMode({
 
   return (
     <div className="absolute inset-0 z-40 flex flex-col bg-bg-canvas" data-testid="player-mode">
-      <ModeToggleBar
-        mode={isEdit ? 'edit' : 'play'}
-        onEdit={() => player.setShellMode('edit')}
-        onPlay={() => player.setShellMode('play')}
-        editLabel={t('mode.edit')}
-        playLabel={t('mode.play')}
-      />
-
       <div ref={previewRef} className="relative min-h-0 flex-1 overflow-hidden">
         {isEdit && draft ? (
           <EditChrome
@@ -146,6 +138,9 @@ export function PlayerMode({
           stepCurrent={index + 1}
           stepTotal={Math.max(steps.length, 1)}
           hidePlayback={isEdit}
+          mode={isEdit ? 'edit' : 'play'}
+          onSetMode={(m) => player.setShellMode(m)}
+          modeLabels={{ edit: t('mode.edit'), play: t('mode.play') }}
           onNewScenario={onNewScenario}
           newScenarioLabel={t('scenarioPicker.new')}
           labels={{
@@ -205,52 +200,6 @@ export function PlayerMode({
         onConfirm={() => player.deleteActive()}
       />
     </div>
-  );
-}
-
-function ModeToggleBar({
-  mode,
-  onEdit,
-  onPlay,
-  editLabel,
-  playLabel,
-}: {
-  mode: 'edit' | 'play';
-  onEdit: () => void;
-  onPlay: () => void;
-  editLabel: string;
-  playLabel: string;
-}) {
-  return (
-    <div className="flex shrink-0 items-center gap-1.5 border-border-subtle border-b px-3 py-2 dark:border-border-default">
-      <ModeTab active={mode === 'edit'} onClick={onEdit} label={editLabel} />
-      <ModeTab active={mode === 'play'} onClick={onPlay} label={playLabel} />
-    </div>
-  );
-}
-
-function ModeTab({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`h-8 rounded-lg border px-3.5 text-[12.5px] font-medium transition-colors duration-[var(--duration-fast)] ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border ${
-        active
-          ? 'border-accent-primary-solid bg-accent-primary-solid text-white'
-          : 'border-border-strong bg-bg-panel text-fg-muted hover:bg-bg-subtle dark:border-border-default'
-      }`}
-    >
-      {label}
-    </button>
   );
 }
 

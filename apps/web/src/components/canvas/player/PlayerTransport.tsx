@@ -81,6 +81,9 @@ export function PlayerTransportPill({
   onNewScenario,
   newScenarioLabel,
   hidePlayback,
+  mode,
+  onSetMode,
+  modeLabels,
 }: {
   boundsRef: RefObject<HTMLDivElement | null>;
   name: string;
@@ -102,6 +105,10 @@ export function PlayerTransportPill({
   newScenarioLabel?: string;
   /** Edit mode: hide play/step controls, keep picker + exit. */
   hidePlayback?: boolean;
+  /** Edit⇄Play toggle, docked in the pill (replaces the old header band). */
+  mode?: 'edit' | 'play';
+  onSetMode?: (mode: 'edit' | 'play') => void;
+  modeLabels?: { edit: string; play: string };
 }) {
   const pillRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
@@ -339,6 +346,20 @@ export function PlayerTransportPill({
           >
             <DragHandleIcon />
           </button>
+          {mode && onSetMode && modeLabels ? (
+            <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-black/5 p-0.5 dark:bg-white/10">
+              <ModeSegment
+                active={mode === 'edit'}
+                label={modeLabels.edit}
+                onClick={() => onSetMode('edit')}
+              />
+              <ModeSegment
+                active={mode === 'play'}
+                label={modeLabels.play}
+                onClick={() => onSetMode('play')}
+              />
+            </div>
+          ) : null}
           <div className="relative min-w-0 shrink">
             {canPickScenario ? (
               <button
@@ -463,6 +484,31 @@ export function PlayerTransportPill({
         </div>
       )}
     </div>
+  );
+}
+
+function ModeSegment({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors duration-[var(--duration-fast)] ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border ${
+        active
+          ? 'bg-accent-primary-solid text-white shadow-sm'
+          : 'text-fg-muted hover:text-fg-default'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
