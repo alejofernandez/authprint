@@ -304,7 +304,9 @@ function EditChrome({
         {focusedEditable && focusedNode ? (
           <div className="flex h-full min-h-0 w-full flex-1 overflow-hidden">
             <StagePresentationFrame>
-              <div className="flex flex-col items-center">
+              {/* Controls float beside the stage: stacking below grows the
+                  frame and shrinks the fit-scale (UF-022). */}
+              <div className="flex items-center gap-4">
                 {focusedEditable.kind === 'screen' && focusedNode.type === 'screen' ? (
                   <RecordModeScreenStage
                     node={focusedNode}
@@ -336,6 +338,7 @@ function EditChrome({
                   />
                 ) : null}
                 <FocusedStepControls
+                  className="w-[300px] shrink-0"
                   editable={focusedEditable}
                   contextSlots={flow.context}
                   onSetPatchChange={(slot, value) =>

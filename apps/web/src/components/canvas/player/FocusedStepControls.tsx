@@ -15,12 +15,14 @@ export function FocusedStepControls({
   onSetPatchChange,
   onDeleteFromHere,
   onBackToRecording,
+  className,
 }: {
   editable: EditableScriptStep;
   contextSlots: Record<string, ContextSlot>;
   onSetPatchChange: (slot: string, value: unknown | null) => void;
   onDeleteFromHere: () => void;
   onBackToRecording: () => void;
+  className?: string;
 }) {
   const t = useTranslations('player');
   const setPatch = editable.step.set ?? {};
@@ -31,7 +33,9 @@ export function FocusedStepControls({
       : t('stepEditor.scripted.rerouteResult');
 
   return (
-    <div className="mx-auto mt-4 w-[300px] rounded-lg border border-border-subtle bg-bg-panel/95 p-3 text-left shadow-sm dark:border-border-default">
+    <div
+      className={`rounded-lg border border-border-subtle bg-bg-panel/95 p-3 text-left shadow-sm dark:border-border-default ${className ?? ''}`}
+    >
       {slotNames.length > 0 ? (
         <div className="space-y-2">
           <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle">

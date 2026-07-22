@@ -286,61 +286,75 @@ export function RecordModeDecisionStage({
       ? decisionNode.name
       : pending.nodeId;
 
+  const fixOptions = pending.fixes.map((fix) => (
+    <BranchFixOption
+      key={`${fix.kind}-${fix.kind === 'step-patch' ? fix.stepIndex : fix.slot}`}
+      fix={fix}
+      otherBranch={otherLabel}
+      otherDest={otherDest}
+      previousStepName={previousStepName}
+      onApply={onApplyBranchFix}
+    />
+  ));
+
   return (
-    <RecordGhostCard accent="decision" footer={<StageCaption>{t('caption')}</StageCaption>}>
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-node-decision-fg">
-        {t('badge')}
-      </div>
-      <div className="mt-2 text-sm font-semibold text-fg-default">{decisionName}</div>
-      <div className="mt-1 font-mono text-xs text-fg-muted">{pending.question}</div>
-      {pending.dictated ? (
-        <>
-          <div className="mt-3 text-xs leading-relaxed text-fg-muted">
-            {t('contextSays', { value: slotDisplay })}{' '}
-            <span className="font-semibold text-node-decision-fg">{takenLabel}</span>
-            <br />
-            <span className="text-fg-subtle">&rarr; {takenDest}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => onContinueDecision?.()}
-            className="mt-4 w-full rounded-md bg-accent-primary-solid px-3 py-2 text-sm font-medium text-white motion-reduce:transition-none transition-opacity duration-[var(--duration-fast)] ease-standard hover:opacity-90"
-          >
-            {t('continue', { branch: takenLabel })}
-          </button>
-          <button
-            type="button"
-            aria-expanded={showFixes}
-            aria-controls={fixPanelId}
-            onClick={() => setShowFixes((open) => !open)}
-            className="mt-2 w-full rounded-md border border-border-default px-3 py-1.5 text-xs font-medium text-fg-muted motion-reduce:transition-none transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle"
-          >
-            {t('takeOther', { branch: otherLabel })}
-          </button>
-        </>
-      ) : (
-        <p className="mt-3 text-xs leading-relaxed text-fg-muted">
-          {t('noValue', { slot: pending.predicate.slot })}
-        </p>
-      )}
-      {showFixes ? (
+    <div className="flex items-center gap-4">
+      <RecordGhostCard accent="decision" footer={<StageCaption>{t('caption')}</StageCaption>}>
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-node-decision-fg">
+          {t('badge')}
+        </div>
+        <div className="mt-2 text-sm font-semibold text-fg-default">{decisionName}</div>
+        <div className="mt-1 font-mono text-xs text-fg-muted">{pending.question}</div>
+        {pending.dictated ? (
+          <>
+            <div className="mt-3 text-xs leading-relaxed text-fg-muted">
+              {t('contextSays', { value: slotDisplay })}{' '}
+              <span className="font-semibold text-node-decision-fg">{takenLabel}</span>
+              <br />
+              <span className="text-fg-subtle">&rarr; {takenDest}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onContinueDecision?.()}
+              className="mt-4 w-full rounded-md bg-accent-primary-solid px-3 py-2 text-sm font-medium text-white motion-reduce:transition-none transition-opacity duration-[var(--duration-fast)] ease-standard hover:opacity-90"
+            >
+              {t('continue', { branch: takenLabel })}
+            </button>
+            <button
+              type="button"
+              aria-expanded={showFixes}
+              aria-controls={fixPanelId}
+              onClick={() => setShowFixes((open) => !open)}
+              className="mt-2 w-full rounded-md border border-border-default px-3 py-1.5 text-xs font-medium text-fg-muted motion-reduce:transition-none transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle"
+            >
+              {t('takeOther', { branch: otherLabel })}
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="mt-3 text-xs leading-relaxed text-fg-muted">
+              {t('noValue', { slot: pending.predicate.slot })}
+            </p>
+            <div
+              id={fixPanelId}
+              className="mt-3 space-y-2 border-border-subtle border-t pt-3 text-left dark:border-border-default"
+            >
+              {fixOptions}
+            </div>
+          </>
+        )}
+      </RecordGhostCard>
+      {/* Fix options float beside the card: stacking them below would grow the
+          frame's height and shrink the fit-scale until the copy is unreadable. */}
+      {pending.dictated && showFixes ? (
         <div
           id={fixPanelId}
-          className="mt-3 space-y-2 border-border-subtle border-t pt-3 text-left dark:border-border-default"
+          className="w-[280px] shrink-0 space-y-2 rounded-lg border border-border-subtle bg-bg-panel p-3 text-left shadow-sm dark:border-border-default"
         >
-          {pending.fixes.map((fix) => (
-            <BranchFixOption
-              key={`${fix.kind}-${fix.kind === 'step-patch' ? fix.stepIndex : fix.slot}`}
-              fix={fix}
-              otherBranch={otherLabel}
-              otherDest={otherDest}
-              previousStepName={previousStepName}
-              onApply={onApplyBranchFix}
-            />
-          ))}
+          {fixOptions}
         </div>
       ) : null}
-    </RecordGhostCard>
+    </div>
   );
 }
 

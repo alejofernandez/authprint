@@ -610,7 +610,7 @@ export function PlayerTransportDock({
 
   return (
     <div
-      className="flex shrink-0 items-center gap-2 border-border-subtle border-t bg-bg-panel/95 px-3 py-1.5 dark:border-border-default"
+      className="relative flex shrink-0 items-center justify-center gap-2 border-border-subtle border-t bg-bg-panel/95 px-12 py-1.5 dark:border-border-default"
       data-testid="player-transport-dock"
     >
       <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-black/5 p-0.5 dark:bg-white/10">
@@ -646,13 +646,12 @@ export function PlayerTransportDock({
           />
         ) : null}
       </div>
-      <div className="flex-1" />
       <button
         type="button"
         aria-label={exitLabel}
         title={exitLabel}
         onClick={onExit}
-        className="shrink-0 rounded-full px-2 py-1 text-base leading-none text-fg-muted hover:bg-black/5 dark:hover:bg-white/10"
+        className="absolute right-3 shrink-0 rounded-full px-2 py-1 text-base leading-none text-fg-muted hover:bg-black/5 dark:hover:bg-white/10"
       >
         ×
       </button>
