@@ -1,7 +1,14 @@
 'use client';
 
 import type { Flow, Scenario } from '@authprint/dsl';
-import { type ReactNode, type RefObject, useLayoutEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 export type TransportLabels = {
   stepBack: string;
@@ -80,11 +87,9 @@ export function PlayerTransportPill({
   labels,
   onNewScenario,
   newScenarioLabel,
-  hidePlayback,
   mode,
   onSetMode,
   modeLabels,
-  editManage,
 }: {
   boundsRef: RefObject<HTMLDivElement | null>;
   name: string;
@@ -104,23 +109,10 @@ export function PlayerTransportPill({
   labels: TransportLabels;
   onNewScenario?: () => void;
   newScenarioLabel?: string;
-  /** Edit mode: hide play/step controls, keep picker + exit. */
-  hidePlayback?: boolean;
   /** Edit⇄Play toggle, docked in the pill (replaces the old header band). */
   mode?: 'edit' | 'play';
   onSetMode?: (mode: 'edit' | 'play') => void;
   modeLabels?: { edit: string; play: string };
-  /**
-   * Edit mode: the name opens a manage popover (rename / duplicate / delete)
-   * instead of the scenario picker — switching scenarios is a Play-mode move.
-   */
-  editManage?: {
-    scenarioId: string;
-    onCommitName: (name: string) => void;
-    onDuplicate: () => void;
-    onRequestDelete: () => void;
-    labels: { panelTitle: string; nameLabel: string; duplicate: string; delete: string };
-  };
 }) {
   const pillRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
@@ -128,7 +120,6 @@ export function PlayerTransportPill({
   const compactClickTimeoutRef = useRef<number | null>(null);
   const compactAnchorRef = useRef<{ x: number; y: number } | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [managerOpen, setManagerOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [compact, setCompact] = useState(false);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
@@ -247,7 +238,6 @@ export function PlayerTransportPill({
     event.preventDefault();
     event.stopPropagation();
     setPickerOpen(false);
-    setManagerOpen(false);
     pointerMovedRef.current = false;
     event.currentTarget.setPointerCapture(event.pointerId);
     beginDrag(event.clientX, event.clientY);
@@ -375,78 +365,7 @@ export function PlayerTransportPill({
             </div>
           ) : null}
           <div className="relative min-w-0 shrink">
-            {editManage ? (
-              <>
-                <button
-                  type="button"
-                  aria-haspopup="dialog"
-                  aria-expanded={managerOpen}
-                  aria-label={editManage.labels.panelTitle}
-                  title={name}
-                  onClick={() => setManagerOpen((open) => !open)}
-                  className="inline-flex max-w-full min-w-0 items-center gap-1 rounded-full px-2 py-1 text-left text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
-                >
-                  <span className="min-w-0 truncate">{name}</span>
-                  <ChevronDownIcon />
-                </button>
-                {managerOpen ? (
-                  <>
-                    <button
-                      type="button"
-                      aria-label={editManage.labels.panelTitle}
-                      className="fixed inset-0 z-40 cursor-default"
-                      onClick={() => setManagerOpen(false)}
-                    />
-                    <div
-                      role="dialog"
-                      aria-label={editManage.labels.panelTitle}
-                      className="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-lg border border-border-subtle bg-bg-panel p-3 text-left shadow-lg dark:border-border-default dark:bg-bg-panel"
-                    >
-                      <label
-                        className="block text-[11px] text-fg-subtle"
-                        htmlFor="pill-scenario-name"
-                      >
-                        {editManage.labels.nameLabel}
-                      </label>
-                      <input
-                        id="pill-scenario-name"
-                        key={editManage.scenarioId}
-                        type="text"
-                        defaultValue={name}
-                        onBlur={(e) => editManage.onCommitName(e.currentTarget.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') e.currentTarget.blur();
-                          if (e.key === 'Escape') setManagerOpen(false);
-                        }}
-                        className="mt-1 h-8 w-full rounded-md border border-border-strong bg-bg-canvas px-2 text-sm font-medium text-fg-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default"
-                      />
-                      <div className="mt-3 flex flex-col gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            editManage.onDuplicate();
-                            setManagerOpen(false);
-                          }}
-                          className="rounded-md border border-border-strong px-2.5 py-1.5 text-left text-sm text-fg-default hover:bg-bg-subtle dark:border-border-default"
-                        >
-                          {editManage.labels.duplicate}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            editManage.onRequestDelete();
-                            setManagerOpen(false);
-                          }}
-                          className="rounded-md border border-signal-error-border px-2.5 py-1.5 text-left text-sm text-signal-error-label hover:bg-signal-error-bg"
-                        >
-                          {editManage.labels.delete}
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                ) : null}
-              </>
-            ) : canPickScenario ? (
+            {canPickScenario ? (
               <button
                 type="button"
                 aria-haspopup="menu"
@@ -465,7 +384,7 @@ export function PlayerTransportPill({
               </span>
             )}
 
-            {!editManage && pickerOpen ? (
+            {pickerOpen ? (
               <>
                 <button
                   type="button"
@@ -523,43 +442,39 @@ export function PlayerTransportPill({
             ) : null}
           </div>
 
-          {!hidePlayback ? (
-            <>
-              <span
-                role="status"
-                className="inline-flex w-[4.5rem] shrink-0 justify-center font-mono text-xs tabular-nums opacity-70"
-                aria-live="polite"
-                aria-label={`Step ${stepCurrent} of ${stepTotal}`}
-              >
-                <span className="inline-block w-[1.5rem] text-right">{stepCurrent}</span>
-                <span className="px-0.5">/</span>
-                <span className="inline-block w-[1.5rem] text-left">{stepTotal}</span>
-              </span>
-              <ControlDivider />
-              {playing ? (
-                <ControlButton label={labels.pause} onClick={onTogglePlay}>
-                  ⏸
-                </ControlButton>
-              ) : (
-                <ControlButton
-                  label={labels.play}
-                  onClick={onTogglePlay}
-                  disabled={atEnd && !diverged}
-                >
-                  ▶
-                </ControlButton>
-              )}
-              <ControlButton label={labels.stepBack} onClick={onPrev} disabled={atStart}>
-                ←
-              </ControlButton>
-              <ControlButton label={labels.stepForward} onClick={onNext} disabled={atEnd}>
-                →
-              </ControlButton>
-              <ControlDivider />
-            </>
-          ) : (
+          <>
+            <span
+              role="status"
+              className="inline-flex w-[4.5rem] shrink-0 justify-center font-mono text-xs tabular-nums opacity-70"
+              aria-live="polite"
+              aria-label={`Step ${stepCurrent} of ${stepTotal}`}
+            >
+              <span className="inline-block w-[1.5rem] text-right">{stepCurrent}</span>
+              <span className="px-0.5">/</span>
+              <span className="inline-block w-[1.5rem] text-left">{stepTotal}</span>
+            </span>
             <ControlDivider />
-          )}
+            {playing ? (
+              <ControlButton label={labels.pause} onClick={onTogglePlay}>
+                ⏸
+              </ControlButton>
+            ) : (
+              <ControlButton
+                label={labels.play}
+                onClick={onTogglePlay}
+                disabled={atEnd && !diverged}
+              >
+                ▶
+              </ControlButton>
+            )}
+            <ControlButton label={labels.stepBack} onClick={onPrev} disabled={atStart}>
+              ←
+            </ControlButton>
+            <ControlButton label={labels.stepForward} onClick={onNext} disabled={atEnd}>
+              →
+            </ControlButton>
+            <ControlDivider />
+          </>
           <ControlButton label={labels.collapse} onClick={() => captureAnchorAndSetCompact(true)}>
             −
           </ControlButton>
@@ -568,6 +483,185 @@ export function PlayerTransportPill({
           </ControlButton>
         </div>
       )}
+    </div>
+  );
+}
+
+export type EditManage = {
+  scenarioId: string;
+  onCommitName: (name: string) => void;
+  onDuplicate: () => void;
+  onRequestDelete: () => void;
+  labels: {
+    panelTitle: string;
+    nameLabel: string;
+    duplicate: string;
+    delete: string;
+    close: string;
+  };
+};
+
+function ManageScenarioPopover({
+  name,
+  editManage,
+  onClose,
+}: {
+  name: string;
+  editManage: EditManage;
+  onClose: () => void;
+}) {
+  // Escape closes only this popover. The player's own Escape handler exits to
+  // the canvas, so intercept in the capture phase while open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={editManage.labels.close}
+        className="fixed inset-0 z-40 cursor-default"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-label={editManage.labels.panelTitle}
+        className="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-lg border border-border-subtle bg-bg-panel p-3 text-left shadow-lg dark:border-border-default dark:bg-bg-panel"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-fg-subtle">
+            {editManage.labels.panelTitle}
+          </span>
+          <button
+            type="button"
+            aria-label={editManage.labels.close}
+            onClick={onClose}
+            className="shrink-0 rounded p-0.5 text-fg-subtle hover:bg-bg-subtle hover:text-fg-muted"
+          >
+            ✕
+          </button>
+        </div>
+        <label className="mt-2 block text-[11px] text-fg-subtle" htmlFor="pill-scenario-name">
+          {editManage.labels.nameLabel}
+        </label>
+        <input
+          id="pill-scenario-name"
+          key={editManage.scenarioId}
+          type="text"
+          defaultValue={name}
+          onBlur={(e) => editManage.onCommitName(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+          }}
+          className="mt-1 h-8 w-full rounded-md border border-border-strong bg-bg-canvas px-2 text-sm font-medium text-fg-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default"
+        />
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              editManage.onDuplicate();
+              onClose();
+            }}
+            className="flex-1 rounded-md border border-border-strong px-2.5 py-1.5 text-center text-sm text-fg-default hover:bg-bg-subtle dark:border-border-default"
+          >
+            {editManage.labels.duplicate}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              editManage.onRequestDelete();
+              onClose();
+            }}
+            className="flex-1 rounded-md border border-border-default px-2.5 py-1.5 text-center text-sm text-signal-error-label transition-colors duration-[var(--duration-fast)] ease-standard hover:border-signal-error-border hover:bg-signal-error-bg"
+          >
+            {editManage.labels.delete}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/**
+ * Edit mode's transport: docked above the filmstrip instead of floating over
+ * the stage, so recording affordances are never covered (UF-019).
+ */
+export function PlayerTransportDock({
+  name,
+  mode,
+  onSetMode,
+  modeLabels,
+  editManage,
+  onExit,
+  exitLabel,
+}: {
+  name: string;
+  mode: 'edit' | 'play';
+  onSetMode: (mode: 'edit' | 'play') => void;
+  modeLabels: { edit: string; play: string };
+  editManage: EditManage;
+  onExit: () => void;
+  exitLabel: string;
+}) {
+  const [managerOpen, setManagerOpen] = useState(false);
+
+  return (
+    <div
+      className="flex shrink-0 items-center gap-2 border-border-subtle border-t bg-bg-panel/95 px-3 py-1.5 dark:border-border-default"
+      data-testid="player-transport-dock"
+    >
+      <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-black/5 p-0.5 dark:bg-white/10">
+        <ModeSegment
+          active={mode === 'edit'}
+          label={modeLabels.edit}
+          onClick={() => onSetMode('edit')}
+        />
+        <ModeSegment
+          active={mode === 'play'}
+          label={modeLabels.play}
+          onClick={() => onSetMode('play')}
+        />
+      </div>
+      <div className="relative min-w-0 shrink">
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={managerOpen}
+          aria-label={editManage.labels.panelTitle}
+          title={name}
+          onClick={() => setManagerOpen((open) => !open)}
+          className="inline-flex max-w-full min-w-0 items-center gap-1 rounded-full px-2 py-1 text-left text-sm font-medium text-fg-default hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <span className="min-w-0 truncate">{name}</span>
+          <ChevronDownIcon />
+        </button>
+        {managerOpen ? (
+          <ManageScenarioPopover
+            name={name}
+            editManage={editManage}
+            onClose={() => setManagerOpen(false)}
+          />
+        ) : null}
+      </div>
+      <div className="flex-1" />
+      <button
+        type="button"
+        aria-label={exitLabel}
+        title={exitLabel}
+        onClick={onExit}
+        className="shrink-0 rounded-full px-2 py-1 text-base leading-none text-fg-muted hover:bg-black/5 dark:hover:bg-white/10"
+      >
+        ×
+      </button>
     </div>
   );
 }

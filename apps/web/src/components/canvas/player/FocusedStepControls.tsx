@@ -49,16 +49,16 @@ export function FocusedStepControls({
         </div>
       ) : null}
 
-      <p
-        className={`text-xs leading-relaxed text-signal-warning-fg ${slotNames.length > 0 ? 'mt-3' : ''}`}
+      <div
+        className={`rounded-md bg-signal-warning-bg px-2.5 py-2 text-xs leading-relaxed text-signal-warning-label ${slotNames.length > 0 ? 'mt-3' : ''}`}
       >
         {t('stepEditor.scripted.rerouteWarning', { target: rerouteTarget })}
-      </p>
+      </div>
 
       <div className="mt-3 flex items-center gap-2">
         <button
           type="button"
-          className="flex-1 rounded border border-signal-danger-ring bg-signal-error-bg px-2 py-1.5 text-xs font-medium text-signal-error-label hover:bg-signal-error-bg-muted dark:border-signal-danger dark:bg-signal-error-bg-muted dark:text-signal-error-fg dark:hover:bg-signal-error-bg"
+          className="flex-1 rounded border border-border-default px-2 py-1.5 text-xs font-medium text-signal-error-label transition-colors duration-[var(--duration-fast)] ease-standard hover:border-signal-error-border hover:bg-signal-error-bg"
           onClick={onDeleteFromHere}
         >
           {t('stepEditor.scripted.deleteFromHere')}

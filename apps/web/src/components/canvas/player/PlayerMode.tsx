@@ -11,7 +11,7 @@ import { buildEditableScriptStep } from './editStepMapping.ts';
 import { FocusedStepControls } from './FocusedStepControls.tsx';
 import { usePlayerModeContext } from './PlayerModeContext.tsx';
 import { PlayerStage, StagePresentationFrame } from './PlayerStage.tsx';
-import { PlayerTransportPill } from './PlayerTransport.tsx';
+import { PlayerTransportDock, PlayerTransportPill } from './PlayerTransport.tsx';
 import { RecordModeResolveStage, RecordModeScreenStage } from './RecordModeStage.tsx';
 import { ScenarioDeleteConfirmDialog } from './ScenarioDeleteConfirmDialog.tsx';
 import { nodeDisplayName } from './screenExitActions.ts';
@@ -133,61 +133,67 @@ export function PlayerMode({
           />
         ) : null}
 
-        <PlayerTransportPill
-          boundsRef={previewRef}
+        {!isEdit ? (
+          <PlayerTransportPill
+            boundsRef={previewRef}
+            name={activeName}
+            scenarios={flow.scenarios}
+            activeScenarioId={activeScenarioId}
+            onSelectScenario={(scenario: Scenario) => player.enterPlay(scenario, flow)}
+            playing={playing}
+            atStart={atStart}
+            atEnd={atEnd}
+            diverged={session?.run.status === 'diverged'}
+            onTogglePlay={togglePlay}
+            onPrev={prev}
+            onNext={next}
+            onExit={player.exit}
+            stepCurrent={index + 1}
+            stepTotal={Math.max(steps.length, 1)}
+            mode="play"
+            onSetMode={(m) => player.setShellMode(m)}
+            modeLabels={{ edit: t('mode.edit'), play: t('mode.play') }}
+            onNewScenario={onNewScenario}
+            newScenarioLabel={t('scenarioPicker.new')}
+            labels={{
+              stepBack: t('transport.stepBack'),
+              stepForward: t('transport.stepForward'),
+              play: t('transport.play'),
+              pause: t('transport.pause'),
+              exit: t('transport.exit'),
+              scenarioPickerOpen: t('scenarioPicker.open'),
+              scenarioPickerCurrent: t('scenarioPicker.current'),
+              dragHandle: t('transport.dragHandle'),
+              collapse: t('transport.collapse'),
+              expand: t('transport.expand'),
+            }}
+          />
+        ) : null}
+      </div>
+
+      {isEdit && draft ? (
+        <PlayerTransportDock
           name={activeName}
-          scenarios={flow.scenarios}
-          activeScenarioId={activeScenarioId}
-          onSelectScenario={(scenario: Scenario) => {
-            if (isEdit) player.enterEdit(scenario, flow);
-            else player.enterPlay(scenario, flow);
-          }}
-          playing={playing}
-          atStart={atStart}
-          atEnd={atEnd}
-          diverged={session?.run.status === 'diverged'}
-          onTogglePlay={togglePlay}
-          onPrev={prev}
-          onNext={next}
-          onExit={player.exit}
-          stepCurrent={index + 1}
-          stepTotal={Math.max(steps.length, 1)}
-          hidePlayback={isEdit}
-          mode={isEdit ? 'edit' : 'play'}
+          mode="edit"
           onSetMode={(m) => player.setShellMode(m)}
           modeLabels={{ edit: t('mode.edit'), play: t('mode.play') }}
-          editManage={
-            isEdit && draft
-              ? {
-                  scenarioId: draft.id,
-                  onCommitName: (name) => player.renameDraft(name),
-                  onDuplicate: () => player.duplicateActive(),
-                  onRequestDelete: () => setDeleteOpen(true),
-                  labels: {
-                    panelTitle: t('scenarioCrud.panelTitle'),
-                    nameLabel: t('scenarioCrud.nameLabel'),
-                    duplicate: t('scenarioCrud.duplicate'),
-                    delete: t('scenarioCrud.delete'),
-                  },
-                }
-              : undefined
-          }
-          onNewScenario={onNewScenario}
-          newScenarioLabel={t('scenarioPicker.new')}
-          labels={{
-            stepBack: t('transport.stepBack'),
-            stepForward: t('transport.stepForward'),
-            play: t('transport.play'),
-            pause: t('transport.pause'),
-            exit: t('transport.exit'),
-            scenarioPickerOpen: t('scenarioPicker.open'),
-            scenarioPickerCurrent: t('scenarioPicker.current'),
-            dragHandle: t('transport.dragHandle'),
-            collapse: t('transport.collapse'),
-            expand: t('transport.expand'),
+          editManage={{
+            scenarioId: draft.id,
+            onCommitName: (name) => player.renameDraft(name),
+            onDuplicate: () => player.duplicateActive(),
+            onRequestDelete: () => setDeleteOpen(true),
+            labels: {
+              panelTitle: t('scenarioCrud.panelTitle'),
+              nameLabel: t('scenarioCrud.nameLabel'),
+              duplicate: t('scenarioCrud.duplicate'),
+              delete: t('scenarioCrud.delete'),
+              close: t('scenarioCrud.close'),
+            },
           }}
+          onExit={player.exit}
+          exitLabel={t('transport.exit')}
         />
-      </div>
+      ) : null}
 
       <div className="shrink-0 border-border-subtle border-t px-3 pt-2 pb-3 dark:border-border-default">
         {isEdit && draft && recording ? (

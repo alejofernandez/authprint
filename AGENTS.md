@@ -69,6 +69,10 @@ When a deliverable is a **story-able static component** (node view, inline card,
 
 Baselines are **local-only for now** (font/OS-dependent; not in CI until a pinned screenshot environment exists).
 
+### User-facing copy → no em dashes
+
+Never use "—" in any rendered product text (UI strings in `apps/web/messages/`, JSX literals, aria labels, titles, marketing copy). Restructure with commas, colons, or split sentences instead; empty-value placeholder glyphs use an en dash ("–"). Code comments, commit messages, and internal docs are exempt.
+
 ### Commit messages → Conventional Commits
 
 Subjects are `type(scope): summary` — imperative, lower-case, no trailing period; `type` from the usual set (`feat`, `fix`, `docs`, `test`, `refactor`, `chore`). Body explains **what + why** (not how — the diff shows how), wrapped at ~72 cols. AI agents co-author their commits with their own real identity trailer (`Co-authored-by:`).

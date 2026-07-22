@@ -161,7 +161,7 @@
     "cancel": "Cancel",
     "continue": "Continue",
     "indicatorLabel": "Not exported",
-    "indicatorTitle": "Saved locally — not exported as a file yet"
+    "indicatorTitle": "Saved locally, not exported as a file yet"
   },
   "player": {
     "context": {
@@ -190,7 +190,7 @@
     },
     "empty": {
       "title": "No scenarios yet",
-      "body": "Record a walk through this flow — decisions and outcomes included.",
+      "body": "Record a walk through this flow, decisions and outcomes included.",
       "cta": "Record your first scenario"
     },
     "edit": {
@@ -210,9 +210,10 @@
       "duplicate": "Duplicate",
       "delete": "Delete",
       "deleteTitle": "Delete scenario?",
-      "deleteMessage": "Delete “{name}”? This cannot be undone from here — use canvas Undo if you change your mind.",
+      "deleteMessage": "Delete “{name}”? This cannot be undone from here. Use canvas Undo if you change your mind.",
       "deleteConfirm": "Delete",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "close": "Close"
     },
     "ghostHead": {
       "chooseOnStage": "choose on the stage"
@@ -221,12 +222,12 @@
       "scripted": {
         "rerouteAction": "action",
         "rerouteResult": "result",
-        "rerouteWarning": "Changing the {target} or a patch reroutes the trace — later steps that no longer apply are dropped.",
+        "rerouteWarning": "Changing the {target} or a patch reroutes the trace. Later steps that no longer apply are dropped.",
         "deleteFromHere": "Delete from here"
       },
       "setPatch": {
         "title": "set: after this step",
-        "none": "—"
+        "none": "–"
       }
     },
     "recordMode": {
@@ -236,7 +237,7 @@
       },
       "resolve": {
         "caption": "How does this resolve in this scenario?",
-        "noEdges": "No outgoing result edges — fix the flow on the canvas to keep recording.",
+        "noEdges": "No outgoing result edges. Fix the flow on the canvas to keep recording.",
         "result": {
           "success": "succeeds",
           "error": "fails",
@@ -247,10 +248,10 @@
       },
       "decision": {
         "badge": "decision",
-        "caption": "Decisions aren't script steps — context drives them. Taking the other branch means changing context.",
-        "emptyValue": "—",
+        "caption": "Decisions aren't script steps. Context drives them, and taking the other branch means changing context.",
+        "emptyValue": "–",
         "contextSays": "context says {value} → takes",
-        "noValue": "Context has no value for {slot} yet — set one to choose a branch:",
+        "noValue": "Context has no value for {slot} yet. Set one to choose a branch:",
         "branch": {
           "yes": "yes",
           "no": "no"
