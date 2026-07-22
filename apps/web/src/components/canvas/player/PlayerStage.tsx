@@ -333,10 +333,13 @@ function ScreenStageFrame({
   immersive?: boolean;
 }) {
   const screenTheme = resolveScreenTheme(flowTheme, editorTheme);
+  // step.errorBannerCopy is the fully resolved chain from derivePlayerSteps,
+  // scenario-step override included; the direct derivation here is only a
+  // fallback for callers that hand in a bare step (UF-034 fix: the old
+  // precedence shadowed the scenario override with node-level copy).
   const errorBannerCopy =
-    flow && runTrace
-      ? (screenErrorBannerCopyForStep(flow, runTrace, step.index) ?? step.errorBannerCopy)
-      : step.errorBannerCopy;
+    step.errorBannerCopy ??
+    (flow && runTrace ? screenErrorBannerCopyForStep(flow, runTrace, step.index) : null);
   return (
     <div
       className={`${screenTheme === 'dark' ? 'flow-theme-dark ' : ''}origin-center`}

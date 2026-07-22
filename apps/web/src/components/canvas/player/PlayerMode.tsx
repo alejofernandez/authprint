@@ -131,9 +131,12 @@ export function PlayerMode({
   // (or head) becomes play's position; play's position becomes edit's focus
   // when the step is editable there.
   const switchToPlay = () => {
+    // Play from the step you were on; from the recording head (the end), the
+    // natural intent is watching the scenario, so play() restarts from 0.
     const target = focusIndex ?? Math.max(steps.length - 1, 0);
     player.setShellMode('play');
     seek(target);
+    player.play();
   };
   const switchToEdit = () => {
     const target = index;

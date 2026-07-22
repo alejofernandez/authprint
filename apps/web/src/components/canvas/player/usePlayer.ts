@@ -20,6 +20,8 @@ export type UsePlayerResult = {
   seek: (index: number) => void;
   next: () => void;
   prev: () => void;
+  /** Start playback; from the last step it restarts at 0 (togglePlay parity). */
+  play: () => void;
   togglePlay: () => void;
   pause: () => void;
   setSpeed: (speed: PlayerSpeed) => void;
@@ -38,7 +40,10 @@ export function advancePlayerPlayback(
 ): { index: number; stop: boolean } {
   const lastIndex = Math.max(stepCount - 1, 0);
   if (currentIndex >= lastIndex) {
-    return { index: currentIndex, stop: true };
+    return {
+      index: currentIndex,
+      stop: true,
+    };
   }
   const index = clampPlayerIndex(currentIndex + 1, stepCount);
   if (divergedIndex !== null && index === divergedIndex) {
@@ -74,6 +79,11 @@ export function usePlayer({ steps, divergedIndex }: UsePlayerOptions): UsePlayer
     setPlaying(false);
     setIndex((i) => clampPlayerIndex(i - 1, stepCount));
   }, [stepCount]);
+
+  const play = useCallback(() => {
+    setIndex((i) => (i >= lastIndex ? 0 : i));
+    setPlaying(true);
+  }, [lastIndex]);
 
   const togglePlay = useCallback(() => {
     setPlaying((wasPlaying) => {
@@ -113,6 +123,7 @@ export function usePlayer({ steps, divergedIndex }: UsePlayerOptions): UsePlayer
     seek,
     next,
     prev,
+    play,
     togglePlay,
     pause,
     setSpeed,
