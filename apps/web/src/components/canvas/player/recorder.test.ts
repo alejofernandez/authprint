@@ -6,6 +6,7 @@ import {
   appendResolutionStep,
   appendScreenStep,
   applyBranchFix,
+  clearInitialContextValue,
   deleteFromStep,
   deriveRecording,
   pendingDecisionAt,
@@ -230,6 +231,46 @@ scenarios: []`);
     draft = setStepPatch(flow, draft, 1, 'code.valid', true);
     expect(deriveRecording(flow, draft).head.nodeId).toBe('o1');
     expect(draft.expectedOutcome?.outcomeId).toBe('o1');
+  });
+});
+
+describe('initial-context edits reroute past a dictated decision (UF-031)', () => {
+  const flow = loadPasskeyEnrollment();
+
+  test('leftover script beyond the flipped branch is dropped, head completes', () => {
+    // Existing-user path scripted, then the initial value flips the decision
+    // the other way: the tail is unreachable but never script-mismatches
+    // (the rerouted run reaches a different outcome with script left over).
+    let draft = emptyDraft({ initialContext: { 'user.exists': true, 'user.has_passkey': true } });
+    draft = appendScreenStep(flow, draft, 's-identifier', 'submit');
+    draft = appendScreenStep(flow, draft, 's-passkey', 'submit');
+    expect(deriveRecording(flow, draft).head.nodeId).toBe('o-authenticated-passkey');
+    expect(draft.expectedOutcome?.outcomeId).toBe('o-authenticated-passkey');
+
+    const flipped = setInitialContextValue(flow, draft, 'user.exists', false);
+    // s-identifier still applies; s-passkey is beyond the flipped branch.
+    expect(flipped.inputScript.length).toBe(1);
+    const rec = deriveRecording(flow, flipped);
+    expect(rec.head).toEqual({ nodeId: 'd-user-exists', nodeType: 'decision' });
+    expect(rec.pendingDecision?.dictated).toBe(true);
+    expect(rec.pendingDecision?.takenBranch).toBe(false);
+  });
+});
+
+describe('clearInitialContextValue', () => {
+  const flow = loadPasskeyEnrollment();
+
+  test('removes the slot and reconciles; missing slot is a no-op', () => {
+    const draft = emptyDraft();
+    const cleared = clearInitialContextValue(flow, draft, 'user.exists');
+    expect('user.exists' in cleared.initialContext).toBe(false);
+    // The decision now has no value: the walk pauses undictated.
+    const rec = deriveRecording(flow, {
+      ...cleared,
+      inputScript: [{ type: 'screen', nodeId: 's-identifier', action: 'submit' }],
+    });
+    expect(rec.pendingDecision?.dictated).toBe(false);
+    expect(clearInitialContextValue(flow, cleared, 'user.exists')).toBe(cleared);
   });
 });
 

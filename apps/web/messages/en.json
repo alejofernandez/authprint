@@ -198,7 +198,8 @@
       "loading": "Preparing recorder…",
       "editingStep": "Editing step {index}",
       "backToRecording": "Back to recording",
-      "dismissWarning": "Dismiss"
+      "dismissWarning": "Dismiss",
+      "initialContextTitle": "initial context"
     },
     "scenarioPicker": {
       "open": "Switch scenario",
@@ -225,7 +226,8 @@
         "rerouteResult": "result",
         "rerouteWarning": "Changing the {target} or a patch reroutes the trace. Later steps that no longer apply are dropped.",
         "deleteFromHere": "Delete from here",
-        "rerouteBranch": "branch"
+        "rerouteBranch": "branch",
+        "rerouteInitial": "initial context"
       },
       "setPatch": {
         "title": "set: after this step",

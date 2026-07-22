@@ -9,6 +9,7 @@ import {
   applyBranchFix,
   type BranchFix,
   clearExpectedOutcome,
+  clearInitialContextValue,
   clearStepPatch,
   deleteFromStep,
   deriveRecording,
@@ -16,6 +17,7 @@ import {
   type RecordingModel,
   reconcileDraft,
   setExpectedOutcome,
+  setInitialContextValue,
   setStepPatch,
 } from './recorder.ts';
 import { createBlankScenario, duplicateScenarioName, uniqueScenarioId } from './scenarioNames.ts';
@@ -83,6 +85,8 @@ export type PlayerModeValue = {
     result: 'success' | 'error' | 'denied' | 'cancelled',
   ) => void;
   editStepPatch: (scriptStepIndex: number, slot: string, value: unknown | null) => void;
+  /** Focused-entry editing (UF-031): set or clear an initialContext slot. */
+  editInitialContext: (slot: string, value: unknown | null) => void;
   deleteFrom: (scriptStepIndex: number) => void;
   doneRecording: () => void;
   /** Legacy play entry (US-110 call sites). */
@@ -465,6 +469,18 @@ export function usePlayerMode(persist?: PlayerModePersist): PlayerModeValue {
     [draft, flow, writeDraft],
   );
 
+  const editInitialContext = useCallback(
+    (slot: string, value: unknown | null) => {
+      if (!draft || !flow) return;
+      const next =
+        value === null
+          ? clearInitialContextValue(flow, draft, slot)
+          : setInitialContextValue(flow, draft, slot, value);
+      writeDraft(next, flow);
+    },
+    [draft, flow, writeDraft],
+  );
+
   const deleteFrom = useCallback(
     (scriptStepIndex: number) => {
       if (!draft || !flow) return;
@@ -522,6 +538,7 @@ export function usePlayerMode(persist?: PlayerModePersist): PlayerModeValue {
     editStepAction,
     editStepResult,
     editStepPatch,
+    editInitialContext,
     deleteFrom,
     doneRecording,
     enter,

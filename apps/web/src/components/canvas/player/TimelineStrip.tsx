@@ -120,7 +120,7 @@ export function TimelineStrip(props: TimelineStripProps) {
                       scripted={scripted}
                       hasSetPatch={patch}
                       onEdit={
-                        scripted || step.nodeType === 'decision'
+                        scripted || step.nodeType === 'decision' || step.nodeType === 'entry'
                           ? () => editProps.onFocusStep(step.index)
                           : undefined
                       }

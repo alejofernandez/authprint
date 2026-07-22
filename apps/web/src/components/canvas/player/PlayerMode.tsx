@@ -14,11 +14,13 @@ import { PlayerStage, StagePresentationFrame } from './PlayerStage.tsx';
 import { PlayerTransportDock, PlayerTransportPill } from './PlayerTransport.tsx';
 import {
   RecordModeDecisionStage,
+  RecordModeEntryStage,
   RecordModeResolveStage,
   RecordModeScreenStage,
 } from './RecordModeStage.tsx';
 import { pendingDecisionAt } from './recorder.ts';
 import { ScenarioDeleteConfirmDialog } from './ScenarioDeleteConfirmDialog.tsx';
+import { StepPatchRow } from './StepPatchRow.tsx';
 import { nodeDisplayName } from './screenExitActions.ts';
 import { isSilentPlayerStep, lastScreenStepIndex } from './steps.ts';
 import { TimelineStrip } from './TimelineStrip.tsx';
@@ -143,6 +145,7 @@ export function PlayerMode({
     const focusable =
       step &&
       (step.nodeType === 'decision' ||
+        step.nodeType === 'entry' ||
         buildEditableScriptStep(playSession.flow, scenario, steps, target) !== null);
     setFocusIndex(focusable ? target : null);
   };
@@ -337,6 +340,8 @@ function EditChrome({
     if (focusIndex === null || focusedStep?.nodeType !== 'decision') return null;
     return pendingDecisionAt(flow, draft, focusIndex);
   }, [focusIndex, focusedStep, flow, draft]);
+  // UF-031 — the focused entry edits initialContext, the scenario's start state.
+  const focusedEntry = focusedStep?.nodeType === 'entry';
   const lastScriptedNameBeforeFocus = useMemo(() => {
     if (focusIndex === null) return undefined;
     for (let i = focusIndex - 1; i >= 0; i--) {
@@ -367,7 +372,7 @@ function EditChrome({
             {player.recordingNote}
           </div>
         ) : null}
-        {(focusedEditable && focusedNode) || focusedDecision ? (
+        {(focusedEditable && focusedNode) || focusedDecision || focusedEntry ? (
           <div className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-accent-primary-border bg-accent-primary-bg px-3 py-1 text-xs font-medium text-accent-primary-fg-emphasis">
             {t('edit.editingStep', { index: focusIndex !== null ? focusIndex + 1 : 0 })}
           </div>
@@ -380,18 +385,21 @@ function EditChrome({
             {t('edit.recording')}
           </div>
         )}
-        {((focusedEditable && focusedNode) || focusedDecision) && !rerouteWarningDismissed ? (
+        {((focusedEditable && focusedNode) || focusedDecision || focusedEntry) &&
+        !rerouteWarningDismissed ? (
           <div
             role="status"
             className="absolute bottom-3 left-1/2 z-20 flex max-w-md -translate-x-1/2 items-center gap-2 rounded-lg bg-signal-warning-bg px-3 py-2 text-xs leading-relaxed text-signal-warning-label shadow-lg"
           >
             <span>
               {t('stepEditor.scripted.rerouteWarning', {
-                target: focusedDecision
-                  ? t('stepEditor.scripted.rerouteBranch')
-                  : focusedEditable?.kind === 'screen'
-                    ? t('stepEditor.scripted.rerouteAction')
-                    : t('stepEditor.scripted.rerouteResult'),
+                target: focusedEntry
+                  ? t('stepEditor.scripted.rerouteInitial')
+                  : focusedDecision
+                    ? t('stepEditor.scripted.rerouteBranch')
+                    : focusedEditable?.kind === 'screen'
+                      ? t('stepEditor.scripted.rerouteAction')
+                      : t('stepEditor.scripted.rerouteResult'),
               })}
             </span>
             <button
@@ -448,6 +456,30 @@ function EditChrome({
                     player.editStepPatch(focusedEditable.scriptStepIndex, slot, value)
                   }
                 />
+              </div>
+            </StagePresentationFrame>
+          </div>
+        ) : focusedEntry ? (
+          <div className="flex h-full min-h-0 w-full flex-1 overflow-hidden">
+            <StagePresentationFrame>
+              <div className="relative">
+                <RecordModeEntryStage />
+                {Object.keys(flow.context).length > 0 ? (
+                  <div className="absolute top-1/2 left-full ml-4 w-[300px] -translate-y-1/2 space-y-2 rounded-lg border border-border-subtle bg-bg-panel/95 p-3 text-left shadow-sm dark:border-border-default">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle">
+                      {t('edit.initialContextTitle')}
+                    </p>
+                    {Object.keys(flow.context).map((slot) => (
+                      <StepPatchRow
+                        key={slot}
+                        slot={slot}
+                        declaration={flow.context[slot] ?? { type: 'string' }}
+                        value={draft.initialContext[slot]}
+                        onChange={(value) => player.editInitialContext(slot, value)}
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </StagePresentationFrame>
           </div>

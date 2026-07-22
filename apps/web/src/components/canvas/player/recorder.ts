@@ -10,7 +10,7 @@ import type {
   ScriptStep,
   TraceStep,
 } from '@authprint/dsl';
-import { evaluatePredicate, runScenario } from '@authprint/dsl';
+import { evaluatePredicate } from '@authprint/dsl';
 import { derivePlayerSteps, type PlayerStep } from './steps.ts';
 
 export type RecordingHead = {
@@ -492,27 +492,33 @@ export function reconcileDraft(
   flow: Flow,
   draft: Scenario,
 ): { draft: Scenario; note: string | null } {
-  const run = runScenario(flow, draft);
-  if (run.divergence?.kind !== 'script-mismatch') {
-    if (run.divergence?.kind === 'step-limit-exceeded') {
-      return { draft, note: 'step-limit-exceeded' };
+  // Tail-drop is defined by what the recording walk can actually consume, not
+  // by a divergence kind: a rerouted trace can reach a different outcome with
+  // leftover script and never emit script-mismatch (UF-031). One exception
+  // keeps the tail: an undictated decision pause is a temporarily un-walkable
+  // state, and re-setting the missing value must restore the script intact.
+  const walk = recordingWalk(flow, draft);
+  if (walk.note === 'step-limit-exceeded') {
+    return { draft, note: 'step-limit-exceeded' };
+  }
+
+  const nodes = nodeById(flow);
+  let consumed = 0;
+  for (let i = 0; i < walk.trace.length - 1; i++) {
+    const node = nodes.get(walk.trace[i]?.nodeId ?? '');
+    if (node && (node.type === 'screen' || node.type === 'action' || node.type === 'external')) {
+      consumed++;
     }
+  }
+
+  if (consumed >= draft.inputScript.length) {
     return { draft, note: null };
   }
-
-  for (let i = 0; i < draft.inputScript.length; i++) {
-    const partial: Scenario = { ...draft, inputScript: draft.inputScript.slice(0, i + 1) };
-    const partialRun = runScenario(flow, partial);
-    if (partialRun.divergence?.kind === 'script-mismatch') {
-      return {
-        draft: { ...draft, inputScript: draft.inputScript.slice(0, i) },
-        note: 'script tail dropped after edit',
-      };
-    }
+  if (walk.pendingDecision && !walk.pendingDecision.dictated) {
+    return { draft, note: null };
   }
-
   return {
-    draft: { ...draft, inputScript: [] },
+    draft: { ...draft, inputScript: draft.inputScript.slice(0, consumed) },
     note: 'script tail dropped after edit',
   };
 }
@@ -661,14 +667,24 @@ export function applyBranchFix(
   return maybeSetOutcomeOnHead(flow, withReconcile(flow, next));
 }
 
+export function clearInitialContextValue(flow: Flow, draft: Scenario, slot: string): Scenario {
+  if (!(slot in draft.initialContext)) return draft;
+  const next = { ...draft.initialContext };
+  delete next[slot];
+  return maybeSetOutcomeOnHead(flow, withReconcile(flow, { ...draft, initialContext: next }));
+}
+
 export function setInitialContextValue(
   flow: Flow,
   draft: Scenario,
   slot: string,
   value: unknown,
 ): Scenario {
-  return withReconcile(flow, {
-    ...draft,
-    initialContext: { ...draft.initialContext, [slot]: value },
-  });
+  return maybeSetOutcomeOnHead(
+    flow,
+    withReconcile(flow, {
+      ...draft,
+      initialContext: { ...draft.initialContext, [slot]: value },
+    }),
+  );
 }
