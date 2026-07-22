@@ -197,7 +197,8 @@
       "recording": "Recording",
       "loading": "Preparing recorder…",
       "editingStep": "Editing step {index}",
-      "backToRecording": "Back to recording"
+      "backToRecording": "Back to recording",
+      "dismissWarning": "Dismiss"
     },
     "scenarioPicker": {
       "open": "Switch scenario",

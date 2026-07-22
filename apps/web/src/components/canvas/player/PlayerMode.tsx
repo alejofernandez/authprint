@@ -32,6 +32,9 @@ export function PlayerMode({
   const [deleteOpen, setDeleteOpen] = useState(false);
   // UF-016 — which player step is focused for in-place editing; null = recording head.
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  // UF-023 — the reroute warning floats once per edit session; dismissing it
+  // hides it until edit mode closes.
+  const [rerouteWarningDismissed, setRerouteWarningDismissed] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
   const resolvedEditorTheme: 'light' | 'dark' =
@@ -70,6 +73,9 @@ export function PlayerMode({
     setFocusIndex(null);
   } else if (focusIndex !== null && focusIndex >= steps.length) {
     setFocusIndex(null);
+  }
+  if (shellMode !== 'edit' && rerouteWarningDismissed) {
+    setRerouteWarningDismissed(false);
   }
 
   if (!shellMode || !flow) return null;
@@ -119,6 +125,8 @@ export function PlayerMode({
             previousStepName={steps.length > 1 ? steps[steps.length - 2]?.displayName : undefined}
             focusIndex={focusIndex}
             onClearFocus={() => setFocusIndex(null)}
+            rerouteWarningDismissed={rerouteWarningDismissed}
+            onDismissRerouteWarning={() => setRerouteWarningDismissed(true)}
           />
         ) : session ? (
           <PlayChrome
@@ -244,6 +252,8 @@ function EditChrome({
   previousStepName,
   focusIndex,
   onClearFocus,
+  rerouteWarningDismissed,
+  onDismissRerouteWarning,
 }: {
   flow: NonNullable<ReturnType<typeof usePlayerModeContext>['flow']>;
   draft: Scenario;
@@ -253,6 +263,8 @@ function EditChrome({
   previousStepName?: string;
   focusIndex: number | null;
   onClearFocus: () => void;
+  rerouteWarningDismissed: boolean;
+  onDismissRerouteWarning: () => void;
 }) {
   const player = usePlayerModeContext();
   const t = useTranslations('player');
@@ -301,6 +313,29 @@ function EditChrome({
             {t('edit.recording')}
           </div>
         )}
+        {focusedEditable && focusedNode && !rerouteWarningDismissed ? (
+          <div
+            role="status"
+            className="absolute bottom-3 left-1/2 z-20 flex max-w-md -translate-x-1/2 items-center gap-2 rounded-lg bg-signal-warning-bg px-3 py-2 text-xs leading-relaxed text-signal-warning-label shadow-lg"
+          >
+            <span>
+              {t('stepEditor.scripted.rerouteWarning', {
+                target:
+                  focusedEditable.kind === 'screen'
+                    ? t('stepEditor.scripted.rerouteAction')
+                    : t('stepEditor.scripted.rerouteResult'),
+              })}
+            </span>
+            <button
+              type="button"
+              aria-label={t('edit.dismissWarning')}
+              onClick={onDismissRerouteWarning}
+              className="shrink-0 rounded p-0.5 hover:bg-black/10 dark:hover:bg-white/10"
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
         {focusedEditable && focusedNode ? (
           <div className="flex h-full min-h-0 w-full flex-1 overflow-hidden">
             <StagePresentationFrame>

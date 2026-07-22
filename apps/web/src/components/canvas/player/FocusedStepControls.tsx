@@ -27,10 +27,6 @@ export function FocusedStepControls({
   const t = useTranslations('player');
   const setPatch = editable.step.set ?? {};
   const slotNames = Object.keys(contextSlots);
-  const rerouteTarget =
-    editable.kind === 'screen'
-      ? t('stepEditor.scripted.rerouteAction')
-      : t('stepEditor.scripted.rerouteResult');
 
   return (
     <div
@@ -53,13 +49,7 @@ export function FocusedStepControls({
         </div>
       ) : null}
 
-      <div
-        className={`rounded-md bg-signal-warning-bg px-2.5 py-2 text-xs leading-relaxed text-signal-warning-label ${slotNames.length > 0 ? 'mt-3' : ''}`}
-      >
-        {t('stepEditor.scripted.rerouteWarning', { target: rerouteTarget })}
-      </div>
-
-      <div className="mt-3 flex items-center gap-2">
+      <div className={`flex items-center gap-2 ${slotNames.length > 0 ? 'mt-3' : ''}`}>
         <button
           type="button"
           className="flex-1 rounded border border-border-default px-2 py-1.5 text-xs font-medium text-signal-error-label transition-colors duration-[var(--duration-fast)] ease-standard hover:border-signal-error-border hover:bg-signal-error-bg"
