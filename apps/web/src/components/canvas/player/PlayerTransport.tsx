@@ -442,39 +442,33 @@ export function PlayerTransportPill({
             ) : null}
           </div>
 
-          <>
-            <span
-              role="status"
-              className="inline-flex w-[4.5rem] shrink-0 justify-center font-mono text-xs tabular-nums opacity-70"
-              aria-live="polite"
-              aria-label={`Step ${stepCurrent} of ${stepTotal}`}
-            >
-              <span className="inline-block w-[1.5rem] text-right">{stepCurrent}</span>
-              <span className="px-0.5">/</span>
-              <span className="inline-block w-[1.5rem] text-left">{stepTotal}</span>
-            </span>
-            <ControlDivider />
-            {playing ? (
-              <ControlButton label={labels.pause} onClick={onTogglePlay}>
-                ⏸
-              </ControlButton>
-            ) : (
-              <ControlButton
-                label={labels.play}
-                onClick={onTogglePlay}
-                disabled={atEnd && !diverged}
-              >
-                ▶
-              </ControlButton>
-            )}
-            <ControlButton label={labels.stepBack} onClick={onPrev} disabled={atStart}>
-              ←
+          <span
+            role="status"
+            className="inline-flex w-[4.5rem] shrink-0 justify-center font-mono text-xs tabular-nums opacity-70"
+            aria-live="polite"
+            aria-label={`Step ${stepCurrent} of ${stepTotal}`}
+          >
+            <span className="inline-block w-[1.5rem] text-right">{stepCurrent}</span>
+            <span className="px-0.5">/</span>
+            <span className="inline-block w-[1.5rem] text-left">{stepTotal}</span>
+          </span>
+          <ControlDivider />
+          {playing ? (
+            <ControlButton label={labels.pause} onClick={onTogglePlay}>
+              ⏸
             </ControlButton>
-            <ControlButton label={labels.stepForward} onClick={onNext} disabled={atEnd}>
-              →
+          ) : (
+            <ControlButton label={labels.play} onClick={onTogglePlay} disabled={atEnd && !diverged}>
+              ▶
             </ControlButton>
-            <ControlDivider />
-          </>
+          )}
+          <ControlButton label={labels.stepBack} onClick={onPrev} disabled={atStart}>
+            ←
+          </ControlButton>
+          <ControlButton label={labels.stepForward} onClick={onNext} disabled={atEnd}>
+            →
+          </ControlButton>
+          <ControlDivider />
           <ControlButton label={labels.collapse} onClick={() => captureAnchorAndSetCompact(true)}>
             −
           </ControlButton>
