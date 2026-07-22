@@ -37,6 +37,9 @@ export type RecordModeScreenProps = {
   flowTheme: FlowTheme;
   immersive?: boolean;
   onRecordAction?: (actionId: string) => void;
+  /** Editing an existing step: mark the recorded action + reword the caption. */
+  selectedActionId?: string | null;
+  editing?: boolean;
 };
 
 export type RecordModeDecisionProps = {
@@ -53,6 +56,9 @@ export type RecordModeResolveProps = {
   node: Node;
   nodeType: 'action' | 'external';
   onRecordResult?: (result: string) => void;
+  /** Editing an existing step: mark the recorded result + reword the caption. */
+  selectedResult?: string | null;
+  editing?: boolean;
 };
 
 export type RecordModeOutcomeProps = {

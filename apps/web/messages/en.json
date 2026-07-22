@@ -195,7 +195,9 @@
     },
     "edit": {
       "recording": "Recording",
-      "loading": "Preparing recorder…"
+      "loading": "Preparing recorder…",
+      "editingStep": "Editing step {index}",
+      "backToRecording": "Back to recording"
     },
     "scenarioPicker": {
       "open": "Switch scenario",
@@ -218,21 +220,7 @@
       "chooseOnStage": "choose on the stage"
     },
     "stepEditor": {
-      "title": "Edit step",
-      "close": "Close step editor",
-      "derived": {
-        "badge": "derived",
-        "entry": "Where every run starts.",
-        "decision": "Decisions follow context. To take another branch, change an initial value or a set: patch on an earlier step.",
-        "outcome": "Where this run ends. Use the checkbox on the end-card to assert it.",
-        "generic": "Derived from the trace, not part of the input script."
-      },
       "scripted": {
-        "badge": "scripted",
-        "screenKind": "screen step",
-        "actionKind": "action step",
-        "actionLabel": "Action",
-        "resultLabel": "Result",
         "rerouteAction": "action",
         "rerouteResult": "result",
         "rerouteWarning": "Changing the {target} or a patch reroutes the trace — later steps that no longer apply are dropped.",
@@ -245,7 +233,8 @@
     },
     "recordMode": {
       "screen": {
-        "caption": "Click an action to record it ·"
+        "caption": "Click an action to record it ·",
+        "editCaption": "Click a different action to change this step ·"
       },
       "resolve": {
         "caption": "How does this resolve in this scenario?",
@@ -255,7 +244,8 @@
           "error": "fails",
           "denied": "denied",
           "cancelled": "cancelled"
-        }
+        },
+        "editCaption": "Change how this resolves in this scenario"
       },
       "decision": {
         "badge": "decision",

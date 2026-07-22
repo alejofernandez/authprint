@@ -103,6 +103,8 @@ export function RecordModeScreenStage({
   flowTheme,
   immersive = false,
   onRecordAction,
+  selectedActionId = null,
+  editing = false,
 }: RecordModeScreenProps) {
   const t = useTranslations('player.recordMode.screen');
   const screenTheme = resolveScreenTheme(flowTheme, editorTheme);
@@ -119,7 +121,7 @@ export function RecordModeScreenStage({
             node={node}
             branding={branding}
             stageLayout="player"
-            highlightedAction={null}
+            highlightedAction={editing ? selectedActionId : null}
           />
         </div>
       </PresentationScaleBlock>
@@ -132,6 +134,7 @@ export function RecordModeScreenStage({
               actionId={action.actionId}
               label={action.label}
               variant={actionChipVariant(action.highlightTarget)}
+              selected={editing && action.actionId === selectedActionId}
               onSelect={onRecordAction}
             />
           ))}
@@ -139,7 +142,7 @@ export function RecordModeScreenStage({
       ) : null}
 
       <StageCaption>
-        {t('caption')}{' '}
+        {editing ? t('editCaption') : t('caption')}{' '}
         {actions.map((a, i) => (
           <span key={a.actionId}>
             {i > 0 ? ' / ' : null}
@@ -165,11 +168,13 @@ function RecordActionChip({
   actionId,
   label,
   variant = 'default',
+  selected = false,
   onSelect,
 }: {
   actionId: string;
   label: string;
   variant?: 'primary' | 'retreat' | 'default';
+  selected?: boolean;
   onSelect?: (actionId: string) => void;
 }) {
   const variantCls =
@@ -178,12 +183,16 @@ function RecordActionChip({
       : variant === 'retreat'
         ? 'border-transparent bg-transparent text-fg-muted underline-offset-2 hover:underline'
         : 'border-border-default bg-bg-panel text-fg-default hover:shadow-sm';
+  const selectedCls = selected
+    ? 'ring-2 ring-accent-primary-border ring-offset-1 dark:ring-offset-bg-canvas'
+    : '';
 
   return (
     <button
       type="button"
       onClick={() => onSelect?.(actionId)}
-      className={`rounded-md border px-2.5 py-1 text-xs font-medium motion-reduce:transition-none transition-shadow duration-[var(--duration-fast)] ease-standard ${variantCls} ${variant !== 'retreat' ? PLAYER_ACTION_HIGHLIGHT_CLASS : ''}`}
+      aria-pressed={selected || undefined}
+      className={`rounded-md border px-2.5 py-1 text-xs font-medium motion-reduce:transition-none transition-shadow duration-[var(--duration-fast)] ease-standard ${variantCls} ${selectedCls} ${variant !== 'retreat' ? PLAYER_ACTION_HIGHLIGHT_CLASS : ''}`}
       title={actionId}
     >
       {label}
@@ -196,15 +205,20 @@ export function RecordModeResolveStage({
   nodeType,
   flow,
   onRecordResult,
+  selectedResult = null,
+  editing = false,
 }: RecordModeResolveProps) {
   const t = useTranslations('player.recordMode.resolve');
   const results = actionExternalResults(flow, node.id, nodeType);
   const kind = nodeKindLabel(node);
 
   return (
-    <RecordGhostCard accent="action" footer={<StageCaption>{t('caption')}</StageCaption>}>
-      <RecordSpinner />
-      <div className="mt-4 text-sm font-semibold text-fg-default">
+    <RecordGhostCard
+      accent="action"
+      footer={<StageCaption>{editing ? t('editCaption') : t('caption')}</StageCaption>}
+    >
+      {editing ? null : <RecordSpinner />}
+      <div className={`text-sm font-semibold text-fg-default ${editing ? '' : 'mt-4'}`}>
         {nodeDisplayNameFromNode(node)}
       </div>
       {kind ? <div className="mt-1 text-xs text-fg-muted">{kind}</div> : null}
@@ -215,7 +229,12 @@ export function RecordModeResolveStage({
               key={result}
               type="button"
               onClick={() => onRecordResult?.(result)}
-              className={`flex-1 rounded-md border border-border-default px-3 py-1.5 text-xs font-medium motion-reduce:transition-none transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle ${resolveResultTone(result)}`}
+              aria-pressed={(editing && result === selectedResult) || undefined}
+              className={`flex-1 rounded-md border px-3 py-1.5 text-xs font-medium motion-reduce:transition-none transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle ${resolveResultTone(result)} ${
+                editing && result === selectedResult
+                  ? 'border-accent-primary-border ring-2 ring-accent-primary-border ring-offset-1 dark:ring-offset-bg-canvas'
+                  : 'border-border-default'
+              }`}
             >
               {t(`result.${result}`)}
             </button>

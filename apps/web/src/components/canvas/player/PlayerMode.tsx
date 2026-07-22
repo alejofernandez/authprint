@@ -7,9 +7,12 @@ import { useTranslations } from 'next-intl';
 import { useMemo, useRef, useState } from 'react';
 import { useTheme } from '@/components/theme';
 import { ContextPanel } from '../scenario/ContextPanel.tsx';
+import { buildEditableScriptStep } from './editStepMapping.ts';
+import { FocusedStepControls } from './FocusedStepControls.tsx';
 import { usePlayerModeContext } from './PlayerModeContext.tsx';
-import { PlayerStage } from './PlayerStage.tsx';
+import { PlayerStage, StagePresentationFrame } from './PlayerStage.tsx';
 import { PlayerTransportPill } from './PlayerTransport.tsx';
+import { RecordModeResolveStage, RecordModeScreenStage } from './RecordModeStage.tsx';
 import { ScenarioDeleteConfirmDialog } from './ScenarioDeleteConfirmDialog.tsx';
 import { nodeDisplayName } from './screenExitActions.ts';
 import { isSilentPlayerStep, lastScreenStepIndex } from './steps.ts';
@@ -27,6 +30,8 @@ export function PlayerMode({
   const t = useTranslations('player');
   const [contextOpen, setContextOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  // UF-016 — which player step is focused for in-place editing; null = recording head.
+  const [focusIndex, setFocusIndex] = useState<number | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
   const resolvedEditorTheme: 'light' | 'dark' =
@@ -54,6 +59,18 @@ export function PlayerMode({
     togglePlay,
     pause,
   } = player;
+
+  // Focus resets when the scenario changes and can't outlive a shrunken strip
+  // (delete-from-here, tail-drop). Adjusted during render — React's
+  // "adjusting state when props change" pattern, no effect round-trip.
+  const draftId = draft?.id ?? null;
+  const [focusDraftId, setFocusDraftId] = useState(draftId);
+  if (focusDraftId !== draftId) {
+    setFocusDraftId(draftId);
+    setFocusIndex(null);
+  } else if (focusIndex !== null && focusIndex >= steps.length) {
+    setFocusIndex(null);
+  }
 
   if (!shellMode || !flow) return null;
 
@@ -104,6 +121,8 @@ export function PlayerMode({
             onRequestDelete={() => setDeleteOpen(true)}
             editorTheme={resolvedEditorTheme}
             previousStepName={steps.length > 1 ? steps[steps.length - 2]?.displayName : undefined}
+            focusIndex={focusIndex}
+            onClearFocus={() => setFocusIndex(null)}
           />
         ) : session ? (
           <PlayChrome
@@ -163,7 +182,7 @@ export function PlayerMode({
           <TimelineStrip
             mode="edit"
             steps={steps}
-            activeIndex={Math.max(steps.length - 1, 0)}
+            activeIndex={focusIndex ?? Math.max(steps.length - 1, 0)}
             flow={flow}
             draft={draft}
             ghostNextName={
@@ -171,12 +190,7 @@ export function PlayerMode({
                 ? nodeDisplayName(flow, recording.head.nodeId)
                 : null
             }
-            editCallbacks={{
-              onActionChange: player.editStepAction,
-              onResultChange: player.editStepResult,
-              onSetPatchChange: player.editStepPatch,
-              onDeleteFromHere: player.deleteFrom,
-            }}
+            onFocusStep={setFocusIndex}
             onScrubBegin={pause}
             onSeek={seek}
           />
@@ -214,6 +228,8 @@ function EditChrome({
   onRequestDelete,
   editorTheme,
   previousStepName,
+  focusIndex,
+  onClearFocus,
 }: {
   flow: NonNullable<ReturnType<typeof usePlayerModeContext>['flow']>;
   draft: Scenario;
@@ -225,6 +241,8 @@ function EditChrome({
   onRequestDelete: () => void;
   editorTheme: 'light' | 'dark';
   previousStepName?: string;
+  focusIndex: number | null;
+  onClearFocus: () => void;
 }) {
   const player = usePlayerModeContext();
   const t = useTranslations('player');
@@ -235,6 +253,14 @@ function EditChrome({
   }, [flow, recording]);
 
   const activeStep = steps[Math.max(steps.length - 1, 0)];
+
+  // UF-016 — focused step, rebuilt from the live draft every render so an
+  // applied edit reads back immediately.
+  const focusedEditable =
+    focusIndex !== null ? buildEditableScriptStep(flow, draft, steps, focusIndex) : null;
+  const focusedNode = focusedEditable
+    ? (flow.nodes.find((n) => n.id === focusedEditable.step.nodeId) ?? null)
+    : null;
 
   if (!recording || !headNode || !activeStep) {
     return (
@@ -252,34 +278,91 @@ function EditChrome({
             {player.recordingNote}
           </div>
         ) : null}
-        <div className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-signal-error-border bg-signal-error-bg px-3 py-1 text-xs font-medium text-signal-error-label">
-          <span
-            className="h-2 w-2 rounded-full bg-signal-error-label motion-reduce:animate-none animate-pulse"
-            aria-hidden
+        {focusedEditable && focusedNode ? (
+          <div className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-accent-primary-border bg-accent-primary-bg px-3 py-1 text-xs font-medium text-accent-primary-fg-emphasis">
+            {t('edit.editingStep', { index: focusIndex !== null ? focusIndex + 1 : 0 })}
+          </div>
+        ) : (
+          <div className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-signal-error-border bg-signal-error-bg px-3 py-1 text-xs font-medium text-signal-error-label">
+            <span
+              className="h-2 w-2 rounded-full bg-signal-error-label motion-reduce:animate-none animate-pulse"
+              aria-hidden
+            />
+            {t('edit.recording')}
+          </div>
+        )}
+        {focusedEditable && focusedNode ? (
+          <div className="flex h-full min-h-0 w-full flex-1 overflow-hidden">
+            <StagePresentationFrame>
+              <div className="flex flex-col items-center">
+                {focusedEditable.kind === 'screen' && focusedNode.type === 'screen' ? (
+                  <RecordModeScreenStage
+                    node={focusedNode}
+                    flow={flow}
+                    branding={flow.branding}
+                    editorTheme={editorTheme}
+                    flowTheme={flow.branding?.theme ?? 'light'}
+                    immersive
+                    editing
+                    selectedActionId={focusedEditable.step.action}
+                    onRecordAction={(actionId) =>
+                      player.editStepAction(focusedEditable.scriptStepIndex, actionId)
+                    }
+                  />
+                ) : focusedEditable.kind !== 'screen' &&
+                  (focusedNode.type === 'action' || focusedNode.type === 'external') ? (
+                  <RecordModeResolveStage
+                    node={focusedNode}
+                    nodeType={focusedNode.type}
+                    flow={flow}
+                    editing
+                    selectedResult={focusedEditable.step.result}
+                    onRecordResult={(result) =>
+                      player.editStepResult(
+                        focusedEditable.scriptStepIndex,
+                        result as 'success' | 'error' | 'denied' | 'cancelled',
+                      )
+                    }
+                  />
+                ) : null}
+                <FocusedStepControls
+                  editable={focusedEditable}
+                  contextSlots={flow.context}
+                  onSetPatchChange={(slot, value) =>
+                    player.editStepPatch(focusedEditable.scriptStepIndex, slot, value)
+                  }
+                  onDeleteFromHere={() => {
+                    player.deleteFrom(focusedEditable.scriptStepIndex);
+                    onClearFocus();
+                  }}
+                  onBackToRecording={onClearFocus}
+                />
+              </div>
+            </StagePresentationFrame>
+          </div>
+        ) : (
+          <PlayerStage
+            immersive
+            mode="record"
+            step={activeStep}
+            node={headNode}
+            branding={flow.branding}
+            editorTheme={editorTheme}
+            flowTheme={flow.branding?.theme ?? 'light'}
+            flow={flow}
+            headNode={headNode}
+            contextAtHead={recording.contextAtHead}
+            pendingDecision={recording.pendingDecision ?? undefined}
+            previousStepName={previousStepName}
+            expectOutcomeChecked={Boolean(draft.expectedOutcome?.outcomeId)}
+            onRecordAction={player.recordAction}
+            onRecordResult={player.recordResult}
+            onContinueDecision={player.continueDecision}
+            onApplyBranchFix={player.applyFix}
+            onToggleExpectedOutcome={player.toggleExpectedOutcome}
+            onDone={player.doneRecording}
           />
-          {t('edit.recording')}
-        </div>
-        <PlayerStage
-          immersive
-          mode="record"
-          step={activeStep}
-          node={headNode}
-          branding={flow.branding}
-          editorTheme={editorTheme}
-          flowTheme={flow.branding?.theme ?? 'light'}
-          flow={flow}
-          headNode={headNode}
-          contextAtHead={recording.contextAtHead}
-          pendingDecision={recording.pendingDecision ?? undefined}
-          previousStepName={previousStepName}
-          expectOutcomeChecked={Boolean(draft.expectedOutcome?.outcomeId)}
-          onRecordAction={player.recordAction}
-          onRecordResult={player.recordResult}
-          onContinueDecision={player.continueDecision}
-          onApplyBranchFix={player.applyFix}
-          onToggleExpectedOutcome={player.toggleExpectedOutcome}
-          onDone={player.doneRecording}
-        />
+        )}
       </div>
 
       <aside className="flex w-56 shrink-0 flex-col border-border-subtle border-l bg-bg-panel/98 p-3 dark:border-border-default dark:bg-bg-panel/98">

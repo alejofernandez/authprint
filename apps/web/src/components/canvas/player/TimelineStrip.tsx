@@ -1,34 +1,20 @@
 'use client';
 
 import type { Flow, Scenario } from '@authprint/dsl';
-import { useEffect, useRef, useState } from 'react';
-import {
-  buildEditableScriptStep,
-  hasSetPatch,
-  scriptStepIndexForPlayerStep,
-} from './editStepMapping.ts';
-import { StepEditorPopover } from './StepEditorPopover.tsx';
+import { useEffect, useRef } from 'react';
+import { hasSetPatch, scriptStepIndexForPlayerStep } from './editStepMapping.ts';
 import type { PlayerStep } from './steps.ts';
 import { GhostHeadClip, TimelineClip } from './TimelineClip.tsx';
 import { TimelineProgressBar } from './TimelineProgressBar.tsx';
 import { TIMELINE_CLIP_GAP } from './timelineGeometry.ts';
-
-export type TimelineStripEditCallbacks = {
-  onActionChange: (scriptStepIndex: number, action: string) => void;
-  onResultChange: (
-    scriptStepIndex: number,
-    result: 'success' | 'error' | 'denied' | 'cancelled',
-  ) => void;
-  onSetPatchChange: (scriptStepIndex: number, slot: string, value: unknown | null) => void;
-  onDeleteFromHere: (scriptStepIndex: number) => void;
-};
 
 type TimelineStripEditProps = {
   mode: 'edit';
   flow: Flow;
   draft: Scenario;
   ghostNextName?: string | null;
-  editCallbacks: TimelineStripEditCallbacks;
+  /** Focus the stage on a scripted step for in-place editing (UF-016). */
+  onFocusStep: (playerStepIndex: number) => void;
 };
 
 export type TimelineStripProps = {
@@ -57,12 +43,6 @@ export function TimelineStrip(props: TimelineStripProps) {
   const editProps: TimelineStripEditProps | null = props.mode === 'edit' ? props : null;
 
   const activeRef = useRef<HTMLDivElement>(null);
-  const clipRefs = useRef(new Map<number, HTMLDivElement>());
-  const [editor, setEditor] = useState<{
-    anchor: { left: number; top: number; right: number; bottom: number };
-    step: PlayerStep;
-    draftId: string;
-  } | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: activeIndex drives scroll-into-view when enabled
   useEffect(() => {
@@ -81,27 +61,6 @@ export function TimelineStrip(props: TimelineStripProps) {
     onScrubBegin?.();
     onSeek?.(index);
   };
-
-  const openEditor = (step: PlayerStep) => {
-    if (!editProps) return;
-    const el = clipRefs.current.get(step.index);
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setEditor({
-      anchor: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom },
-      step,
-      draftId: editProps.draft.id,
-    });
-  };
-
-  const editorOpen = editProps && editor && editor.draftId === editProps.draft.id ? editor : null;
-  // Rebuilt from the live draft every render — an edit applied from the open
-  // popover (a set: patch) must read back immediately; a snapshot taken at
-  // open time goes stale the moment the draft changes.
-  const editorEditable =
-    editorOpen && editProps
-      ? buildEditableScriptStep(editProps.flow, editProps.draft, steps, editorOpen.step.index)
-      : null;
 
   return (
     <div className="w-full">
@@ -146,8 +105,6 @@ export function TimelineStrip(props: TimelineStripProps) {
                 <div
                   key={`clip-${step.nodeId}-${step.index}`}
                   ref={(el) => {
-                    if (el) clipRefs.current.set(step.index, el);
-                    else clipRefs.current.delete(step.index);
                     if (active) {
                       (activeRef as { current: HTMLDivElement | null }).current = el;
                     }
@@ -162,7 +119,7 @@ export function TimelineStrip(props: TimelineStripProps) {
                       diverged={diverged}
                       scripted={scripted}
                       hasSetPatch={patch}
-                      onEdit={() => openEditor(step)}
+                      onEdit={scripted ? () => editProps.onFocusStep(step.index) : undefined}
                       onRevealOnCanvas={
                         onRevealOnCanvas ? () => onRevealOnCanvas(step.nodeId) : undefined
                       }
@@ -191,42 +148,6 @@ export function TimelineStrip(props: TimelineStripProps) {
           </div>
         </div>
       </div>
-
-      {editorOpen && editProps ? (
-        <StepEditorPopover
-          contextSlots={editProps.flow.context}
-          anchor={editorOpen.anchor}
-          onClose={() => setEditor(null)}
-          {...(editorEditable
-            ? {
-                variant: 'scripted' as const,
-                editable: editorEditable,
-                onActionChange: (action: string) => {
-                  editProps.editCallbacks.onActionChange(editorEditable.scriptStepIndex, action);
-                  setEditor(null);
-                },
-                onResultChange: (result: string) => {
-                  editProps.editCallbacks.onResultChange(
-                    editorEditable.scriptStepIndex,
-                    result as 'success' | 'error' | 'denied' | 'cancelled',
-                  );
-                  setEditor(null);
-                },
-                onSetPatchChange: (slot: string, value: unknown | null) => {
-                  editProps.editCallbacks.onSetPatchChange(
-                    editorEditable.scriptStepIndex,
-                    slot,
-                    value,
-                  );
-                },
-                onDeleteFromHere: () => {
-                  editProps.editCallbacks.onDeleteFromHere(editorEditable.scriptStepIndex);
-                  setEditor(null);
-                },
-              }
-            : { variant: 'derived' as const, step: editorOpen.step })}
-        />
-      ) : null}
     </div>
   );
 }

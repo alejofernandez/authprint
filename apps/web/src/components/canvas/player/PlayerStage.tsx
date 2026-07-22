@@ -205,7 +205,7 @@ function RecordStageContent({
   }
 }
 
-function StagePresentationFrame({ children }: { children: ReactNode }) {
+export function StagePresentationFrame({ children }: { children: ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(STAGE_PRESENTATION_SCALE);
