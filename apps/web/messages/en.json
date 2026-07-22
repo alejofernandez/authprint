@@ -212,9 +212,7 @@
       "deleteTitle": "Delete scenario?",
       "deleteMessage": "Delete “{name}”? This cannot be undone from here — use canvas Undo if you change your mind.",
       "deleteConfirm": "Delete",
-      "cancel": "Cancel",
-      "expects": "Expects: {outcome}",
-      "expectsNone": "none (run only)"
+      "cancel": "Cancel"
     },
     "ghostHead": {
       "chooseOnStage": "choose on the stage"

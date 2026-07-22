@@ -219,6 +219,13 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   );
   const player = usePlayerMode(playerPersist);
   const scenarios = useScenarios(doc);
+  // The doc is the truth for scenarios — undo/redo mutate it behind the
+  // shell's back; without this, ⌘Z appears dead in the player and the next
+  // gesture resurrects the undone state (UF-017 / UF-014).
+  const { syncScenarios } = player;
+  useEffect(() => {
+    syncScenarios(scenarios, () => docToArtifact(doc).flow);
+  }, [syncScenarios, scenarios, doc]);
   const { name: flowName, branding: flowBranding } = useFlowMeta(doc);
   const flowTheme = flowBranding.theme;
   useRecentFlowAutosave(sessionId ?? '', doc, flowName);

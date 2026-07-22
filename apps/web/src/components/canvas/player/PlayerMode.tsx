@@ -115,10 +115,6 @@ export function PlayerMode({
             draft={draft}
             recording={recording}
             steps={steps}
-            name={draft.name}
-            onCommitName={(name) => player.renameDraft(name)}
-            onDuplicate={() => player.duplicateActive()}
-            onRequestDelete={() => setDeleteOpen(true)}
             editorTheme={resolvedEditorTheme}
             previousStepName={steps.length > 1 ? steps[steps.length - 2]?.displayName : undefined}
             focusIndex={focusIndex}
@@ -160,6 +156,22 @@ export function PlayerMode({
           mode={isEdit ? 'edit' : 'play'}
           onSetMode={(m) => player.setShellMode(m)}
           modeLabels={{ edit: t('mode.edit'), play: t('mode.play') }}
+          editManage={
+            isEdit && draft
+              ? {
+                  scenarioId: draft.id,
+                  onCommitName: (name) => player.renameDraft(name),
+                  onDuplicate: () => player.duplicateActive(),
+                  onRequestDelete: () => setDeleteOpen(true),
+                  labels: {
+                    panelTitle: t('scenarioCrud.panelTitle'),
+                    nameLabel: t('scenarioCrud.nameLabel'),
+                    duplicate: t('scenarioCrud.duplicate'),
+                    delete: t('scenarioCrud.delete'),
+                  },
+                }
+              : undefined
+          }
           onNewScenario={onNewScenario}
           newScenarioLabel={t('scenarioPicker.new')}
           labels={{
@@ -222,10 +234,6 @@ function EditChrome({
   draft,
   recording,
   steps,
-  name,
-  onCommitName,
-  onDuplicate,
-  onRequestDelete,
   editorTheme,
   previousStepName,
   focusIndex,
@@ -235,10 +243,6 @@ function EditChrome({
   draft: Scenario;
   recording: NonNullable<ReturnType<typeof usePlayerModeContext>['recording']> | null;
   steps: ReturnType<typeof usePlayerModeContext>['steps'];
-  name: string;
-  onCommitName: (name: string) => void;
-  onDuplicate: () => void;
-  onRequestDelete: () => void;
   editorTheme: 'light' | 'dark';
   previousStepName?: string;
   focusIndex: number | null;
@@ -364,51 +368,6 @@ function EditChrome({
           />
         )}
       </div>
-
-      <aside className="flex w-56 shrink-0 flex-col border-border-subtle border-l bg-bg-panel/98 p-3 dark:border-border-default dark:bg-bg-panel/98">
-        <span className="text-xs font-semibold uppercase tracking-wide text-fg-subtle">
-          {t('scenarioCrud.panelTitle')}
-        </span>
-        <label className="mt-3 block text-[11px] text-fg-subtle" htmlFor="scenario-name">
-          {t('scenarioCrud.nameLabel')}
-        </label>
-        <input
-          id="scenario-name"
-          key={draft.id}
-          type="text"
-          defaultValue={name}
-          onBlur={(e) => onCommitName(e.currentTarget.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.currentTarget.blur();
-            }
-          }}
-          className="mt-1 h-8 w-full rounded-md border border-border-strong bg-bg-canvas px-2 text-sm font-medium text-fg-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default"
-        />
-        <div className="mt-3 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={onDuplicate}
-            className="rounded-md border border-border-strong px-2.5 py-1.5 text-left text-sm text-fg-default hover:bg-bg-subtle dark:border-border-default"
-          >
-            {t('scenarioCrud.duplicate')}
-          </button>
-          <button
-            type="button"
-            onClick={onRequestDelete}
-            className="rounded-md border border-signal-error-border px-2.5 py-1.5 text-left text-sm text-signal-error-label hover:bg-signal-error-bg"
-          >
-            {t('scenarioCrud.delete')}
-          </button>
-        </div>
-        <p className="mt-auto pt-4 text-[11px] leading-relaxed text-fg-subtle">
-          {t('scenarioCrud.expects', {
-            outcome: draft.expectedOutcome?.outcomeId
-              ? nodeDisplayName(flow, draft.expectedOutcome.outcomeId)
-              : t('scenarioCrud.expectsNone'),
-          })}
-        </p>
-      </aside>
     </div>
   );
 }

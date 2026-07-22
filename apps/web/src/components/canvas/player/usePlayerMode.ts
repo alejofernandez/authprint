@@ -65,6 +65,12 @@ export type PlayerModeValue = {
     copySuffixName?: (name: string, existing: readonly Scenario[]) => string,
   ) => void;
   deleteActive: () => void;
+  /**
+   * Reconcile shell state with the doc's live scenarios (undo/redo, external
+   * edits). Adopts changes without writing back; falls back to Play of the
+   * first scenario (or empty) when the active one vanishes.
+   */
+  syncScenarios: (liveScenarios: readonly Scenario[], buildFlow: () => Flow) => void;
   /** Stage / filmstrip gestures — each persists one undoable putScenario. */
   recordAction: (actionId: string) => void;
   recordResult: (result: string) => void;
@@ -302,6 +308,65 @@ export function usePlayerMode(persist?: PlayerModePersist): PlayerModeValue {
     enterPlay(nextScenario, { ...baseFlow, scenarios: remaining });
   }, [draft, session, flow, persist, enterEmpty, enterPlay]);
 
+  // Reconcile shell state with the doc's scenarios (UF-017 / UF-014). The doc
+  // is the truth — undo/redo mutate it without going through the shell, so the
+  // active draft/session must adopt external changes instead of clobbering
+  // them on the next gesture. Adoption never writes back (a persist here would
+  // kill the redo stack). When the active scenario vanishes (undo past its
+  // creation, or a remote delete), fall back to Play of the first remaining
+  // scenario, or the empty state.
+  const syncScenarios = useCallback(
+    (liveScenarios: readonly Scenario[], buildFlow: () => Flow) => {
+      const fallback = () => {
+        const first = liveScenarios[0];
+        const base = buildFlow();
+        if (first) enterPlay(first, base);
+        else enterEmpty({ ...base, scenarios: [] });
+      };
+
+      if (shellMode === 'edit' && draft) {
+        const live = liveScenarios.find((s) => s.id === draft.id);
+        if (!live) {
+          fallback();
+          return;
+        }
+        if (JSON.stringify(live) !== JSON.stringify(draft)) {
+          const base = buildFlow();
+          setDraft(live);
+          setFlow(flowWithScenario(base, live));
+          setConfirmedDecisionIds(new Set());
+        } else if (flow && JSON.stringify(liveScenarios) !== JSON.stringify(flow.scenarios)) {
+          // Active draft untouched, but the roster changed (undo of a delete,
+          // a restored sibling) — refresh the list the picker shows.
+          setFlow(flowWithScenario(buildFlow(), live));
+        }
+        return;
+      }
+
+      if (shellMode === 'play' && session) {
+        const live = liveScenarios.find((s) => s.id === session.run.scenarioId);
+        if (!live) {
+          fallback();
+          return;
+        }
+        const stored = session.flow.scenarios.find((s) => s.id === live.id);
+        if (JSON.stringify(live) !== JSON.stringify(stored)) {
+          enterPlay(live, buildFlow());
+        } else if (JSON.stringify(liveScenarios) !== JSON.stringify(session.flow.scenarios)) {
+          const base = buildFlow();
+          setSession((current) => (current ? { ...current, flow: base } : current));
+          setFlow(base);
+        }
+        return;
+      }
+
+      if (shellMode === 'empty' && liveScenarios.length > 0) {
+        fallback();
+      }
+    },
+    [shellMode, draft, flow, session, enterPlay, enterEmpty],
+  );
+
   const recordAction = useCallback(
     (actionId: string) => {
       if (!draft || !flow || !recording) return;
@@ -448,6 +513,7 @@ export function usePlayerMode(persist?: PlayerModePersist): PlayerModeValue {
     renameDraft,
     duplicateActive,
     deleteActive,
+    syncScenarios,
     recordAction,
     recordResult,
     continueDecision,

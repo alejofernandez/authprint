@@ -84,6 +84,7 @@ export function PlayerTransportPill({
   mode,
   onSetMode,
   modeLabels,
+  editManage,
 }: {
   boundsRef: RefObject<HTMLDivElement | null>;
   name: string;
@@ -109,6 +110,17 @@ export function PlayerTransportPill({
   mode?: 'edit' | 'play';
   onSetMode?: (mode: 'edit' | 'play') => void;
   modeLabels?: { edit: string; play: string };
+  /**
+   * Edit mode: the name opens a manage popover (rename / duplicate / delete)
+   * instead of the scenario picker — switching scenarios is a Play-mode move.
+   */
+  editManage?: {
+    scenarioId: string;
+    onCommitName: (name: string) => void;
+    onDuplicate: () => void;
+    onRequestDelete: () => void;
+    labels: { panelTitle: string; nameLabel: string; duplicate: string; delete: string };
+  };
 }) {
   const pillRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
@@ -116,6 +128,7 @@ export function PlayerTransportPill({
   const compactClickTimeoutRef = useRef<number | null>(null);
   const compactAnchorRef = useRef<{ x: number; y: number } | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [managerOpen, setManagerOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [compact, setCompact] = useState(false);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
@@ -234,6 +247,7 @@ export function PlayerTransportPill({
     event.preventDefault();
     event.stopPropagation();
     setPickerOpen(false);
+    setManagerOpen(false);
     pointerMovedRef.current = false;
     event.currentTarget.setPointerCapture(event.pointerId);
     beginDrag(event.clientX, event.clientY);
@@ -361,7 +375,78 @@ export function PlayerTransportPill({
             </div>
           ) : null}
           <div className="relative min-w-0 shrink">
-            {canPickScenario ? (
+            {editManage ? (
+              <>
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded={managerOpen}
+                  aria-label={editManage.labels.panelTitle}
+                  title={name}
+                  onClick={() => setManagerOpen((open) => !open)}
+                  className="inline-flex max-w-full min-w-0 items-center gap-1 rounded-full px-2 py-1 text-left text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
+                >
+                  <span className="min-w-0 truncate">{name}</span>
+                  <ChevronDownIcon />
+                </button>
+                {managerOpen ? (
+                  <>
+                    <button
+                      type="button"
+                      aria-label={editManage.labels.panelTitle}
+                      className="fixed inset-0 z-40 cursor-default"
+                      onClick={() => setManagerOpen(false)}
+                    />
+                    <div
+                      role="dialog"
+                      aria-label={editManage.labels.panelTitle}
+                      className="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-lg border border-border-subtle bg-bg-panel p-3 text-left shadow-lg dark:border-border-default dark:bg-bg-panel"
+                    >
+                      <label
+                        className="block text-[11px] text-fg-subtle"
+                        htmlFor="pill-scenario-name"
+                      >
+                        {editManage.labels.nameLabel}
+                      </label>
+                      <input
+                        id="pill-scenario-name"
+                        key={editManage.scenarioId}
+                        type="text"
+                        defaultValue={name}
+                        onBlur={(e) => editManage.onCommitName(e.currentTarget.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.currentTarget.blur();
+                          if (e.key === 'Escape') setManagerOpen(false);
+                        }}
+                        className="mt-1 h-8 w-full rounded-md border border-border-strong bg-bg-canvas px-2 text-sm font-medium text-fg-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default"
+                      />
+                      <div className="mt-3 flex flex-col gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            editManage.onDuplicate();
+                            setManagerOpen(false);
+                          }}
+                          className="rounded-md border border-border-strong px-2.5 py-1.5 text-left text-sm text-fg-default hover:bg-bg-subtle dark:border-border-default"
+                        >
+                          {editManage.labels.duplicate}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            editManage.onRequestDelete();
+                            setManagerOpen(false);
+                          }}
+                          className="rounded-md border border-signal-error-border px-2.5 py-1.5 text-left text-sm text-signal-error-label hover:bg-signal-error-bg"
+                        >
+                          {editManage.labels.delete}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+              </>
+            ) : canPickScenario ? (
               <button
                 type="button"
                 aria-haspopup="menu"
@@ -380,7 +465,7 @@ export function PlayerTransportPill({
               </span>
             )}
 
-            {pickerOpen ? (
+            {!editManage && pickerOpen ? (
               <>
                 <button
                   type="button"
