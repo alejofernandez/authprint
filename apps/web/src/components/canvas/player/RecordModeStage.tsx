@@ -299,7 +299,7 @@ export function RecordModeDecisionStage({
   ));
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="relative">
       <RecordGhostCard accent="decision" footer={<StageCaption>{t('caption')}</StageCaption>}>
         <div className="text-[11px] font-semibold uppercase tracking-wide text-node-decision-fg">
           {t('badge')}
@@ -347,12 +347,13 @@ export function RecordModeDecisionStage({
           </>
         )}
       </RecordGhostCard>
-      {/* Fix options float beside the card: stacking them below would grow the
-          frame's height and shrink the fit-scale until the copy is unreadable. */}
+      {/* Fix options float to the right of the card, absolutely positioned so
+          the card itself stays centered and the fit-scale never pays for the
+          panel's size (UF-022 / UF-025). */}
       {pending.dictated && showFixes ? (
         <div
           id={fixPanelId}
-          className="w-[280px] shrink-0 space-y-2 rounded-lg border border-border-subtle bg-bg-panel p-3 text-left shadow-sm dark:border-border-default"
+          className="absolute top-1/2 left-full ml-4 w-[280px] -translate-y-1/2 space-y-2 rounded-lg border border-border-subtle bg-bg-panel p-3 text-left shadow-sm dark:border-border-default"
         >
           {fixOptions}
         </div>

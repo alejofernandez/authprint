@@ -116,6 +116,11 @@ export function PlayerMode({
   const isEdit = shellMode === 'edit';
   const activeName = isEdit ? (draft?.name ?? '') : (session?.name ?? '');
   const activeScenarioId = isEdit ? (draft?.id ?? '') : (session?.run.scenarioId ?? '');
+  // The dock's step actions need to know whether a scripted step is focused.
+  const dockFocusedEditable =
+    isEdit && draft && focusIndex !== null
+      ? buildEditableScriptStep(flow, draft, steps, focusIndex)
+      : null;
 
   return (
     <div className="absolute inset-0 z-40 flex flex-col bg-bg-canvas" data-testid="player-mode">
@@ -163,9 +168,8 @@ export function PlayerMode({
             onExit={player.exit}
             stepCurrent={index + 1}
             stepTotal={Math.max(steps.length, 1)}
-            mode="play"
-            onSetMode={(m) => player.setShellMode(m)}
-            modeLabels={{ edit: t('mode.edit'), play: t('mode.play') }}
+            onEnterEdit={() => player.setShellMode('edit')}
+            editLabel={t('mode.edit')}
             onNewScenario={onNewScenario}
             newScenarioLabel={t('scenarioPicker.new')}
             labels={{
@@ -187,9 +191,19 @@ export function PlayerMode({
       {isEdit && draft ? (
         <PlayerTransportDock
           name={activeName}
-          mode="edit"
-          onSetMode={(m) => player.setShellMode(m)}
-          modeLabels={{ edit: t('mode.edit'), play: t('mode.play') }}
+          onEnterPlay={() => player.setShellMode('play')}
+          playLabel={t('mode.play')}
+          stepActions={{
+            onDeleteFromHere: dockFocusedEditable
+              ? () => {
+                  player.deleteFrom(dockFocusedEditable.scriptStepIndex);
+                  setFocusIndex(null);
+                }
+              : undefined,
+            deleteLabel: t('stepEditor.scripted.deleteFromHere'),
+            onBackToRecording: focusIndex !== null ? () => setFocusIndex(null) : undefined,
+            backLabel: t('edit.backToRecording'),
+          }}
           editManage={{
             scenarioId: draft.id,
             onCommitName: (name) => player.renameDraft(name),
@@ -365,9 +379,9 @@ function EditChrome({
         {focusedEditable && focusedNode ? (
           <div className="flex h-full min-h-0 w-full flex-1 overflow-hidden">
             <StagePresentationFrame>
-              {/* Controls float beside the stage: stacking below grows the
-                  frame and shrinks the fit-scale (UF-022). */}
-              <div className="flex items-center gap-4">
+              {/* The set: panel floats to the right absolutely so the shape
+                  stays centered and never pays scale for it (UF-025). */}
+              <div className="relative">
                 {focusedEditable.kind === 'screen' && focusedNode.type === 'screen' ? (
                   <RecordModeScreenStage
                     node={focusedNode}
@@ -399,17 +413,12 @@ function EditChrome({
                   />
                 ) : null}
                 <FocusedStepControls
-                  className="w-[300px] shrink-0"
+                  className="absolute top-1/2 left-full ml-4 w-[300px] -translate-y-1/2"
                   editable={focusedEditable}
                   contextSlots={flow.context}
                   onSetPatchChange={(slot, value) =>
                     player.editStepPatch(focusedEditable.scriptStepIndex, slot, value)
                   }
-                  onDeleteFromHere={() => {
-                    player.deleteFrom(focusedEditable.scriptStepIndex);
-                    onClearFocus();
-                  }}
-                  onBackToRecording={onClearFocus}
                 />
               </div>
             </StagePresentationFrame>
@@ -417,7 +426,7 @@ function EditChrome({
         ) : focusedDecision ? (
           <div className="flex h-full min-h-0 w-full flex-1 overflow-hidden">
             <StagePresentationFrame>
-              <div className="flex flex-col items-center">
+              <div className="relative">
                 <RecordModeDecisionStage
                   pending={focusedDecision.pending}
                   contextAtHead={focusedDecision.context}
@@ -429,13 +438,6 @@ function EditChrome({
                     onClearFocus();
                   }}
                 />
-                <button
-                  type="button"
-                  className="mt-3 rounded border border-border-default px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-bg-subtle"
-                  onClick={onClearFocus}
-                >
-                  {t('edit.backToRecording')}
-                </button>
               </div>
             </StagePresentationFrame>
           </div>

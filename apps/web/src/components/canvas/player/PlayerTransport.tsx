@@ -87,9 +87,8 @@ export function PlayerTransportPill({
   labels,
   onNewScenario,
   newScenarioLabel,
-  mode,
-  onSetMode,
-  modeLabels,
+  onEnterEdit,
+  editLabel,
 }: {
   boundsRef: RefObject<HTMLDivElement | null>;
   name: string;
@@ -109,10 +108,9 @@ export function PlayerTransportPill({
   labels: TransportLabels;
   onNewScenario?: () => void;
   newScenarioLabel?: string;
-  /** Edit⇄Play toggle, docked in the pill (replaces the old header band). */
-  mode?: 'edit' | 'play';
-  onSetMode?: (mode: 'edit' | 'play') => void;
-  modeLabels?: { edit: string; play: string };
+  /** Play mode's door into editing (UF-026): one Edit button by the picker. */
+  onEnterEdit?: () => void;
+  editLabel?: string;
 }) {
   const pillRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
@@ -350,20 +348,6 @@ export function PlayerTransportPill({
           >
             <DragHandleIcon />
           </button>
-          {mode && onSetMode && modeLabels ? (
-            <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-black/5 p-0.5 dark:bg-white/10">
-              <ModeSegment
-                active={mode === 'edit'}
-                label={modeLabels.edit}
-                onClick={() => onSetMode('edit')}
-              />
-              <ModeSegment
-                active={mode === 'play'}
-                label={modeLabels.play}
-                onClick={() => onSetMode('play')}
-              />
-            </div>
-          ) : null}
           <div className="relative min-w-0 shrink">
             {canPickScenario ? (
               <button
@@ -441,6 +425,15 @@ export function PlayerTransportPill({
               </>
             ) : null}
           </div>
+          {onEnterEdit && editLabel ? (
+            <button
+              type="button"
+              onClick={onEnterEdit}
+              className="shrink-0 rounded-full bg-black/5 px-2.5 py-0.5 text-xs font-medium text-fg-muted hover:text-fg-default dark:bg-white/10"
+            >
+              {editLabel}
+            </button>
+          ) : null}
 
           <span
             role="status"
@@ -591,18 +584,25 @@ function ManageScenarioPopover({
  */
 export function PlayerTransportDock({
   name,
-  mode,
-  onSetMode,
-  modeLabels,
+  onEnterPlay,
+  playLabel,
   editManage,
+  stepActions,
   onExit,
   exitLabel,
 }: {
   name: string;
-  mode: 'edit' | 'play';
-  onSetMode: (mode: 'edit' | 'play') => void;
-  modeLabels: { edit: string; play: string };
+  /** Edit mode's door back to playback (UF-026). */
+  onEnterPlay: () => void;
+  playLabel: string;
   editManage: EditManage;
+  /** Focused-step actions, disabled while recording at the head (UF-026). */
+  stepActions: {
+    onDeleteFromHere?: () => void;
+    deleteLabel: string;
+    onBackToRecording?: () => void;
+    backLabel: string;
+  };
   onExit: () => void;
   exitLabel: string;
 }) {
@@ -613,18 +613,6 @@ export function PlayerTransportDock({
       className="relative flex shrink-0 items-center justify-center gap-2 border-border-subtle border-t bg-bg-panel/95 px-12 py-1.5 dark:border-border-default"
       data-testid="player-transport-dock"
     >
-      <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-black/5 p-0.5 dark:bg-white/10">
-        <ModeSegment
-          active={mode === 'edit'}
-          label={modeLabels.edit}
-          onClick={() => onSetMode('edit')}
-        />
-        <ModeSegment
-          active={mode === 'play'}
-          label={modeLabels.play}
-          onClick={() => onSetMode('play')}
-        />
-      </div>
       <div className="relative min-w-0 shrink">
         <button
           type="button"
@@ -648,6 +636,30 @@ export function PlayerTransportDock({
       </div>
       <button
         type="button"
+        onClick={onEnterPlay}
+        className="shrink-0 rounded-full bg-black/5 px-2.5 py-0.5 text-xs font-medium text-fg-muted hover:text-fg-default dark:bg-white/10"
+      >
+        {playLabel}
+      </button>
+      <span className="mx-1 h-5 w-px shrink-0 bg-current opacity-20" aria-hidden="true" />
+      <button
+        type="button"
+        disabled={!stepActions.onDeleteFromHere}
+        onClick={stepActions.onDeleteFromHere}
+        className="shrink-0 rounded border border-border-default px-2.5 py-1 text-xs font-medium text-signal-error-label transition-colors duration-[var(--duration-fast)] ease-standard disabled:cursor-not-allowed disabled:opacity-35 hover:enabled:border-signal-error-border hover:enabled:bg-signal-error-bg"
+      >
+        {stepActions.deleteLabel}
+      </button>
+      <button
+        type="button"
+        disabled={!stepActions.onBackToRecording}
+        onClick={stepActions.onBackToRecording}
+        className="shrink-0 rounded border border-border-default px-2.5 py-1 text-xs font-medium text-fg-muted disabled:cursor-not-allowed disabled:opacity-35 hover:enabled:bg-bg-subtle"
+      >
+        {stepActions.backLabel}
+      </button>
+      <button
+        type="button"
         aria-label={exitLabel}
         title={exitLabel}
         onClick={onExit}
@@ -656,31 +668,6 @@ export function PlayerTransportDock({
         ×
       </button>
     </div>
-  );
-}
-
-function ModeSegment({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors duration-[var(--duration-fast)] ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border ${
-        active
-          ? 'bg-accent-primary-solid text-white shadow-sm'
-          : 'text-fg-muted hover:text-fg-default'
-      }`}
-    >
-      {label}
-    </button>
   );
 }
 
