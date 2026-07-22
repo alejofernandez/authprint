@@ -224,7 +224,8 @@
         "rerouteAction": "action",
         "rerouteResult": "result",
         "rerouteWarning": "Changing the {target} or a patch reroutes the trace. Later steps that no longer apply are dropped.",
-        "deleteFromHere": "Delete from here"
+        "deleteFromHere": "Delete from here",
+        "rerouteBranch": "branch"
       },
       "setPatch": {
         "title": "set: after this step",

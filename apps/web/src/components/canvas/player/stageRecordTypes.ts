@@ -49,6 +49,8 @@ export type RecordModeDecisionProps = {
   previousStepName?: string | null;
   onContinueDecision?: () => void;
   onApplyBranchFix?: (fix: BranchFix) => void;
+  /** False for a mid-trace focused decision: the branch is already walked. */
+  showContinue?: boolean;
 };
 
 export type RecordModeResolveProps = {

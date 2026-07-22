@@ -268,6 +268,7 @@ export function RecordModeDecisionStage({
   previousStepName,
   onContinueDecision,
   onApplyBranchFix,
+  showContinue = true,
 }: RecordModeDecisionProps) {
   const t = useTranslations('player.recordMode.decision');
   const [showFixes, setShowFixes] = useState(!pending.dictated);
@@ -313,13 +314,15 @@ export function RecordModeDecisionStage({
               <br />
               <span className="text-fg-subtle">&rarr; {takenDest}</span>
             </div>
-            <button
-              type="button"
-              onClick={() => onContinueDecision?.()}
-              className="mt-4 w-full rounded-md bg-accent-primary-solid px-3 py-2 text-sm font-medium text-white motion-reduce:transition-none transition-opacity duration-[var(--duration-fast)] ease-standard hover:opacity-90"
-            >
-              {t('continue', { branch: takenLabel })}
-            </button>
+            {showContinue ? (
+              <button
+                type="button"
+                onClick={() => onContinueDecision?.()}
+                className="mt-4 w-full rounded-md bg-accent-primary-solid px-3 py-2 text-sm font-medium text-white motion-reduce:transition-none transition-opacity duration-[var(--duration-fast)] ease-standard hover:opacity-90"
+              >
+                {t('continue', { branch: takenLabel })}
+              </button>
+            ) : null}
             <button
               type="button"
               aria-expanded={showFixes}

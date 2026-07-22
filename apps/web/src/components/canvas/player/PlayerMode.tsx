@@ -12,7 +12,12 @@ import { FocusedStepControls } from './FocusedStepControls.tsx';
 import { usePlayerModeContext } from './PlayerModeContext.tsx';
 import { PlayerStage, StagePresentationFrame } from './PlayerStage.tsx';
 import { PlayerTransportDock, PlayerTransportPill } from './PlayerTransport.tsx';
-import { RecordModeResolveStage, RecordModeScreenStage } from './RecordModeStage.tsx';
+import {
+  RecordModeDecisionStage,
+  RecordModeResolveStage,
+  RecordModeScreenStage,
+} from './RecordModeStage.tsx';
+import { pendingDecisionAt } from './recorder.ts';
 import { ScenarioDeleteConfirmDialog } from './ScenarioDeleteConfirmDialog.tsx';
 import { nodeDisplayName } from './screenExitActions.ts';
 import { isSilentPlayerStep, lastScreenStepIndex } from './steps.ts';
@@ -283,6 +288,26 @@ function EditChrome({
   const focusedNode = focusedEditable
     ? (flow.nodes.find((n) => n.id === focusedEditable.step.nodeId) ?? null)
     : null;
+  // UF-024 — a focused mid-trace decision offers the same branch fixes as the
+  // head pause; forcing the other branch reroutes and drops the tail.
+  const focusedStep = focusIndex !== null ? steps[focusIndex] : undefined;
+  const focusedDecision = useMemo(() => {
+    if (focusIndex === null || focusedStep?.nodeType !== 'decision') return null;
+    return pendingDecisionAt(flow, draft, focusIndex);
+  }, [focusIndex, focusedStep, flow, draft]);
+  const lastScriptedNameBeforeFocus = useMemo(() => {
+    if (focusIndex === null) return undefined;
+    for (let i = focusIndex - 1; i >= 0; i--) {
+      const st = steps[i];
+      if (
+        st &&
+        (st.nodeType === 'screen' || st.nodeType === 'action' || st.nodeType === 'external')
+      ) {
+        return st.displayName;
+      }
+    }
+    return undefined;
+  }, [focusIndex, steps]);
 
   if (!recording || !headNode || !activeStep) {
     return (
@@ -300,7 +325,7 @@ function EditChrome({
             {player.recordingNote}
           </div>
         ) : null}
-        {focusedEditable && focusedNode ? (
+        {(focusedEditable && focusedNode) || focusedDecision ? (
           <div className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-accent-primary-border bg-accent-primary-bg px-3 py-1 text-xs font-medium text-accent-primary-fg-emphasis">
             {t('edit.editingStep', { index: focusIndex !== null ? focusIndex + 1 : 0 })}
           </div>
@@ -313,15 +338,16 @@ function EditChrome({
             {t('edit.recording')}
           </div>
         )}
-        {focusedEditable && focusedNode && !rerouteWarningDismissed ? (
+        {((focusedEditable && focusedNode) || focusedDecision) && !rerouteWarningDismissed ? (
           <div
             role="status"
             className="absolute bottom-3 left-1/2 z-20 flex max-w-md -translate-x-1/2 items-center gap-2 rounded-lg bg-signal-warning-bg px-3 py-2 text-xs leading-relaxed text-signal-warning-label shadow-lg"
           >
             <span>
               {t('stepEditor.scripted.rerouteWarning', {
-                target:
-                  focusedEditable.kind === 'screen'
+                target: focusedDecision
+                  ? t('stepEditor.scripted.rerouteBranch')
+                  : focusedEditable?.kind === 'screen'
                     ? t('stepEditor.scripted.rerouteAction')
                     : t('stepEditor.scripted.rerouteResult'),
               })}
@@ -385,6 +411,31 @@ function EditChrome({
                   }}
                   onBackToRecording={onClearFocus}
                 />
+              </div>
+            </StagePresentationFrame>
+          </div>
+        ) : focusedDecision ? (
+          <div className="flex h-full min-h-0 w-full flex-1 overflow-hidden">
+            <StagePresentationFrame>
+              <div className="flex flex-col items-center">
+                <RecordModeDecisionStage
+                  pending={focusedDecision.pending}
+                  contextAtHead={focusedDecision.context}
+                  flow={flow}
+                  previousStepName={lastScriptedNameBeforeFocus}
+                  showContinue={false}
+                  onApplyBranchFix={(fix, value?: unknown) => {
+                    player.applyFix(fix, value);
+                    onClearFocus();
+                  }}
+                />
+                <button
+                  type="button"
+                  className="mt-3 rounded border border-border-default px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-bg-subtle"
+                  onClick={onClearFocus}
+                >
+                  {t('edit.backToRecording')}
+                </button>
               </div>
             </StagePresentationFrame>
           </div>

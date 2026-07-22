@@ -446,6 +446,48 @@ export function deriveRecording(
   };
 }
 
+/**
+ * The decision card for a mid-trace decision (UF-024): the same branch fixes
+ * the head pause offers, derived from the context the walk had at that point.
+ * Forcing a branch from the filmstrip beats hunting for the earlier step
+ * whose patch happens to flip it.
+ */
+export function pendingDecisionAt(
+  flow: Flow,
+  draft: Scenario,
+  traceIndex: number,
+): { pending: PendingDecision; context: Record<string, unknown> } | null {
+  const walk = recordingWalk(flow, draft);
+  const entry = walk.trace[traceIndex];
+  if (!entry) return null;
+  const nodes = nodeById(flow);
+  const node = nodes.get(entry.nodeId);
+  if (node?.type !== 'decision') return null;
+
+  const context = walk.contextSnapshots[traceIndex] ?? cloneContext(draft.initialContext);
+  // Every screen/action/external strictly before a mid-trace decision consumed
+  // one script step, so the count maps trace position to script position.
+  let scriptedBefore = 0;
+  for (let i = 0; i < traceIndex; i++) {
+    const prior = walk.trace[i];
+    const priorNode = prior ? nodes.get(prior.nodeId) : undefined;
+    if (
+      priorNode &&
+      (priorNode.type === 'screen' || priorNode.type === 'action' || priorNode.type === 'external')
+    ) {
+      scriptedBefore++;
+    }
+  }
+  const pending = buildPendingDecision(
+    flow,
+    node,
+    context,
+    scriptedBefore > 0 ? scriptedBefore - 1 : null,
+  );
+  if (!pending) return null;
+  return { pending, context };
+}
+
 export function reconcileDraft(
   flow: Flow,
   draft: Scenario,

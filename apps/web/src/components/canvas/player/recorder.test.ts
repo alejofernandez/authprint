@@ -8,6 +8,7 @@ import {
   applyBranchFix,
   deleteFromStep,
   deriveRecording,
+  pendingDecisionAt,
   reconcileDraft,
   setInitialContextValue,
   setStepPatch,
@@ -229,6 +230,62 @@ scenarios: []`);
     draft = setStepPatch(flow, draft, 1, 'code.valid', true);
     expect(deriveRecording(flow, draft).head.nodeId).toBe('o1');
     expect(draft.expectedOutcome?.outcomeId).toBe('o1');
+  });
+});
+
+describe('pendingDecisionAt (mid-trace decision focus)', () => {
+  const flow = loadPasskeyEnrollment();
+
+  function fullWalkDraft(): ReturnType<typeof emptyDraft> {
+    let draft = emptyDraft();
+    draft = appendScreenStep(flow, draft, 's-identifier', 'submit');
+    draft = appendResolutionStep(flow, draft, 'a-send-otp', 'success');
+    draft = appendScreenStep(flow, draft, 's-otp', 'submit');
+    draft = appendScreenStep(flow, draft, 's-passkey-enroll', 'submit');
+    return draft;
+  }
+
+  test('derives the same fixes the head pause would, with mid-walk context', () => {
+    const draft = fullWalkDraft();
+    // trace: e, s-identifier, d-user-exists, a-send-otp, s-otp, d-has-passkey, ...
+    const at = pendingDecisionAt(flow, draft, 2);
+    expect(at?.pending.nodeId).toBe('d-user-exists');
+    expect(at?.pending.dictated).toBe(true);
+    expect(at?.context['user.exists']).toBe(false);
+    const kinds = at?.pending.fixes.map((f) => f.kind).sort();
+    expect(kinds).toEqual(['initial-context', 'step-patch']);
+    const patch = at?.pending.fixes.find((f) => f.kind === 'step-patch');
+    if (patch?.kind !== 'step-patch') throw new Error('expected step-patch fix');
+    // The only scripted step before the decision is s-identifier at script 0.
+    expect(patch.stepIndex).toBe(0);
+  });
+
+  test('applying a mid-trace fix reroutes and drops the tail', () => {
+    const draft = fullWalkDraft();
+    const at = pendingDecisionAt(flow, draft, 2);
+    const fix = at?.pending.fixes.find((f) => f.kind === 'initial-context');
+    if (fix?.kind !== 'initial-context') throw new Error('expected initial-context fix');
+
+    const next = applyBranchFix(flow, draft, fix);
+    // user.exists flips true; everything after the decision no longer applies.
+    expect(next.initialContext['user.exists']).toBe(true);
+    expect(next.inputScript.length).toBeLessThan(draft.inputScript.length);
+    // The head pauses at the flipped decision (same as the head-pause flow:
+    // the card shows the new dictated branch, Continue advances).
+    const rec = deriveRecording(flow, next);
+    expect(rec.head.nodeId).toBe('d-user-exists');
+    expect(rec.pendingDecision?.dictated).toBe(true);
+    expect(rec.pendingDecision?.takenBranch).toBe(true);
+    const advanced = deriveRecording(flow, next, {
+      confirmedDecisionIds: new Set(['d-user-exists']),
+    });
+    expect(advanced.head.nodeId).toBe('s-passkey');
+  });
+
+  test('non-decision index returns null', () => {
+    const draft = fullWalkDraft();
+    expect(pendingDecisionAt(flow, draft, 1)).toBeNull();
+    expect(pendingDecisionAt(flow, draft, 99)).toBeNull();
   });
 });
 

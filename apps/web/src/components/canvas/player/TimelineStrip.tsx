@@ -119,7 +119,11 @@ export function TimelineStrip(props: TimelineStripProps) {
                       diverged={diverged}
                       scripted={scripted}
                       hasSetPatch={patch}
-                      onEdit={scripted ? () => editProps.onFocusStep(step.index) : undefined}
+                      onEdit={
+                        scripted || step.nodeType === 'decision'
+                          ? () => editProps.onFocusStep(step.index)
+                          : undefined
+                      }
                       onRevealOnCanvas={
                         onRevealOnCanvas ? () => onRevealOnCanvas(step.nodeId) : undefined
                       }
