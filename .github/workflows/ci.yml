@@ -61,3 +61,20 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  trigger-deploy:
+    name: trigger deploy in authprint-cloud
+    needs: [ci, gitleaks]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'alejofernandez/authprint'
+    runs-on: ubuntu-latest
+    steps:
+      # Uses secrets.CLOUD_DISPATCH_TOKEN (fine-grained PAT configured per infra/PROVISIONING.md §12) to dispatch deployment to alejofernandez/authprint-cloud.
+      - name: Dispatch deploy event to authprint-cloud
+        env:
+          GH_TOKEN: ${{ secrets.CLOUD_DISPATCH_TOKEN }}
+        run: |
+          gh api repos/alejofernandez/authprint-cloud/dispatches \
+            -f event_type='deploy-editor' \
+            -f client_payload[sha]='${{ github.sha }}' \
+            -f client_payload[ref]='main'
+
