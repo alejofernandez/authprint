@@ -106,7 +106,10 @@ export function NodeTypePicker({
       <button
         type="button"
         aria-label="Close menu"
-        className="fixed inset-0 z-40 cursor-default"
+        // Above the inspector (z-50), not below it: this menu can be opened
+        // *from* the inspector ("+ Add action"), and a dismiss layer underneath
+        // its opener leaves both panels live at once.
+        className="fixed inset-0 z-[55] cursor-default"
         onClick={onClose}
       />
       <div
@@ -114,7 +117,11 @@ export function NodeTypePicker({
         tabIndex={-1}
         role="listbox"
         aria-label="Node type"
-        className="fixed z-50 w-40 overflow-hidden rounded-lg border border-border-subtle bg-bg-panel p-1 shadow-xl outline-none dark:border-border-default"
+        // z-[60] matches HandlePlus's anchored tier: a transient menu sits above
+        // every panel, including the inspector that can open it. At z-50 it tied
+        // with NodeInspector and lost on DOM order, so "+ Add action" looked
+        // like it did nothing until the inspector was closed.
+        className="fixed z-[60] w-40 overflow-hidden rounded-lg border border-border-subtle bg-bg-panel p-1 shadow-xl outline-none dark:border-border-default"
         style={{ left: position.left, top: position.top }}
       >
         <div className="px-2 py-1 text-[10px] font-medium text-fg-subtle uppercase tracking-wider">
