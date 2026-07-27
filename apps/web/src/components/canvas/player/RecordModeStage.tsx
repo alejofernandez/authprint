@@ -5,7 +5,6 @@ import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { ScreenMockup } from '../nodes/screen/ScreenMockup.tsx';
 import { PLAYER_ACTION_HIGHLIGHT_CLASS } from '../nodes/screen/screenActionHighlight.tsx';
 import { resolveScreenTheme } from '../nodes/screen/screenTheme.ts';
-import { screenActions } from '../screenActions.ts';
 import { isWarmOutcomeKind, nodeKindLabel } from './playerClipTone.ts';
 import type { BranchFix, PendingDecision } from './recorder.ts';
 import { actionExternalResults, nodeDisplayName, screenExitActions } from './screenExitActions.ts';
@@ -110,9 +109,15 @@ export function RecordModeScreenStage({
   const t = useTranslations('player.recordMode.screen');
   const screenTheme = resolveScreenTheme(flowTheme, editorTheme);
   const actions = screenExitActions(flow, node.id);
-  const secondaryActions = screenActions(flow, node.id)
-    .filter((a) => a.prominence === 'secondary')
-    .map((a) => a.action);
+
+  // Record mode deliberately does NOT render secondary actions inside the card
+  // (US-126 does, everywhere else). Here the chip row below is the control, so
+  // in-card links would show every action twice, highlight both copies at once,
+  // and leave only one of them clickable. The taller card also pushed the chips
+  // under the reroute warning. Play mode keeps the links: it has no chip row.
+  // The better end state is the reverse, in-card links become the clickable
+  // affordance and drop out of the chip row (E50's "record by using the screen"
+  // intent). That is a design change, not an integration fix. See UF-036.
 
   return (
     <div className="flex flex-col items-center">
@@ -126,7 +131,6 @@ export function RecordModeScreenStage({
             branding={branding}
             stageLayout="player"
             highlightedAction={editing ? selectedActionId : null}
-            secondaryActions={secondaryActions}
           />
         </div>
       </PresentationScaleBlock>
