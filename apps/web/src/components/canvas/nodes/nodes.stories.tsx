@@ -126,6 +126,85 @@ export const ScreenMockupProviderDark: Story = {
   args: { type: 'screen', node: providerMockup, theme: 'dark', flowTheme: 'dark', ...mockupCanvas },
 };
 
+// Screen actions (US-126) — secondary links beneath the kind CTA.
+// One-action (submit only) is covered by ScreenMockupPassword* above: those
+// baselines must stay byte-identical (no secondaryActions prop).
+const otpWithSecondaries: ScreenNode = {
+  type: 'screen',
+  id: 'mfa-actions',
+  name: 'Enter code',
+  kind: 'mfa-challenge',
+  traits: [],
+  fields: [{ name: 'code', type: 'otp', required: true }],
+};
+
+const retreatOnlyScreen: ScreenNode = {
+  type: 'screen',
+  id: 'magic-link-sent',
+  name: 'Check your email',
+  kind: 'magic-link-sent',
+  traits: [],
+  fields: [],
+};
+
+const actionsCanvas = { width: 360, height: 420 };
+
+export const ScreenMockupActionsOneActionLight: Story = {
+  args: {
+    type: 'screen',
+    node: otpWithSecondaries,
+    theme: 'light',
+    ...actionsCanvas,
+  },
+};
+export const ScreenMockupActionsOneActionDark: Story = {
+  args: {
+    type: 'screen',
+    node: otpWithSecondaries,
+    theme: 'dark',
+    flowTheme: 'dark',
+    ...actionsCanvas,
+  },
+};
+export const ScreenMockupActionsOnePlusTwoLight: Story = {
+  args: {
+    type: 'screen',
+    node: otpWithSecondaries,
+    theme: 'light',
+    secondaryActions: ['resend-code', 'try-another-method'],
+    ...actionsCanvas,
+  },
+};
+export const ScreenMockupActionsOnePlusTwoDark: Story = {
+  args: {
+    type: 'screen',
+    node: otpWithSecondaries,
+    theme: 'dark',
+    flowTheme: 'dark',
+    secondaryActions: ['resend-code', 'try-another-method'],
+    ...actionsCanvas,
+  },
+};
+export const ScreenMockupActionsRetreatOnlyLight: Story = {
+  args: {
+    type: 'screen',
+    node: retreatOnlyScreen,
+    theme: 'light',
+    secondaryActions: ['back'],
+    ...actionsCanvas,
+  },
+};
+export const ScreenMockupActionsRetreatOnlyDark: Story = {
+  args: {
+    type: 'screen',
+    node: retreatOnlyScreen,
+    theme: 'dark',
+    flowTheme: 'dark',
+    secondaryActions: ['back'],
+    ...actionsCanvas,
+  },
+};
+
 // Trait chrome (US-068) — several traits composing on a password screen.
 const passwordTraitsMockup: ScreenNode = {
   type: 'screen',

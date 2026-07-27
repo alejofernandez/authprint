@@ -11,6 +11,7 @@ import { effectiveSourceHandle, effectiveTargetHandle } from './connectionSides.
 import type { CanvasNodeData } from './nodes/index.ts';
 import { buildNodeAriaLabel } from './nodes/nodeAriaLabel.ts';
 import { resolveScreenTheme } from './nodes/screen/screenTheme.ts';
+import { screenActions } from './screenActions.ts';
 import { defaultScreenSourceSideForAction } from './screenInteractionSides.ts';
 import { type EdgeRoutes, edgeLayoutPoints, type LayoutPositions } from './ydoc/schema.ts';
 
@@ -136,6 +137,17 @@ export function flowToReactFlow(
     set.add(edge.trigger.value ? 'yes' : 'no');
   }
 
+  // Secondary (non-primary) screen actions in graph order — one derivation for
+  // the canvas mockup (inspector derives the full list from the same helper).
+  const secondaryActionsByScreen = new Map<string, string[]>();
+  for (const node of flow.nodes) {
+    if (node.type !== 'screen') continue;
+    const secondary = screenActions(flow, node.id)
+      .filter((a) => a.prominence === 'secondary')
+      .map((a) => a.action);
+    if (secondary.length > 0) secondaryActionsByScreen.set(node.id, secondary);
+  }
+
   const nodes: RfNode<CanvasNodeData>[] = flow.nodes.map((node) => ({
     id: node.id,
     type: node.type,
@@ -154,6 +166,9 @@ export function flowToReactFlow(
         screenTheme: resolveScreenTheme(flow.branding.theme, editorTheme),
         branding: flow.branding,
         displayErrorState: nodeLayout[node.id]?.displayErrorState === true,
+        ...(secondaryActionsByScreen.has(node.id) && {
+          secondaryActions: secondaryActionsByScreen.get(node.id),
+        }),
       }),
     },
   }));

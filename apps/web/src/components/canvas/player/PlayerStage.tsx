@@ -12,6 +12,7 @@ import type {
 import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
 import { ScreenMockup } from '../nodes/screen/ScreenMockup.tsx';
 import { resolveScreenTheme } from '../nodes/screen/screenTheme.ts';
+import { screenActions } from '../screenActions.ts';
 import { divergenceDetail, divergenceFocusNodeId, divergenceHeadline } from './divergenceCopy.ts';
 import { isWarmOutcomeKind, nodeKindLabel } from './playerClipTone.ts';
 import {
@@ -340,6 +341,11 @@ function ScreenStageFrame({
   const errorBannerCopy =
     step.errorBannerCopy ??
     (flow && runTrace ? screenErrorBannerCopyForStep(flow, runTrace, step.index) : null);
+  const secondaryActions = flow
+    ? screenActions(flow, node.id)
+        .filter((a) => a.prominence === 'secondary')
+        .map((a) => a.action)
+    : [];
   return (
     <div
       className={`${screenTheme === 'dark' ? 'flow-theme-dark ' : ''}origin-center`}
@@ -353,6 +359,7 @@ function ScreenStageFrame({
           stageLayout="player"
           highlightedAction={step.exitActionId}
           highlightedActionLabel={step.exitTriggerLabel}
+          secondaryActions={secondaryActions}
         />
       </div>
     </div>

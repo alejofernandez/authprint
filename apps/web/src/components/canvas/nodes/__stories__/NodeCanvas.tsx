@@ -20,6 +20,8 @@ export type NodeCanvasProps = {
   height?: number;
   /** Layout preview — show error-banner on wireframe/mockup tiers (Storybook). */
   displayErrorState?: boolean;
+  /** Non-primary interaction actions for screen mockups (US-126). */
+  secondaryActions?: readonly string[];
 };
 
 // Renders one structural node on a minimal, non-interactive React Flow canvas at
@@ -34,6 +36,7 @@ export function NodeCanvas({
   width = 360,
   height = 240,
   displayErrorState = false,
+  secondaryActions,
 }: NodeCanvasProps) {
   const nodes: RfNode[] = [
     {
@@ -58,6 +61,7 @@ export function NodeCanvas({
         ...(node.type === 'screen' && {
           screenTheme: resolveScreenTheme(flowTheme, theme),
           displayErrorState,
+          ...(secondaryActions && secondaryActions.length > 0 ? { secondaryActions } : {}),
         }),
       },
       draggable: false,

@@ -1409,8 +1409,12 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
                 <NodeInlineEditor
                   node={editingNode}
                   context={flow.context}
+                  flow={flow}
                   actions={editActions}
                   screenLayout={layout[editingId]}
+                  onAddScreenAction={(anchor) =>
+                    openCreateMenu(editingId, 'default', anchor, 'right')
+                  }
                 />
               </NodeInspector>
             )}

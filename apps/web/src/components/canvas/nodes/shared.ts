@@ -14,6 +14,12 @@ export type CanvasNodeData<TNode extends Node = Node> = {
   branding?: Branding;
   /** When true, wireframe/mockup tiers show the error-banner preview (layout view state). */
   displayErrorState?: boolean;
+  /**
+   * Non-primary screen interaction actions in graph order (US-126). Derived in
+   * flowToReactFlow; absent/empty keeps the mockup DOM identical to a
+   * submit-only screen.
+   */
+  secondaryActions?: readonly string[];
   /** Live validation diagnostics targeting this node (E33). Absent = clean. */
   diagnostics?: Diagnostic[];
   /**

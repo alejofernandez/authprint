@@ -50,7 +50,8 @@ function MockCheckbox({ label }: { label: string }) {
   );
 }
 
-function MockLink({ children }: { children: string }) {
+/** Secondary-action / trait link chrome (US-068, reused by US-126 screen actions). */
+export function MockLink({ children }: { children: string }) {
   return <span className="text-[10px] text-indigo-500 flow-dark:text-indigo-400">{children}</span>;
 }
 

@@ -21,6 +21,7 @@ import {
   ErrorBanner,
   ErrorBannerPlaceholder,
   hasErrorBannerTrait,
+  MockLink,
   PasswordStrengthMeter,
   postCtaTraits,
   ShowPasswordToggle,
@@ -168,6 +169,7 @@ export function ScreenMockup({
   stageLayout = 'default',
   highlightedAction = null,
   highlightedActionLabel = null,
+  secondaryActions = [],
 }: {
   node: ScreenNode;
   branding?: Branding;
@@ -176,6 +178,8 @@ export function ScreenMockup({
   stageLayout?: ScreenStageLayout;
   highlightedAction?: string | null;
   highlightedActionLabel?: string | null;
+  /** Non-primary interaction actions (US-126), graph order — omit/empty = unchanged DOM. */
+  secondaryActions?: readonly string[];
 }) {
   const cta = screenCta(node.kind);
   const traitSet = new Set(node.traits);
@@ -185,6 +189,10 @@ export function ScreenMockup({
   const primaryColor = branding?.primaryColor || PLACEHOLDER_PRIMARY_COLOR;
   const playerFrame = stageLayout === 'player';
   const showErrorSlot = playerFrame && hasErrorBannerTrait(node.traits);
+  const secondarySet = new Set(secondaryActions);
+  const showActionCallout =
+    (highlight.target === 'retreat' || highlight.target === 'callout') &&
+    !(highlightedAction && secondarySet.has(highlightedAction));
 
   const windowChrome = (
     <div className="flex h-5 shrink-0 items-center justify-between border-b border-zinc-100 px-2.5 flow-dark:border-zinc-800">
@@ -250,6 +258,19 @@ export function ScreenMockup({
           </div>
         </ActionHighlightShell>
       ) : null}
+      {secondaryActions.length > 0 ? (
+        <div className="space-y-2">
+          {secondaryActions.map((action) => (
+            <ActionHighlightShell
+              key={action}
+              active={highlightedAction === action}
+              label={highlight.label ?? undefined}
+            >
+              <MockLink>{humanize(action)}</MockLink>
+            </ActionHighlightShell>
+          ))}
+        </div>
+      ) : null}
       {traitsAfterCta.length > 0 ? (
         <div className="space-y-2">
           {traitsAfterCta.map((trait) => (
@@ -263,7 +284,7 @@ export function ScreenMockup({
           ))}
         </div>
       ) : null}
-      {highlight.target === 'retreat' || highlight.target === 'callout' ? (
+      {showActionCallout ? (
         <PlayerActionCallout action={highlightedAction ?? ''} exitLabel={highlightedActionLabel} />
       ) : null}
     </>

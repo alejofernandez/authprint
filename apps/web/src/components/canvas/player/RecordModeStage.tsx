@@ -5,6 +5,7 @@ import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { ScreenMockup } from '../nodes/screen/ScreenMockup.tsx';
 import { PLAYER_ACTION_HIGHLIGHT_CLASS } from '../nodes/screen/screenActionHighlight.tsx';
 import { resolveScreenTheme } from '../nodes/screen/screenTheme.ts';
+import { screenActions } from '../screenActions.ts';
 import { isWarmOutcomeKind, nodeKindLabel } from './playerClipTone.ts';
 import type { BranchFix, PendingDecision } from './recorder.ts';
 import { actionExternalResults, nodeDisplayName, screenExitActions } from './screenExitActions.ts';
@@ -109,6 +110,9 @@ export function RecordModeScreenStage({
   const t = useTranslations('player.recordMode.screen');
   const screenTheme = resolveScreenTheme(flowTheme, editorTheme);
   const actions = screenExitActions(flow, node.id);
+  const secondaryActions = screenActions(flow, node.id)
+    .filter((a) => a.prominence === 'secondary')
+    .map((a) => a.action);
 
   return (
     <div className="flex flex-col items-center">
@@ -122,6 +126,7 @@ export function RecordModeScreenStage({
             branding={branding}
             stageLayout="player"
             highlightedAction={editing ? selectedActionId : null}
+            secondaryActions={secondaryActions}
           />
         </div>
       </PresentationScaleBlock>

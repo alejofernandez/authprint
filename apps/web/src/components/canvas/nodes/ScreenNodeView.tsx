@@ -34,6 +34,7 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
           node={node}
           branding={data.branding}
           displayErrorState={data.displayErrorState}
+          secondaryActions={data.secondaryActions}
         />
       </div>
       <Handle type="source" position={Position.Right} id="default" />

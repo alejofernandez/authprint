@@ -68,6 +68,7 @@
   "inspector": {
     "sections": {
       "general": "General",
+      "actions": "Actions",
       "traits": "Traits",
       "fields": "Fields",
       "predicate": "Predicate"
@@ -76,6 +77,11 @@
       "name": "Name",
       "kind": "Kind",
       "errorMessage": "Error message"
+    },
+    "actions": {
+      "empty": "No actions yet",
+      "toTarget": "→ {target}",
+      "add": "+ Add action"
     },
     "traits": {
       "showErrorBanner": "Show error banner on canvas",

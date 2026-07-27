@@ -43,6 +43,16 @@ function usedDecisionBranchesEqual(
   return connectedHandlesEqual(a, b);
 }
 
+function secondaryActionsEqual(
+  a: readonly string[] | undefined,
+  b: readonly string[] | undefined,
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return !a && !b;
+  if (a.length !== b.length) return false;
+  return a.every((action, i) => action === b[i]);
+}
+
 function canvasNodeDataEqual(a: CanvasNodeData, b: CanvasNodeData): boolean {
   if (a.ariaLabel !== b.ariaLabel) return false;
   if (a.screenTheme !== b.screenTheme) return false;
@@ -50,6 +60,7 @@ function canvasNodeDataEqual(a: CanvasNodeData, b: CanvasNodeData): boolean {
   if (!diagnosticsEqual(a.diagnostics, b.diagnostics)) return false;
   if (!connectedHandlesEqual(a.connectedHandles, b.connectedHandles)) return false;
   if (!usedDecisionBranchesEqual(a.usedDecisionBranches, b.usedDecisionBranches)) return false;
+  if (!secondaryActionsEqual(a.secondaryActions, b.secondaryActions)) return false;
   if (a.node === b.node) return true;
   if (a.node.id !== b.node.id || a.node.type !== b.node.type) return false;
   return JSON.stringify(a.node) === JSON.stringify(b.node);

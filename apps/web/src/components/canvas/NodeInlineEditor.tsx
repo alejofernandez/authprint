@@ -9,6 +9,7 @@ import type {
   ContextSlot,
   Node as DslNode,
   Field,
+  Flow,
   Predicate,
   PredicateOp,
   SlotType,
@@ -26,6 +27,7 @@ import {
 } from '@authprint/dsl';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { screenActions } from './screenActions.ts';
 import type { NodeLayoutRecord } from './ydoc/schema.ts';
 
 export type NodeEditActions = {
@@ -175,19 +177,26 @@ function ErrorBannerVisibilityIcon({ visible }: { visible: boolean }) {
 export function NodeInlineEditor({
   node,
   context,
+  flow,
   actions,
   screenLayout,
+  onAddScreenAction,
 }: {
   node: DslNode;
   context: Context;
+  /** Full flow — used to derive screen actions (US-126). */
+  flow: Flow;
   actions: NodeEditActions;
   /** Layout view state for screen nodes (position + preview flags). */
   screenLayout?: NodeLayoutRecord;
+  /** Starts the canvas create gesture from this screen (US-125 picker when landed). */
+  onAddScreenAction?: (anchor: DOMRect) => void;
 }) {
   const t = useTranslations('inspector');
   const screen = node.type === 'screen' ? node : null;
   const decision = node.type === 'decision' ? node : null;
   const errorSource = node.type === 'action' || node.type === 'external' ? node : null;
+  const screenActionRows = screen ? screenActions(flow, screen.id) : [];
 
   return (
     <div className="space-y-4">
@@ -238,6 +247,37 @@ export function NodeInlineEditor({
           </label>
         )}
       </Section>
+
+      {screen && (
+        <Section title={t('sections.actions')}>
+          {screenActionRows.length === 0 ? (
+            <p className="text-xs text-fg-subtle dark:text-fg-subtle">{t('actions.empty')}</p>
+          ) : (
+            <ul className="space-y-1">
+              {screenActionRows.map((row) => (
+                <li
+                  key={row.edgeId}
+                  className="flex items-baseline justify-between gap-2 rounded border border-border-default px-2 py-1.5"
+                >
+                  <span className="font-mono text-[11px] text-fg-default">{row.action}</span>
+                  <span className="min-w-0 truncate text-right text-[11px] text-fg-subtle">
+                    {t('actions.toTarget', { target: row.targetName })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {onAddScreenAction ? (
+            <button
+              type="button"
+              className="text-xs text-accent-primary-solid hover:underline dark:text-accent-primary"
+              onClick={(e) => onAddScreenAction(e.currentTarget.getBoundingClientRect())}
+            >
+              {t('actions.add')}
+            </button>
+          ) : null}
+        </Section>
+      )}
 
       {screen && (
         <Section title={t('sections.traits')}>
