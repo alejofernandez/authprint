@@ -17,9 +17,25 @@ export function screenInteractionSideTier(action: string): ScreenInteractionSide
   return 'flexible';
 }
 
-/** Default exit side for an interaction (primary + flexible → right; retreat → bottom). */
-export function defaultScreenSourceSideForAction(action: string): ScreenSourceSide {
-  return screenInteractionSideTier(action) === 'retreat' ? 'bottom' : 'right';
+/** Per-side interaction edge counts on a screen (for flexible balancing, US-125). */
+export type ScreenInteractionSideCounts = { right: number; bottom: number };
+
+/** Default exit side for an interaction.
+ *  Primary → right; retreat → bottom; flexible → right, or the other allowed
+ *  side when the preferred side already has 2+ interaction edges (US-125). */
+export function defaultScreenSourceSideForAction(
+  action: string,
+  counts?: ScreenInteractionSideCounts,
+): ScreenSourceSide {
+  const tier = screenInteractionSideTier(action);
+  if (tier === 'retreat') return 'bottom';
+  if (tier === 'primary') return 'right';
+  const preferred: ScreenSourceSide = 'right';
+  if (!counts) return preferred;
+  if (counts[preferred] >= 2) {
+    return preferred === 'right' ? 'bottom' : 'right';
+  }
+  return preferred;
 }
 
 /** Whether an interaction may leave from the given side (editor convention). */

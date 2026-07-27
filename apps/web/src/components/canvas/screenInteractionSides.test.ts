@@ -40,4 +40,12 @@ describe('screen interaction side tiers', () => {
       expect(screenActionAllowedOnSide(action, 'bottom')).toBe(true);
     }
   });
+
+  test('flexible actions balance to the other side when preferred is crowded', () => {
+    expect(defaultScreenSourceSideForAction('resend-code', { right: 2, bottom: 0 })).toBe('bottom');
+    expect(defaultScreenSourceSideForAction('resend-code', { right: 1, bottom: 0 })).toBe('right');
+    // Primary/retreat ignore crowding.
+    expect(defaultScreenSourceSideForAction('submit', { right: 5, bottom: 0 })).toBe('right');
+    expect(defaultScreenSourceSideForAction('back', { right: 0, bottom: 5 })).toBe('bottom');
+  });
 });

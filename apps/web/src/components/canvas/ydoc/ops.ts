@@ -26,6 +26,7 @@ import {
   effectiveSourceSide,
   layoutSideForScreenInteraction,
   normalizeSideOverride,
+  screenInteractionCountBySide,
 } from '../connectionSides.ts';
 import type { ConnectionSide } from './schema.ts';
 import {
@@ -46,6 +47,7 @@ import {
   type NodeLayoutRecord,
   nodesMap,
   type Position,
+  readEdgeMap,
   readScenarioOrder,
   readTriggerMap,
   SCENARIO_ORDER_KEY,
@@ -224,7 +226,14 @@ export function setEdgeTrigger(doc: Y.Doc, edgeId: string, trigger: Trigger): Op
       priorTrigger.type === 'interaction'
         ? effectiveSourceSide('screen', priorTrigger, existing)
         : undefined;
-    const nextSide = layoutSideForScreenInteraction(trigger.action, currentSide);
+    // Count siblings only — the edge being retargeted shouldn't crowd itself.
+    const siblingEdges = [...edgesMap(doc).values()].map(readEdgeMap);
+    const layoutSnapshot: Record<string, EdgeLayoutRecord> = {};
+    for (const [id, record] of edgeLayoutMap(doc).entries()) {
+      layoutSnapshot[id] = record;
+    }
+    const counts = screenInteractionCountBySide(siblingEdges, sourceId, layoutSnapshot, edgeId);
+    const nextSide = layoutSideForScreenInteraction(trigger.action, currentSide, counts);
     const next: EdgeLayoutRecord = { ...existing };
     if (nextSide === undefined) delete next.sourceSide;
     else next.sourceSide = nextSide;

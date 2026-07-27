@@ -1,5 +1,6 @@
 // Edge trigger editor (US-114): double-click an edge → small anchored overlay.
 // Closed pairs swap atomically; screen interactions pick from the vocabulary.
+// US-125 adds create-mode: pick an action before the edge is committed.
 
 'use client';
 
@@ -25,7 +26,8 @@ export type EdgeTriggerActions = {
   swapWithSibling: (edgeId: string, siblingId: string) => void;
 };
 
-function InteractionActionSelect({
+/** Shared interaction picker (edit + create). Do not fork a second list UI. */
+export function InteractionActionSelect({
   id,
   value,
   disabledActions,
@@ -37,7 +39,7 @@ function InteractionActionSelect({
   disabledActions: ReadonlySet<string>;
   /** Builtin list pick — commit immediately (parent closes the editor). */
   onPick: (action: string) => void;
-  /** Custom text field — parent commits on dismiss. */
+  /** Custom text field — parent commits on dismiss (edit) or cancel if empty (create). */
   onCustomDraftChange: (action: string) => void;
 }) {
   const t = useTranslations('edgeTrigger.interaction');
@@ -75,17 +77,18 @@ function InteractionActionSelect({
     <select
       id={id}
       className={identifierInputCls}
-      value={inList ? value : '__current__'}
+      value={inList ? value : value ? '__current__' : ''}
       onChange={(e) => {
         if (e.target.value === '__custom__') {
           setDraft(value);
           setCustom(true);
           return;
         }
-        if (e.target.value !== '__current__') onPick(e.target.value);
+        if (e.target.value !== '__current__' && e.target.value !== '') onPick(e.target.value);
       }}
     >
-      {!inList && <option value="__current__">{t('customValue', { value })}</option>}
+      {!value && <option value="">{t('chooseAction')}</option>}
+      {value && !inList && <option value="__current__">{t('customValue', { value })}</option>}
       {options.map((action) => (
         <option key={action} value={action} disabled={disabledActions.has(action)}>
           {action}
@@ -96,19 +99,165 @@ function InteractionActionSelect({
   );
 }
 
-export function EdgeTriggerEditor({
-  edgeId,
-  flow,
-  anchorAt,
-  actions,
-  onClose,
-}: {
+type EditProps = {
+  mode?: 'edit';
   edgeId: string;
   flow: Flow;
   anchorAt: { x: number; y: number };
   actions: EdgeTriggerActions;
   onClose: () => void;
-}) {
+};
+
+type CreateProps = {
+  mode: 'create';
+  flow: Flow;
+  sourceId: string;
+  anchorAt: { x: number; y: number };
+  disabledActions: ReadonlySet<string>;
+  onPick: (action: string) => void;
+  onCancel: () => void;
+};
+
+export type EdgeTriggerEditorProps = EditProps | CreateProps;
+
+export function EdgeTriggerEditor(props: EdgeTriggerEditorProps) {
+  if (props.mode === 'create') {
+    return <EdgeTriggerCreateEditor {...props} />;
+  }
+  return <EdgeTriggerEditEditor {...props} />;
+}
+
+function EdgeTriggerCreateEditor({
+  sourceId,
+  anchorAt,
+  disabledActions,
+  onPick,
+  onCancel,
+}: CreateProps) {
+  const t = useTranslations('edgeTrigger');
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelHeight, setPanelHeight] = useState(120);
+  const [shown, setShown] = useState(false);
+  const closingRef = useRef(false);
+  const committedRef = useRef(false);
+  const [draftAction, setDraftAction] = useState('');
+
+  const position = placeFloatingPanelAtPoint(anchorAt, {
+    width: PANEL_WIDTH,
+    height: panelHeight,
+  });
+
+  const closeAnimated = useCallback((after?: () => void) => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    setShown(false);
+    window.setTimeout(() => {
+      after?.();
+    }, MOTION_DURATION_BASE_MS);
+  }, []);
+
+  const commitPick = useCallback(
+    (action: string) => {
+      const trimmed = action.trim();
+      if (trimmed.length === 0) return;
+      committedRef.current = true;
+      closeAnimated(() => onPick(trimmed));
+    },
+    [closeAnimated, onPick],
+  );
+
+  const closeHandlerRef = useRef<() => void>(() => {});
+  useLayoutEffect(() => {
+    closeHandlerRef.current = () => {
+      if (committedRef.current) return;
+      const next = draftAction.trim();
+      if (next.length > 0) {
+        committedRef.current = true;
+        closeAnimated(() => onPick(next));
+        return;
+      }
+      closeAnimated(onCancel);
+    };
+  }, [closeAnimated, draftAction, onCancel, onPick]);
+
+  useLayoutEffect(() => {
+    const frame = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  useLayoutEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const h = entry?.contentRect.height;
+      if (h) setPanelHeight(h);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useLayoutEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeHandlerRef.current();
+    };
+    const onDown = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        closeHandlerRef.current();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onDown);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onDown);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-labelledby="edge-trigger-editor-title"
+      className={`fixed z-50 flex flex-col overflow-hidden rounded-lg border border-border-subtle bg-bg-panel shadow-2xl transition-[opacity,transform] duration-[var(--duration-base)] ease-standard dark:border-border-default ${shown ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}
+      style={{
+        left: position.left,
+        top: position.top,
+        width: PANEL_WIDTH,
+      }}
+    >
+      <div className="flex items-center gap-1.5 border-border-subtle border-b px-2.5 py-1 dark:border-border-default">
+        <span
+          id="edge-trigger-editor-title"
+          className="min-w-0 flex-1 text-sm font-medium text-fg-default"
+        >
+          {t('createTitle')}
+        </span>
+        <button
+          type="button"
+          aria-label={t('close')}
+          className="shrink-0 rounded p-0.5 text-fg-subtle outline-none hover:bg-bg-subtle hover:text-fg-muted focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:hover:bg-bg-subtle dark:hover:text-fg-soft"
+          onClick={() => closeHandlerRef.current()}
+        >
+          ✕
+        </button>
+      </div>
+      <div className="space-y-3 p-3">
+        <label className="block space-y-1" htmlFor={`edge-action-create-${sourceId}`}>
+          <span className={labelCls}>{t('interaction.label')}</span>
+          <InteractionActionSelect
+            id={`edge-action-create-${sourceId}`}
+            value={draftAction}
+            disabledActions={disabledActions}
+            onPick={commitPick}
+            onCustomDraftChange={setDraftAction}
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function EdgeTriggerEditEditor({ edgeId, flow, anchorAt, actions, onClose }: EditProps) {
   const t = useTranslations('edgeTrigger');
   const edge = flow.edges.find((e) => e.id === edgeId);
   const panelRef = useRef<HTMLDivElement>(null);

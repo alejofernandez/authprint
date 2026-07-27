@@ -40,12 +40,22 @@ export function findSwappableSiblingEdge(flow: Flow, edge: Edge): Edge | null {
   return null;
 }
 
-/** Interaction actions already used by other outgoing edges from the same screen. */
-export function usedScreenInteractionActions(flow: Flow, edge: Edge): Set<string> {
+/** Interaction actions already used by outgoing edges from a screen. */
+export function usedScreenInteractionActionsFromSource(
+  flow: Flow,
+  sourceId: string,
+  excludeEdgeId?: string,
+): Set<string> {
   const used = new Set<string>();
   for (const e of flow.edges) {
-    if (e.id === edge.id || e.source !== edge.source || e.trigger.type !== 'interaction') continue;
+    if (excludeEdgeId && e.id === excludeEdgeId) continue;
+    if (e.source !== sourceId || e.trigger.type !== 'interaction') continue;
     used.add(e.trigger.action);
   }
   return used;
+}
+
+/** Interaction actions already used by other outgoing edges from the same screen. */
+export function usedScreenInteractionActions(flow: Flow, edge: Edge): Set<string> {
+  return usedScreenInteractionActionsFromSource(flow, edge.source, edge.id);
 }

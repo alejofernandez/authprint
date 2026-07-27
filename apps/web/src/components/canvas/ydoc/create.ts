@@ -19,8 +19,10 @@ import {
   isGeometricTargetHandle,
   isSideRelocationSourceHandle,
   isSideRelocationTargetHandle,
+  layoutSideForScreenInteraction,
   normalizeSideOverride,
   screenInteractionAllowedOnHandle,
+  screenInteractionCountBySide,
   sourceSideFromReconnect,
   targetSideFromReconnect,
 } from '../connectionSides.ts';
@@ -79,6 +81,8 @@ export function triggerFor(sourceType: DslNode['type'], handleId: string | null)
 }
 
 type CreateFromHandle = { trigger: Trigger; sourceSide?: ConnectionSide };
+
+export type { CreateFromHandle };
 
 function branchUsed(edges: Edge[], sourceId: string, value: boolean): boolean {
   return edges.some(
@@ -174,11 +178,43 @@ export type CreateConnectedNodeArgs = {
   sourceHandle: string | null;
   type: CreatableType;
   position: Position;
+  /** When set (US-125 action picker), replaces the handle-derived trigger. */
+  triggerOverride?: Trigger;
 };
 
-function layoutSideFromResolved(resolved: CreateFromHandle): ConnectionSide | undefined {
-  if (!resolved.sourceSide) return undefined;
-  return normalizeSideOverride(resolved.sourceSide, defaultSourceSide(resolved.trigger));
+/** True when the resolved create trigger would duplicate a screen interaction. */
+export function resolvedInteractionAlreadyUsed(
+  resolved: CreateFromHandle,
+  sourceId: string,
+  edges: Edge[],
+): boolean {
+  if (resolved.trigger.type !== 'interaction') return false;
+  const action = resolved.trigger.action;
+  return edges.some(
+    (e) => e.source === sourceId && e.trigger.type === 'interaction' && e.trigger.action === action,
+  );
+}
+
+function layoutSideFromResolved(
+  resolved: CreateFromHandle,
+  edges: Edge[],
+  sourceId: string,
+  edgeLayout: EdgeRoutes = {},
+): ConnectionSide | undefined {
+  if (resolved.sourceSide) {
+    return normalizeSideOverride(resolved.sourceSide, defaultSourceSide(resolved.trigger));
+  }
+  if (resolved.trigger.type !== 'interaction') return undefined;
+  const counts = screenInteractionCountBySide(edges, sourceId, edgeLayout);
+  return layoutSideForScreenInteraction(resolved.trigger.action, undefined, counts);
+}
+
+function edgeLayoutSnapshot(doc: Y.Doc): EdgeRoutes {
+  const snapshot: EdgeRoutes = {};
+  for (const [id, record] of edgeLayoutMap(doc).entries()) {
+    snapshot[id] = record;
+  }
+  return snapshot;
 }
 
 function writeEdgeWithLayout(doc: Y.Doc, edge: Edge, sourceSide?: ConnectionSide): void {
@@ -192,7 +228,7 @@ function writeEdgeWithLayout(doc: Y.Doc, edge: Edge, sourceSide?: ConnectionSide
  *  Returns the new node id, or null if the source/handle can't originate an
  *  edge. One transaction = one undo step (E27). */
 export function createConnectedNode(doc: Y.Doc, args: CreateConnectedNodeArgs): string | null {
-  const { sourceId, sourceHandle, type, position } = args;
+  const { sourceId, sourceHandle, type, position, triggerOverride } = args;
   const source = nodesMap(doc).get(sourceId);
   if (!source) return null;
   const sourceType = source.get('type') as DslNode['type'];
@@ -200,15 +236,26 @@ export function createConnectedNode(doc: Y.Doc, args: CreateConnectedNodeArgs): 
   const resolved = resolveCreateFromHandle(sourceType, sourceId, sourceHandle, edges);
   if (!resolved) return null;
 
+  const trigger = triggerOverride ?? resolved.trigger;
+  const resolvedForLayout: CreateFromHandle = {
+    trigger,
+    sourceSide: triggerOverride ? undefined : resolved.sourceSide,
+  };
+
   const nodeId = `${type}-${rid()}`;
   const node = defaultNode(type, nodeId);
   const edge: Edge = {
     id: `e-${rid()}`,
     source: sourceId,
     target: nodeId,
-    trigger: resolved.trigger,
+    trigger,
   };
-  const sourceSide = layoutSideFromResolved(resolved);
+  const sourceSide = layoutSideFromResolved(
+    resolvedForLayout,
+    edges,
+    sourceId,
+    edgeLayoutSnapshot(doc),
+  );
 
   doc.transact(() => {
     nodesMap(doc).set(nodeId, buildNodeMap(node));
@@ -221,13 +268,18 @@ export function createConnectedNode(doc: Y.Doc, args: CreateConnectedNodeArgs): 
 
 // ─── Connect (drag-from-handle onto an existing node, US-050) ─────────────────
 
+export type ConnectNodesArgs = {
+  sourceId: string;
+  sourceHandle: string | null;
+  targetId: string;
+  /** When set (US-125 action picker), replaces the handle-derived trigger. */
+  triggerOverride?: Trigger;
+};
+
 /** Connect `sourceId`→`targetId` with the handle's trigger (no new node).
  *  Returns the new edge id, or null if the source/handle can't originate. */
-export function connectNodes(
-  doc: Y.Doc,
-  args: { sourceId: string; sourceHandle: string | null; targetId: string },
-): string | null {
-  const { sourceId, sourceHandle, targetId } = args;
+export function connectNodes(doc: Y.Doc, args: ConnectNodesArgs): string | null {
+  const { sourceId, sourceHandle, targetId, triggerOverride } = args;
   const source = nodesMap(doc).get(sourceId);
   if (!source || !nodesMap(doc).has(targetId)) return null;
   const sourceType = source.get('type') as DslNode['type'];
@@ -235,13 +287,24 @@ export function connectNodes(
   const resolved = resolveCreateFromHandle(sourceType, sourceId, sourceHandle, edges);
   if (!resolved) return null;
 
+  const trigger = triggerOverride ?? resolved.trigger;
+  const resolvedForLayout: CreateFromHandle = {
+    trigger,
+    sourceSide: triggerOverride ? undefined : resolved.sourceSide,
+  };
+
   const edge: Edge = {
     id: `e-${rid()}`,
     source: sourceId,
     target: targetId,
-    trigger: resolved.trigger,
+    trigger,
   };
-  const sourceSide = layoutSideFromResolved(resolved);
+  const sourceSide = layoutSideFromResolved(
+    resolvedForLayout,
+    edges,
+    sourceId,
+    edgeLayoutSnapshot(doc),
+  );
 
   doc.transact(() => writeEdgeWithLayout(doc, edge, sourceSide), LOCAL_ORIGIN);
   return edge.id;

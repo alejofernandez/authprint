@@ -120,6 +120,7 @@
   },
   "edgeTrigger": {
     "title": "Edge trigger",
+    "createTitle": "Choose action",
     "close": "Close",
     "closedPair": {
       "current": "Current: {label}",
@@ -127,6 +128,7 @@
     },
     "interaction": {
       "label": "Action",
+      "chooseAction": "Choose action…",
       "chooseFromList": "Choose from list",
       "customValue": "{value} (custom)",
       "customOption": "Custom…"

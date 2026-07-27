@@ -7,6 +7,7 @@ import {
   createConnectedNode,
   defaultNode,
   resolveCreateFromHandle,
+  resolvedInteractionAlreadyUsed,
   triggerFor,
   validateConnection,
 } from './create.ts';
@@ -371,5 +372,83 @@ describe('validateConnection', () => {
         { reconnectingEdgeId: 'e1' },
       ),
     ).toBe(true);
+  });
+});
+
+describe('US-125 action-at-creation', () => {
+  test('resolvedInteractionAlreadyUsed detects a duplicate submit', () => {
+    const edges = [
+      {
+        id: 'e1',
+        source: 's1',
+        target: 'o1',
+        trigger: { type: 'interaction' as const, action: 'submit' },
+      },
+    ];
+    const resolved = resolveCreateFromHandle('screen', 's1', 'default', edges);
+    expect(resolved).not.toBeNull();
+    if (!resolved) return;
+    expect(resolvedInteractionAlreadyUsed(resolved, 's1', edges)).toBe(true);
+    expect(resolvedInteractionAlreadyUsed(resolved, 's1', [])).toBe(false);
+  });
+
+  test('triggerOverride creates a non-duplicate interaction in one step', () => {
+    const doc = hydrate({
+      ...base(),
+      edges: [
+        {
+          id: 'e-existing',
+          source: 's1',
+          target: 'o1',
+          trigger: { type: 'interaction', action: 'submit' },
+        },
+      ],
+    });
+    const id = createConnectedNode(doc, {
+      sourceId: 's1',
+      sourceHandle: 'default',
+      type: 'outcome',
+      position: { x: 400, y: 0 },
+      triggerOverride: { type: 'interaction', action: 'resend-code' },
+    });
+    expect(id).not.toBeNull();
+    const edges = [...edgesMap(doc).values()].map(readEdgeMap);
+    const created = edges.find((e) => e.target === id);
+    expect(created?.trigger).toEqual({ type: 'interaction', action: 'resend-code' });
+    const submits = edges.filter(
+      (e) => e.source === 's1' && e.trigger.type === 'interaction' && e.trigger.action === 'submit',
+    );
+    expect(submits).toHaveLength(1);
+  });
+
+  test('flexible override balances to bottom when right already has 2+ interactions', () => {
+    const doc = hydrate({
+      ...base(),
+      edges: [
+        {
+          id: 'e1',
+          source: 's1',
+          target: 'o1',
+          trigger: { type: 'interaction', action: 'submit' },
+        },
+        {
+          id: 'e2',
+          source: 's1',
+          target: 'o2',
+          trigger: { type: 'interaction', action: 'sign-in' },
+        },
+      ],
+    });
+    // Force both existing onto the right side in layout (submit already defaults right).
+    edgeLayoutMap(doc).set('e2', { sourceSide: 'right' });
+
+    const edgeId = connectNodes(doc, {
+      sourceId: 's1',
+      sourceHandle: 'default',
+      targetId: 'a1',
+      triggerOverride: { type: 'interaction', action: 'resend-code' },
+    });
+    expect(edgeId).not.toBeNull();
+    expect(edgeLayoutMap(doc).get(edgeId as string)?.sourceSide).toBe('bottom');
   });
 });

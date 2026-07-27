@@ -2,14 +2,15 @@
 // sides are view state in the layout layer. Handle ids for side-only handles
 // are prefixed so creation paths (triggerFor) never treat them as semantic.
 
-import type { Node as DslNode, Trigger } from '@authprint/dsl';
+import type { Node as DslNode, Edge, Trigger } from '@authprint/dsl';
 import { sourceHandleFor } from './flowToReactFlow.ts';
 import {
   defaultScreenSourceSideForAction,
+  type ScreenInteractionSideCounts,
   screenActionAllowedOnSide,
   screenInteractionSideTier,
 } from './screenInteractionSides.ts';
-import type { ConnectionSide, EdgeLayoutRecord } from './ydoc/schema.ts';
+import type { ConnectionSide, EdgeLayoutRecord, EdgeRoutes } from './ydoc/schema.ts';
 
 const SCREEN_SOURCE_HANDLES = new Set(['default', 'alt']);
 
@@ -64,10 +65,12 @@ export function screenInteractionAllowedOnHandle(
 
 /** Layout override after a screen interaction label change (US-114 side tiers).
  *  `currentSide` is the edge's effective exit side before the change (override or
- *  semantic default) — not just a stored layout override. */
+ *  semantic default) — not just a stored layout override.
+ *  `counts` (US-125) balances flexible actions onto the less-crowded side. */
 export function layoutSideForScreenInteraction(
   action: string,
   currentSide?: ConnectionSide,
+  counts?: ScreenInteractionSideCounts,
 ): ConnectionSide | undefined {
   const trigger: Trigger = { type: 'interaction', action };
   const semanticDefault = defaultSourceSide(trigger);
@@ -84,8 +87,26 @@ export function layoutSideForScreenInteraction(
   }
 
   const canonical: ConnectionSide =
-    defaultScreenSourceSideForAction(action) === 'bottom' ? 'bottom' : 'right';
+    defaultScreenSourceSideForAction(action, counts) === 'bottom' ? 'bottom' : 'right';
   return normalizeSideOverride(canonical, semanticDefault);
+}
+
+/** Count outgoing interaction edges per screen exit side (US-125 balancing). */
+export function screenInteractionCountBySide(
+  edges: Edge[],
+  sourceId: string,
+  edgeLayout: EdgeRoutes = {},
+  excludeEdgeId?: string,
+): ScreenInteractionSideCounts {
+  const counts: ScreenInteractionSideCounts = { right: 0, bottom: 0 };
+  for (const edge of edges) {
+    if (excludeEdgeId && edge.id === excludeEdgeId) continue;
+    if (edge.source !== sourceId || edge.trigger.type !== 'interaction') continue;
+    const side = effectiveSourceSide('screen', edge.trigger, edgeLayout[edge.id]);
+    if (side === 'bottom') counts.bottom += 1;
+    else counts.right += 1;
+  }
+  return counts;
 }
 
 export function isSideRelocationSourceHandle(

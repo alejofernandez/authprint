@@ -53,7 +53,10 @@ import { type EdgeTriggerActions, EdgeTriggerEditor } from './EdgeTriggerEditor.
 import { EdgeRouteProvider } from './edges/edgeRouteContext.tsx';
 import { EdgeTriggerProvider } from './edges/edgeTriggerContext.tsx';
 import { RoutableEdge } from './edges/RoutableEdge.tsx';
-import { isEditableEdgeTrigger } from './edgeTriggerUtils.ts';
+import {
+  isEditableEdgeTrigger,
+  usedScreenInteractionActionsFromSource,
+} from './edgeTriggerUtils.ts';
 import { elkLayoutReady } from './elkLayoutReady.ts';
 import type { PatternFlow } from './flowCatalog.ts';
 import { flowFromSource } from './flowFromSource.ts';
@@ -85,6 +88,7 @@ import {
   connectNodes,
   createConnectedNode,
   resolveCreateFromHandle,
+  resolvedInteractionAlreadyUsed,
   validateConnection,
 } from './ydoc/create.ts';
 import { hydrate } from './ydoc/hydrate.ts';
@@ -979,6 +983,24 @@ type CreateMenu = {
     | { kind: 'drop'; at: { x: number; y: number } };
 };
 
+/** Pending create that needs an action pick before committing (US-125). */
+type PendingActionCreate =
+  | {
+      kind: 'node';
+      sourceId: string;
+      sourceHandle: string | null;
+      type: CreatableType;
+      position: { x: number; y: number };
+      at: { x: number; y: number };
+    }
+  | {
+      kind: 'connect';
+      sourceId: string;
+      sourceHandle: string | null;
+      targetId: string;
+      at: { x: number; y: number };
+    };
+
 // Gap (flow units) between a source node and the node its `+` creates.
 const NEW_NODE_GAP = 80;
 
@@ -1031,8 +1053,18 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   // `+` already hints at incompleteness; the Problems badge tracks the count).
   // Flip them on to review. Gates both node rings and edge recoloring.
   const [showOutlines, setShowOutlines] = useState(false);
-  const { getNode, screenToFlowPosition } = useReactFlow();
+  const { getNode, screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [menu, setMenu] = useState<CreateMenu | null>(null);
+  const [pendingActionCreate, setPendingActionCreate] = useState<PendingActionCreate | null>(null);
+  const lastPointerRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      lastPointerRef.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener('pointermove', onMove);
+    return () => window.removeEventListener('pointermove', onMove);
+  }, []);
 
   const setEdgeRouteOnDoc = useCallback(
     (edgeId: string, points: { x: number; y: number }[]) => {
@@ -1077,10 +1109,53 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const pickType = useCallback(
     (type: CreatableType) => {
       if (!menu) return;
+      const sourceNode = flow.nodes.find((n) => n.id === menu.sourceId);
+      if (!sourceNode) {
+        setMenu(null);
+        return;
+      }
+      const resolved = resolveCreateFromHandle(
+        sourceNode.type,
+        menu.sourceId,
+        menu.sourceHandle,
+        flow.edges,
+      );
+      if (!resolved) {
+        setMenu(null);
+        return;
+      }
+
       const position =
         menu.placement.kind === 'drop'
           ? screenToFlowPosition(menu.placement.at)
           : alignedNodePosition(getNode(menu.sourceId), menu.placement.side, type);
+
+      const anchorAt =
+        menu.placement.kind === 'drop'
+          ? menu.placement.at
+          : (() => {
+              const rf = getNode(menu.sourceId);
+              if (!rf) return lastPointerRef.current;
+              const mid = {
+                x: rf.position.x + (rf.measured?.width ?? NODE_SIZE.screen.width) / 2,
+                y: rf.position.y + (rf.measured?.height ?? NODE_SIZE.screen.height) / 2,
+              };
+              return flowToScreenPosition(mid);
+            })();
+
+      if (resolvedInteractionAlreadyUsed(resolved, menu.sourceId, flow.edges)) {
+        setPendingActionCreate({
+          kind: 'node',
+          sourceId: menu.sourceId,
+          sourceHandle: menu.sourceHandle,
+          type,
+          position,
+          at: anchorAt,
+        });
+        setMenu(null);
+        return;
+      }
+
       createConnectedNode(doc, {
         sourceId: menu.sourceId,
         sourceHandle: menu.sourceHandle,
@@ -1089,16 +1164,72 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
       });
       setMenu(null);
     },
-    [doc, menu, getNode, screenToFlowPosition],
+    [doc, menu, getNode, screenToFlowPosition, flowToScreenPosition, flow.nodes, flow.edges],
   );
 
   // Drag-from-handle onto an existing node → connect only (no new node).
   const onConnect = useCallback<OnConnect>(
     (c: Connection) => {
-      connectNodes(doc, { sourceId: c.source, sourceHandle: c.sourceHandle, targetId: c.target });
+      if (!c.source || !c.target) return;
+      const sourceNode = flow.nodes.find((n) => n.id === c.source);
+      if (!sourceNode) return;
+      const resolved = resolveCreateFromHandle(
+        sourceNode.type,
+        c.source,
+        c.sourceHandle ?? null,
+        flow.edges,
+      );
+      if (!resolved) return;
+
+      if (resolvedInteractionAlreadyUsed(resolved, c.source, flow.edges)) {
+        setPendingActionCreate({
+          kind: 'connect',
+          sourceId: c.source,
+          sourceHandle: c.sourceHandle ?? null,
+          targetId: c.target,
+          at: lastPointerRef.current,
+        });
+        return;
+      }
+
+      connectNodes(doc, {
+        sourceId: c.source,
+        sourceHandle: c.sourceHandle,
+        targetId: c.target,
+      });
     },
-    [doc],
+    [doc, flow.nodes, flow.edges],
   );
+
+  const commitPendingAction = useCallback(
+    (action: string) => {
+      const pending = pendingActionCreate;
+      setPendingActionCreate(null);
+      if (!pending) return;
+      const trigger = { type: 'interaction' as const, action };
+      if (pending.kind === 'node') {
+        createConnectedNode(doc, {
+          sourceId: pending.sourceId,
+          sourceHandle: pending.sourceHandle,
+          type: pending.type,
+          position: pending.position,
+          triggerOverride: trigger,
+        });
+        return;
+      }
+      connectNodes(doc, {
+        sourceId: pending.sourceId,
+        sourceHandle: pending.sourceHandle,
+        targetId: pending.targetId,
+        triggerOverride: trigger,
+      });
+    },
+    [doc, pendingActionCreate],
+  );
+
+  const cancelPendingAction = useCallback(() => {
+    setPendingActionCreate(null);
+  }, []);
 
   // Drag-from-handle released on empty canvas → open the picker there and create
   // a node connected to the drag's source handle. (A drop on a node connects via
@@ -1291,6 +1422,21 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
                 anchorAt={edgeEditor.at}
                 actions={edgeTriggerActions}
                 onClose={() => setEdgeEditor(null)}
+              />
+            )}
+            {!readOnly && pendingActionCreate && (
+              <EdgeTriggerEditor
+                key={`create-action-${pendingActionCreate.sourceId}`}
+                mode="create"
+                flow={flow}
+                sourceId={pendingActionCreate.sourceId}
+                anchorAt={pendingActionCreate.at}
+                disabledActions={usedScreenInteractionActionsFromSource(
+                  flow,
+                  pendingActionCreate.sourceId,
+                )}
+                onPick={commitPendingAction}
+                onCancel={cancelPendingAction}
               />
             )}
           </NodeCreateProvider>
