@@ -27,7 +27,6 @@ export const sampleFlow: Flow = {
       kind: 'identifier-collect',
       traits: [],
       fields: [{ name: 'email', type: 'email', required: true }],
-      fidelity: 'lo-fi',
     },
     {
       type: 'decision',

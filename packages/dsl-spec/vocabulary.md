@@ -268,6 +268,7 @@ These spec-correct or common-tech names were considered and rejected per Princip
 | Decision kinds with `?` suffix (`user-exists?`) | no suffix (`user-exists`) | Lisp/Ruby convention; structural type already implies "question" |
 | `UserAction` (trigger type) | `interaction` | Overloaded with `Action` structural type — created confusion |
 | `branding-customizable` (trait) | (removed) | Tool-level concern, not a flow-design concern — a per-Screen boolean flag didn't fit. `Flow.branding` (`companyName`/`primaryColor` — see [semantics](./semantics.md)) later solved a narrower, related need — flow-level, not a trait — without reversing this rejection |
+| `fidelity` / `lo-fi` / `wireframe` / `mockup` tiers | (removed; always mockup) | Peer testing found no use for lower tiers; schema defaulted to `lo-fi`, so nearly every shipped screen rendered as a grey box. Mockup is the only rendering. Legacy `fidelity:` keys are stripped on parse. |
 
 ---
 

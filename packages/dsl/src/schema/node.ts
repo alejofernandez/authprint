@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FIDELITIES, TRAIT_IDS } from '../vocabulary.ts';
+import { TRAIT_IDS } from '../vocabulary.ts';
 import { FieldSchema } from './field.ts';
 import { PredicateSchema } from './predicate.ts';
 
@@ -32,7 +32,8 @@ export const ScreenNodeSchema = z.object({
   // minimal Screen declaration round-trips cleanly.
   traits: z.array(z.enum(TRAIT_IDS)).default([]),
   fields: z.array(FieldSchema).default([]),
-  fidelity: z.enum(FIDELITIES).default('lo-fi'),
+  // `fidelity` was removed (US-124). Zod's default object behavior strips
+  // unknown keys, so legacy `fidelity: …` lines parse cleanly and are dropped.
 });
 export type ScreenNode = z.infer<typeof ScreenNodeSchema>;
 

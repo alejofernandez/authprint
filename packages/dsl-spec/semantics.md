@@ -27,11 +27,11 @@ Composition (three layers):
 
 A Screen MAY have multiple outgoing edges, one per distinct user action label (`submit`, `cancel`, `back`, etc.).
 
-`fidelity` denotes how richly the screen should render in lo-fi previews. v1 supports `lo-fi`, `wireframe`, `mockup` (the last two are display hints; v1 lo-fi rendering only).
+Every Screen renders as a mockup on the canvas (generated layout from kind, traits, and fields). There is no fidelity attribute.
 
 #### Error display on screens
 
-The `error-banner` trait declares that a screen can present the most recent error inline. On the static canvas, wireframe and mockup tiers render a danger-styled alert region with placeholder copy **only when the screen's layout record sets `displayErrorState: true`** (off by default so design-time canvases stay clean). During scenario playback, banner text is **derived from the run** regardless of that flag: a screen entered via an `on-error` edge shows which step failed.
+The `error-banner` trait declares that a screen can present the most recent error inline. On the static canvas, screens render a danger-styled alert region with placeholder copy **only when the screen's layout record sets `displayErrorState: true`** (off by default so design-time canvases stay clean). During scenario playback, banner text is **derived from the run** regardless of that flag: a screen entered via an `on-error` edge shows which step failed.
 
 Banner copy resolves through a fallback chain:
 

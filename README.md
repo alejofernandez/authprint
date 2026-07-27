@@ -25,7 +25,7 @@ Flows are data: validated structurally, walked with scenarios, versioned in your
 
 Built for Identity PMs, Solutions Architects, and UX designers who need to model auth journeys as typed state machines, not generic diagrams.
 
-> **Status (2026-07-03):** the editor works end-to-end locally (create, connect, edit, undo/redo, save/load `.authprint`, live validation, screen mockups by fidelity tier, scenario walk-throughs) and is live at [editor.authprint.app](https://editor.authprint.app). No account needed; flows stay on your machine.
+> **Status (2026-07-03):** the editor works end-to-end locally (create, connect, edit, undo/redo, save/load `.authprint`, live validation, screen mockups, scenario walk-throughs) and is live at [editor.authprint.app](https://editor.authprint.app). No account needed; flows stay on your machine.
 
 ## Quick start
 

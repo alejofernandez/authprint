@@ -149,7 +149,6 @@ export function defaultNode(type: CreatableType, id: string): DslNode {
         kind,
         traits: [],
         fields: [],
-        fidelity: 'lo-fi',
       };
     case 'decision':
       return {

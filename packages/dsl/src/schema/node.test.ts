@@ -26,7 +26,6 @@ describe('Node schemas', () => {
         { name: 'identifier', type: 'identifier', required: true },
         { name: 'password', type: 'password', required: true },
       ],
-      fidelity: 'lo-fi',
     });
     expect(r.success).toBe(true);
   });
@@ -39,7 +38,6 @@ describe('Node schemas', () => {
       kind: 'password',
       traits: ['this-trait-does-not-exist'],
       fields: [],
-      fidelity: 'lo-fi',
     });
     expect(r.success).toBe(false);
   });
@@ -52,7 +50,6 @@ describe('Node schemas', () => {
       kind: 'totally-bespoke-kind',
       traits: [],
       fields: [],
-      fidelity: 'lo-fi',
     });
     // Kind is z.string() — validator layer (later) warns; schema accepts.
     expect(r.success).toBe(true);
@@ -106,7 +103,6 @@ describe('Node schemas', () => {
       kind: 'password',
       traits: [],
       fields: [],
-      fidelity: 'lo-fi',
     });
     expect(screen.success).toBe(true);
     if (screen.success) {

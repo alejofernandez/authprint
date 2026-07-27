@@ -139,7 +139,6 @@ export function buildNodeMap(node: DslNode): Y.Map<unknown> {
   if ('kind' in node) map.set('kind', node.kind);
 
   if (node.type === 'screen') {
-    map.set('fidelity', node.fidelity);
     const traits = new Y.Array<string>();
     traits.push([...node.traits]);
     map.set('traits', traits);
@@ -174,7 +173,6 @@ export function readNodeMap(map: Y.Map<unknown>): DslNode {
         kind: map.get('kind') as string,
         traits: (map.get('traits') as Y.Array<string>).toArray(),
         fields: (map.get('fields') as Y.Array<Y.Map<unknown>>).map(readFieldMap),
-        fidelity: map.get('fidelity') as 'lo-fi' | 'wireframe' | 'mockup',
       } as DslNode;
     case 'decision':
       return {

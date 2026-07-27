@@ -1,8 +1,8 @@
-// Screen mockup rendering (US-067, E39) — renders a Screen node as a believable
-// auth screen for `fidelity: 'mockup'`: a windowed card with a brand block, a
-// kind-derived headline, field rows from `fields`, and a primary CTA. Traits
-// (US-068), the wireframe/lo-fi tiers (US-069), and the Flow.branding.theme axis
-// (US-070) build on this. The visual language set here is what they extend.
+// Screen mockup rendering (US-067, E39; sole screen renderer since US-124) —
+// renders a Screen node as a believable auth screen: a windowed card with a
+// brand block, a kind-derived headline, field rows from `fields`, and a
+// primary CTA. Traits (US-068) and the Flow.branding.theme axis (US-070)
+// build on this.
 //
 // The brand block and CTA use Flow.branding (companyName / primaryColor,
 // US-098) when the flow has set it; falling back to the original brand-neutral

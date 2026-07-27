@@ -84,24 +84,14 @@ export function labelFor(trigger: Trigger): string | undefined {
 // to be pixel-perfect — React Flow measures the real DOM after mount.
 export const NODE_SIZE: Record<DslNode['type'], { width: number; height: number }> = {
   entry: { width: 64, height: 64 },
-  screen: { width: 220, height: 84 },
+  screen: { width: 256, height: 232 },
   decision: { width: 180, height: 112 },
   action: { width: 220, height: 68 },
   external: { width: 220, height: 68 },
   outcome: { width: 180, height: 68 },
 };
 
-// `mockup`-fidelity screens (US-067) render as a full screen card, much larger
-// than the labeled box. Size is fidelity-aware so lo-fi / wireframe screens
-// keep their tight footprint (US-069 refines the per-tier sizes).
-const SCREEN_MOCKUP_SIZE = { width: 256, height: 232 };
-const SCREEN_WIREFRAME_SIZE = { width: 256, height: 232 };
-
 export function nodeSize(node: DslNode): { width: number; height: number } {
-  if (node.type === 'screen') {
-    if (node.fidelity === 'mockup') return SCREEN_MOCKUP_SIZE;
-    if (node.fidelity === 'wireframe') return SCREEN_WIREFRAME_SIZE;
-  }
   return NODE_SIZE[node.type];
 }
 

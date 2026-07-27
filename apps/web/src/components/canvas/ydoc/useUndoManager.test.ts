@@ -40,7 +40,6 @@ function wiredDoc() {
         kind: 'identifier-collect',
         traits: [],
         fields: [],
-        fidelity: 'lo-fi',
       },
       {
         type: 'decision',

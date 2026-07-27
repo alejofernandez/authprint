@@ -43,7 +43,6 @@ nodes:
     kind: password
     traits: [error-banner]
     fields: []
-    fidelity: mockup
   - type: action
     id: a-auth
     name: POST /authenticate
@@ -54,7 +53,6 @@ nodes:
     kind: mfa-challenge
     traits: [error-banner]
     fields: []
-    fidelity: mockup
   - type: action
     id: a-verify
     name: POST /otp/verify

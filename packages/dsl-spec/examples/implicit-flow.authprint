@@ -20,7 +20,6 @@ nodes:
       - name: email
         type: identifier
         required: true
-    fidelity: mockup
   - type: decision
     id: decision-377da22e
     name: User exists
@@ -41,7 +40,6 @@ nodes:
       - name: code
         type: otp
         required: false
-    fidelity: mockup
   - type: action
     id: action-97e9d65c
     name: Verify OTP code
@@ -62,7 +60,6 @@ nodes:
       - name: passkey
         type: passkey
         required: false
-    fidelity: mockup
   - type: outcome
     id: outcome-551ddb32
     name: Passkey associated
@@ -85,7 +82,6 @@ nodes:
       - name: Terms and Conditions
         type: consent-checkbox
         required: false
-    fidelity: mockup
   - type: outcome
     id: outcome-3581d005
     name: Account created

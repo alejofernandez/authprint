@@ -36,7 +36,6 @@ const sampleFlow: Flow = {
       kind: 'identifier-collect',
       traits: ['captcha'],
       fields: [{ name: 'email', type: 'identifier', required: true }],
-      fidelity: 'lo-fi',
     },
     {
       type: 'decision',

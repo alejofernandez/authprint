@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
-import { ScreenFidelityView } from '../nodes/screen/ScreenFidelityView.tsx';
+import { ScreenMockup } from '../nodes/screen/ScreenMockup.tsx';
 import { PLAYER_ACTION_HIGHLIGHT_CLASS } from '../nodes/screen/screenActionHighlight.tsx';
 import { resolveScreenTheme } from '../nodes/screen/screenTheme.ts';
 import { isWarmOutcomeKind, nodeKindLabel } from './playerClipTone.ts';
@@ -94,7 +94,7 @@ function PresentationScaleBlock({
   );
 }
 
-/** Screen at recording head — fidelity view + clickable exit actions. */
+/** Screen at recording head — mockup + clickable exit actions. */
 export function RecordModeScreenStage({
   node,
   flow,
@@ -117,7 +117,7 @@ export function RecordModeScreenStage({
         className={`${screenTheme === 'dark' ? 'flow-theme-dark ' : ''}origin-center`}
       >
         <div className="rounded-xl border border-border-default bg-bg-panel shadow-sm">
-          <ScreenFidelityView
+          <ScreenMockup
             node={node}
             branding={branding}
             stageLayout="player"

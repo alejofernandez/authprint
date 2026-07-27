@@ -10,12 +10,10 @@ import {
   fixtureOutcomeSuccess,
   fixturePendingDecision,
   fixtureRecordFlow,
-  fixtureScreenLoFi,
   fixtureScreenMfa,
   fixtureScreenMockup,
   fixtureScreenMockupWithErrorBanner,
   fixtureScreenPasskeyEnroll,
-  fixtureScreenWireframe,
   stepAction,
   stepActionVerify,
   stepDecision,
@@ -125,25 +123,6 @@ export const ScreenMockupSkipLight: Story = {
     step: stepScreenPasskeySkip,
     node: fixtureScreenPasskeyEnroll,
     branding,
-    flowTheme: 'light',
-  },
-};
-
-export const ScreenWireframeLight: Story = {
-  args: {
-    theme: 'light',
-    step: stepScreenMockup,
-    node: fixtureScreenWireframe,
-    flowTheme: 'light',
-  },
-};
-
-export const ScreenLoFiLight: Story = {
-  args: {
-    theme: 'light',
-    height: 300,
-    step: stepScreenMockup,
-    node: fixtureScreenLoFi,
     flowTheme: 'light',
   },
 };

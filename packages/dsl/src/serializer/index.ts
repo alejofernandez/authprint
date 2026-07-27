@@ -114,7 +114,6 @@ function canonicalizeScreen(n: ScreenNode): Record<string, unknown> {
   };
   if (n.traits.length > 0) out.traits = n.traits;
   if (n.fields.length > 0) out.fields = n.fields.map(canonicalizeField);
-  if (n.fidelity !== 'lo-fi') out.fidelity = n.fidelity;
   return out;
 }
 

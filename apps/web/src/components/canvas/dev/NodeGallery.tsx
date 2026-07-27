@@ -26,7 +26,6 @@ const sampleNodes: { id: string; type: keyof typeof nodeTypes; dslNode: DslNode 
       kind: 'identifier-collect',
       traits: [],
       fields: [],
-      fidelity: 'lo-fi',
     },
   },
   {

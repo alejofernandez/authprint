@@ -17,7 +17,6 @@ import {
   ACTION_KINDS_BUILTIN,
   DECISION_KINDS_BUILTIN,
   EXTERNAL_KINDS_BUILTIN,
-  FIDELITIES,
   FIELD_TYPES_BUILTIN,
   OUTCOME_KINDS_BUILTIN,
   PREDICATE_OPS,
@@ -33,7 +32,6 @@ export type NodeEditActions = {
   setName: (id: string, name: string) => void;
   setKind: (id: string, kind: string) => void;
   setErrorMessage: (id: string, errorMessage: string) => void;
-  setFidelity: (id: string, fidelity: 'lo-fi' | 'wireframe' | 'mockup') => void;
   setTraits: (id: string, traits: string[]) => void;
   setFields: (id: string, fields: Field[]) => void;
   setPredicate: (id: string, predicate: Predicate) => void;
@@ -220,27 +218,6 @@ export function NodeInlineEditor({
               value={node.kind}
               onChange={(kind) => actions.setKind(node.id, kind)}
             />
-          </label>
-        )}
-
-        {screen && (
-          <label className="block space-y-1">
-            <span className="text-xs text-fg-subtle dark:text-fg-subtle">
-              {t('labels.fidelity')}
-            </span>
-            <select
-              className={inputCls}
-              defaultValue={screen.fidelity}
-              onChange={(e) =>
-                actions.setFidelity(node.id, e.target.value as 'lo-fi' | 'wireframe' | 'mockup')
-              }
-            >
-              {FIDELITIES.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
           </label>
         )}
 

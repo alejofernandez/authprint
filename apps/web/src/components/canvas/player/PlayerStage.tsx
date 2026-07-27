@@ -10,7 +10,7 @@ import type {
   ScreenNode,
 } from '@authprint/dsl';
 import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
-import { ScreenFidelityView } from '../nodes/screen/ScreenFidelityView.tsx';
+import { ScreenMockup } from '../nodes/screen/ScreenMockup.tsx';
 import { resolveScreenTheme } from '../nodes/screen/screenTheme.ts';
 import { divergenceDetail, divergenceFocusNodeId, divergenceHeadline } from './divergenceCopy.ts';
 import { isWarmOutcomeKind, nodeKindLabel } from './playerClipTone.ts';
@@ -346,7 +346,7 @@ function ScreenStageFrame({
       style={immersive ? undefined : { transform: `scale(${STAGE_PRESENTATION_SCALE})` }}
     >
       <div className="rounded-xl border border-border-default bg-bg-panel shadow-sm">
-        <ScreenFidelityView
+        <ScreenMockup
           node={node}
           branding={branding}
           errorBannerCopy={errorBannerCopy}
@@ -390,7 +390,7 @@ function InterstitialOverlayStage({
         className="pointer-events-none select-none rounded-xl border border-border-default bg-bg-panel opacity-55 shadow-sm saturate-[0.88]"
         aria-hidden
       >
-        <ScreenFidelityView
+        <ScreenMockup
           node={backdropNode}
           branding={branding}
           errorBannerCopy={null}

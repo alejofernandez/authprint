@@ -334,14 +334,6 @@ export function setNodeErrorMessage(
   return ok;
 }
 
-export function setScreenFidelity(
-  doc: Y.Doc,
-  id: string,
-  fidelity: 'lo-fi' | 'wireframe' | 'mockup',
-): OpResult {
-  return withNode(doc, id, (node) => node.set('fidelity', fidelity));
-}
-
 // Traits/fields are replaced wholesale (a fresh Y.Array) on each edit — granular
 // per-item CRDT merge isn't needed for single-user v1, and replace keeps the
 // editor simple. The nested-Y.Array shape is preserved for when it matters.

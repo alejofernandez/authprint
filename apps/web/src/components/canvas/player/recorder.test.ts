@@ -161,7 +161,6 @@ nodes:
     kind: mfa-challenge
     traits: []
     fields: []
-    fidelity: lo-fi
   - type: decision
     id: d-valid
     kind: code-valid
@@ -206,7 +205,6 @@ nodes:
     kind: mfa-challenge
     traits: []
     fields: []
-    fidelity: lo-fi
   - type: decision
     id: d-valid
     kind: code-valid

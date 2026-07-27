@@ -16,7 +16,6 @@ const flow: Flow = {
       kind: 'password',
       traits: [],
       fields: [],
-      fidelity: 'lo-fi',
     },
     {
       type: 'decision',

@@ -69,7 +69,6 @@ describe('node round-trip', () => {
         { name: 'identifier', type: 'identifier', required: true },
         { name: 'password', type: 'password', required: false },
       ],
-      fidelity: 'wireframe',
     },
     {
       type: 'decision',
@@ -100,7 +99,6 @@ describe('node round-trip', () => {
       kind: 'password',
       traits: ['error-banner'],
       fields: [],
-      fidelity: 'mockup',
     },
     { type: 'outcome', id: 'o1', name: 'Authenticated', kind: 'authenticated' },
   ];
@@ -129,7 +127,6 @@ describe('node round-trip', () => {
       kind: 'k',
       traits: [],
       fields: [],
-      fidelity: 'lo-fi',
     }) as Extract<DslNode, { type: 'screen' }>;
     expect(read.traits).toEqual([]);
     expect(read.fields).toEqual([]);

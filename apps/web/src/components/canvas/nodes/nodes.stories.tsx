@@ -31,7 +31,6 @@ const screen: ScreenNode = {
   kind: 'identifier-collect',
   traits: [],
   fields: [],
-  fidelity: 'lo-fi',
 };
 
 const decision: DecisionNode = {
@@ -66,12 +65,16 @@ const outcome: OutcomeNode = {
 export const EntryLight: Story = { args: { type: 'entry', node: entry, theme: 'light' } };
 export const EntryDark: Story = { args: { type: 'entry', node: entry, theme: 'dark' } };
 
-export const ScreenLight: Story = { args: { type: 'screen', node: screen, theme: 'light' } };
+const screenCanvas = { width: 360, height: 380 };
+
+export const ScreenLight: Story = {
+  args: { type: 'screen', node: screen, theme: 'light', ...screenCanvas },
+};
 export const ScreenDark: Story = {
-  args: { type: 'screen', node: screen, theme: 'dark', flowTheme: 'dark' },
+  args: { type: 'screen', node: screen, theme: 'dark', flowTheme: 'dark', ...screenCanvas },
 };
 
-// Mockup-fidelity screens (US-067) — render as real auth screens.
+// Screen mockups (US-067) — render as real auth screens.
 const passwordMockup: ScreenNode = {
   type: 'screen',
   id: 'password',
@@ -82,7 +85,6 @@ const passwordMockup: ScreenNode = {
     { name: 'email', type: 'email', required: true },
     { name: 'password', type: 'password', required: true },
   ],
-  fidelity: 'mockup',
 };
 
 const otpMockup: ScreenNode = {
@@ -92,7 +94,6 @@ const otpMockup: ScreenNode = {
   kind: 'mfa-challenge',
   traits: [],
   fields: [{ name: 'code', type: 'otp', required: true }],
-  fidelity: 'mockup',
 };
 
 const providerMockup: ScreenNode = {
@@ -102,7 +103,6 @@ const providerMockup: ScreenNode = {
   kind: 'provider-select',
   traits: [],
   fields: [],
-  fidelity: 'mockup',
 };
 
 const mockupCanvas = { width: 360, height: 380 };
@@ -143,7 +143,6 @@ const passwordTraitsMockup: ScreenNode = {
     { name: 'email', type: 'email', required: true },
     { name: 'password', type: 'password', required: true },
   ],
-  fidelity: 'mockup',
 };
 
 const mockupTraitsCanvas = { width: 360, height: 460 };
@@ -171,7 +170,6 @@ const errorBannerScreen: ScreenNode = {
     { name: 'email', type: 'email', required: true },
     { name: 'password', type: 'password', required: true },
   ],
-  fidelity: 'mockup',
 };
 
 const errorBannerCanvas = { width: 360, height: 420 };
@@ -195,20 +193,11 @@ export const ScreenMockupErrorBannerDark: Story = {
     ...errorBannerCanvas,
   },
 };
-export const ScreenWireframeErrorBannerLight: Story = {
-  args: {
-    type: 'screen',
-    node: { ...errorBannerScreen, fidelity: 'wireframe' },
-    theme: 'light',
-    displayErrorState: true,
-    ...errorBannerCanvas,
-  },
-};
-
-// Fidelity tiers (US-069) — same password screen across mockup / wireframe / lo-fi.
-const passwordFidelityScreen: ScreenNode = {
+// Flow.branding.theme axis (US-070) — editor vs flow theme combos.
+// `theme: both` follows the editor theme (see screenTheme.ts).
+const passwordThemeScreen: ScreenNode = {
   type: 'screen',
-  id: 'password-fidelity',
+  id: 'password-theme',
   name: 'Sign in',
   kind: 'password',
   traits: [],
@@ -216,91 +205,35 @@ const passwordFidelityScreen: ScreenNode = {
     { name: 'email', type: 'email', required: true },
     { name: 'password', type: 'password', required: true },
   ],
-  fidelity: 'mockup',
 };
 
-const fidelityTierCanvas = { width: 360, height: 380 };
-const loFiTierCanvas = { width: 360, height: 260 };
+const themeCanvas = { width: 360, height: 380 };
 
-export const ScreenFidelityMockupLight: Story = {
-  args: {
-    type: 'screen',
-    node: { ...passwordFidelityScreen, fidelity: 'mockup' },
-    theme: 'light',
-    ...fidelityTierCanvas,
-  },
-};
-export const ScreenFidelityMockupDark: Story = {
-  args: {
-    type: 'screen',
-    node: { ...passwordFidelityScreen, fidelity: 'mockup' },
-    theme: 'dark',
-    flowTheme: 'dark',
-    ...fidelityTierCanvas,
-  },
-};
-export const ScreenFidelityWireframeLight: Story = {
-  args: {
-    type: 'screen',
-    node: { ...passwordFidelityScreen, fidelity: 'wireframe' },
-    theme: 'light',
-    ...fidelityTierCanvas,
-  },
-};
-export const ScreenFidelityWireframeDark: Story = {
-  args: {
-    type: 'screen',
-    node: { ...passwordFidelityScreen, fidelity: 'wireframe' },
-    theme: 'dark',
-    flowTheme: 'dark',
-    ...fidelityTierCanvas,
-  },
-};
-export const ScreenFidelityLoFiLight: Story = {
-  args: {
-    type: 'screen',
-    node: { ...passwordFidelityScreen, fidelity: 'lo-fi' },
-    theme: 'light',
-    ...loFiTierCanvas,
-  },
-};
-export const ScreenFidelityLoFiDark: Story = {
-  args: {
-    type: 'screen',
-    node: { ...passwordFidelityScreen, fidelity: 'lo-fi' },
-    theme: 'dark',
-    flowTheme: 'dark',
-    ...loFiTierCanvas,
-  },
-};
-
-// Flow.branding.theme axis (US-070) — editor vs flow theme combos (mockup password screen).
-// `theme: both` follows the editor theme (see screenTheme.ts).
 export const ScreenFlowThemeEditorLightFlowDark: Story = {
   args: {
     type: 'screen',
-    node: { ...passwordFidelityScreen, fidelity: 'mockup' },
+    node: passwordThemeScreen,
     theme: 'light',
     flowTheme: 'dark',
-    ...fidelityTierCanvas,
+    ...themeCanvas,
   },
 };
 export const ScreenFlowThemeEditorDarkFlowLight: Story = {
   args: {
     type: 'screen',
-    node: { ...passwordFidelityScreen, fidelity: 'mockup' },
+    node: passwordThemeScreen,
     theme: 'dark',
     flowTheme: 'light',
-    ...fidelityTierCanvas,
+    ...themeCanvas,
   },
 };
 export const ScreenFlowThemeBothFollowsEditorDark: Story = {
   args: {
     type: 'screen',
-    node: { ...passwordFidelityScreen, fidelity: 'mockup' },
+    node: passwordThemeScreen,
     theme: 'dark',
     flowTheme: 'both',
-    ...fidelityTierCanvas,
+    ...themeCanvas,
   },
 };
 

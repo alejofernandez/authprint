@@ -30,9 +30,9 @@ function step(
 
 export const fixtureEntry: EntryNode = { type: 'entry', id: 'e1' };
 
-export const fixtureScreenLoFi: ScreenNode = {
+export const fixtureScreenMockup: ScreenNode = {
   type: 'screen',
-  id: 's-lofi',
+  id: 's-mock',
   name: 'Sign in',
   kind: 'password',
   traits: [],
@@ -40,19 +40,6 @@ export const fixtureScreenLoFi: ScreenNode = {
     { name: 'email', type: 'email', required: true },
     { name: 'password', type: 'password', required: true },
   ],
-  fidelity: 'lo-fi',
-};
-
-export const fixtureScreenWireframe: ScreenNode = {
-  ...fixtureScreenLoFi,
-  id: 's-wire',
-  fidelity: 'wireframe',
-};
-
-export const fixtureScreenMockup: ScreenNode = {
-  ...fixtureScreenLoFi,
-  id: 's-mock',
-  fidelity: 'mockup',
 };
 
 export const fixtureScreenMockupWithErrorBanner: ScreenNode = {
@@ -68,7 +55,6 @@ export const fixtureScreenMfa: ScreenNode = {
   kind: 'mfa-challenge',
   traits: [],
   fields: [{ name: 'code', type: 'otp', required: true }],
-  fidelity: 'mockup',
 };
 
 export const fixtureScreenPasskeyEnroll: ScreenNode = {
@@ -78,7 +64,6 @@ export const fixtureScreenPasskeyEnroll: ScreenNode = {
   kind: 'passkey-enroll',
   traits: ['passkey-promotion'],
   fields: [{ name: 'passkey', type: 'passkey', required: true }],
-  fidelity: 'mockup',
 };
 
 export const fixtureActionVerify: ActionNode = {

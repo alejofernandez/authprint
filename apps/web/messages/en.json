@@ -75,7 +75,6 @@
     "labels": {
       "name": "Name",
       "kind": "Kind",
-      "fidelity": "Fidelity",
       "errorMessage": "Error message"
     },
     "traits": {

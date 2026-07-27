@@ -21,7 +21,6 @@ function node(
         kind: 'login',
         traits: [],
         fields: [],
-        fidelity: 'lo-fi',
       },
       ariaLabel: id,
     },

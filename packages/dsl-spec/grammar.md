@@ -122,7 +122,6 @@ nodes:                        # optional, default: []
       - name: <string>
         type: <FieldType>       # built-in or custom; see vocabulary.md
         required: <true | false>
-    fidelity: <lo-fi | wireframe | mockup>
 
   # Decision
   - type: decision
@@ -244,7 +243,7 @@ Bundled `.authprint` files use the same shape under a top-level `layout:` key (n
 | Field | Applies to | Default | Meaning |
 |---|---|---|---|
 | `x`, `y` | all nodes | — | Canvas position |
-| `displayErrorState` | screens with `error-banner` | `false` (omitted) | When `true`, wireframe/mockup tiers show the error-banner preview on the static canvas. Scenario playback shows the banner regardless (derived from the run). |
+| `displayErrorState` | screens with `error-banner` | `false` (omitted) | When `true`, the screen shows the error-banner preview on the static canvas. Scenario playback shows the banner regardless (derived from the run). |
 
 Same strict YAML subset applies. Nodes without entries fall back to auto-layout.
 

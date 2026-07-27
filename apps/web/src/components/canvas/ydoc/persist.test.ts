@@ -46,7 +46,6 @@ const flow: Flow = {
       kind: 'identifier-collect',
       traits: [],
       fields: [],
-      fidelity: 'lo-fi',
     },
     { type: 'outcome', id: 'o1', name: 'Done', kind: 'authenticated' },
   ],

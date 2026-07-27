@@ -25,7 +25,6 @@ import {
   setNodeName,
   setPrimaryColor,
   setScreenDisplayErrorState,
-  setScreenFidelity,
   setScreenFields,
   setScreenTraits,
   swapEdgeTriggers,
@@ -56,7 +55,6 @@ function base() {
         kind: 'identifier-collect',
         traits: [],
         fields: [],
-        fidelity: 'lo-fi',
       },
       {
         type: 'decision',
@@ -256,16 +254,14 @@ describe('attribute edits', () => {
     expect(setNodeErrorMessage(doc, 's1', 'nope').ok).toBe(false);
   });
 
-  test('setScreenFidelity, traits, fields replace cleanly and round-trip', () => {
+  test('setScreenTraits, fields replace cleanly and round-trip', () => {
     const doc = base();
-    setScreenFidelity(doc, 's1', 'wireframe');
     setScreenTraits(doc, 's1', ['captcha', 'remember-me']);
     setScreenFields(doc, 's1', [
       { name: 'email', type: 'identifier', required: true },
       { name: 'pw', type: 'password', required: false },
     ]);
     const s = screenOf(doc);
-    expect(s.fidelity).toBe('wireframe');
     expect(s.traits).toEqual(['captcha', 'remember-me']);
     expect(s.fields).toEqual([
       { name: 'email', type: 'identifier', required: true },

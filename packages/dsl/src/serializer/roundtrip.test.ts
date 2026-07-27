@@ -45,7 +45,6 @@ describe('round-trip — hand-built flows', () => {
             { name: 'identifier', type: 'identifier', required: true },
             { name: 'password', type: 'password', required: true },
           ],
-          fidelity: 'wireframe',
         },
         {
           type: 'decision',

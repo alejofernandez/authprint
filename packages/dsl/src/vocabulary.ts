@@ -141,11 +141,6 @@ export const FIELD_TYPES_BUILTIN = [
 export type FieldTypeBuiltin = (typeof FIELD_TYPES_BUILTIN)[number];
 export type FieldType = FieldTypeBuiltin | (string & {});
 
-// ─── Screen fidelity (CLOSED set) ───────────────────────────────────────────
-
-export const FIDELITIES = ['lo-fi', 'wireframe', 'mockup'] as const;
-export type Fidelity = (typeof FIDELITIES)[number];
-
 // ─── Flow theme (CLOSED set) ────────────────────────────────────────────────
 
 export const FLOW_THEMES = ['light', 'dark', 'both'] as const;

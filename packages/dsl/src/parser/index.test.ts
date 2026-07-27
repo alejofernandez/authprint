@@ -98,7 +98,6 @@ nodes:
     kind: password
     traits: ["this-trait-is-not-real"]
     fields: []
-    fidelity: lo-fi
 `);
     expect(r.flow).toBeNull();
     const schemaError = r.diagnostics.find((d) => d.code === 'schema-violation');
@@ -119,7 +118,6 @@ nodes:
     kind: completely-custom-kind
     traits: []
     fields: []
-    fidelity: lo-fi
 `);
     expect(r.flow).not.toBeNull();
     expect(r.diagnostics.some((d) => d.code === 'vocabulary-unknown-screen-kind')).toBe(true);
@@ -139,7 +137,6 @@ nodes:
       - name: weird
         type: not-a-real-field-type
         required: true
-    fidelity: lo-fi
 `);
     expect(r.flow).not.toBeNull();
     expect(r.diagnostics.some((d) => d.code === 'vocabulary-unknown-field-type')).toBe(true);
@@ -159,7 +156,6 @@ nodes:
       - name: identifier
         type: identifier
         required: true
-    fidelity: lo-fi
   - type: external
     id: x1
     name: Google
@@ -171,5 +167,30 @@ nodes:
 `);
     expect(r.flow).not.toBeNull();
     expect(r.diagnostics.filter((d) => d.code.startsWith('vocabulary-'))).toEqual([]);
+  });
+});
+
+describe('parse — legacy fidelity key', () => {
+  test('fidelity: mockup and fidelity: wireframe parse and are dropped', () => {
+    for (const fidelity of ['mockup', 'wireframe', 'lo-fi', 'anything']) {
+      const r = parse(`
+id: f1
+name: F1
+nodes:
+  - type: screen
+    id: s1
+    name: Sign in
+    kind: password
+    traits: []
+    fields: []
+    fidelity: ${fidelity}
+`);
+      expect(r.flow).not.toBeNull();
+      const screen = r.flow?.nodes.find((n) => n.id === 's1');
+      expect(screen?.type).toBe('screen');
+      if (screen?.type === 'screen') {
+        expect('fidelity' in screen).toBe(false);
+      }
+    }
   });
 });

@@ -43,9 +43,9 @@ describe('layoutFlow', () => {
     expect(at(positions, 'o-authenticated-otp').x).toBeGreaterThan(at(positions, 'e1').x);
   });
 
-  test('spaces mockup-fidelity screens by their larger box (no overlap)', async () => {
+  test('spaces screens by their mockup box (no overlap)', async () => {
     // Two sibling screens off a decision land in the same layer (same x),
-    // stacked vertically. With mockup fidelity they get the larger size hint
+    // stacked vertically. Screens use the mockup size hint
     // (E39/US-067), so ELK must separate them by at least the card height.
     const mockupHeight = nodeSize({
       type: 'screen',
@@ -54,7 +54,6 @@ describe('layoutFlow', () => {
       kind: 'password',
       traits: [],
       fields: [],
-      fidelity: 'mockup',
     }).height;
 
     const flow: Flow = {
@@ -76,7 +75,6 @@ describe('layoutFlow', () => {
           kind: 'password',
           traits: [],
           fields: [],
-          fidelity: 'mockup',
         },
         {
           type: 'screen',
@@ -85,7 +83,6 @@ describe('layoutFlow', () => {
           kind: 'password',
           traits: [],
           fields: [],
-          fidelity: 'mockup',
         },
       ],
       edges: [
