@@ -74,12 +74,14 @@ nodes:
       op: equals
       value: true
 
+  # No `alternative-method-link` trait: this screen models the alternative as a
+  # real `try-another-method` action below, and carrying both would advertise it
+  # twice (US-128). The trait is for affordances whose destination is out of
+  # scope, as in examples/passkey-enrollment.authprint.
   - type: screen
     id: s-passkey-auth
     name: Sign in with passkey
     kind: passkey-auth
-    traits:
-      - alternative-method-link
 
   - type: screen
     id: s-signin-method-select

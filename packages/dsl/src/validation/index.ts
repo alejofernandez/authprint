@@ -4,8 +4,9 @@
 // Diagnostic[]. Pure function over a parsed Flow — no side effects, no I/O.
 //
 // Severity policy:
-//   - error: blocks valid DSL export; surfaced as a red ring in the canvas.
-//   - warning: doesn't block; surfaced as a yellow indicator.
+//   - error: the flow could not run; red ring on the canvas.
+//   - warning: probably a mistake; amber ring.
+//   - info: accepted and legal; no canvas cue at all, listed only in Problems.
 //
 // Use isErrorFree(diagnostics) or canExport(flow) to gate exports.
 
@@ -13,6 +14,7 @@ import { type Diagnostic, isErrorFree } from '../diagnostic.ts';
 import type { Flow } from '../schema/flow.ts';
 import { checkContextIntegrity } from './context.ts';
 import { checkEdgeCompleteness } from './edge-completeness.ts';
+import { checkRedundantLinkTraits } from './redundancy.ts';
 import { checkReferences } from './references.ts';
 import { checkStructure } from './structure.ts';
 import { checkVocabulary } from './vocabulary.ts';
@@ -32,6 +34,7 @@ export function validate(flow: Flow): Diagnostic[] {
     ...checkReferences(flow),
     ...checkContextIntegrity(flow),
     ...checkVocabulary(flow),
+    ...checkRedundantLinkTraits(flow),
   ];
 
   return sortDiagnostics(diagnostics);

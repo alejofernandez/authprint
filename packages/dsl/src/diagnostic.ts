@@ -44,6 +44,7 @@ export type DiagnosticCode =
   | 'validation-outcome-has-outgoing-edge'
   | 'validation-trigger-incompatible-with-source'
   | 'validation-screen-duplicate-interaction'
+  | 'validation-redundant-link-trait'
 
   // ── Structural validation: reference integrity ──────────────────────────
   | 'validation-edge-source-not-found'

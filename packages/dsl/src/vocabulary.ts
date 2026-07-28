@@ -177,6 +177,29 @@ export const USER_ACTIONS_BUILTIN = [
 export type UserActionBuiltin = (typeof USER_ACTIONS_BUILTIN)[number];
 export type UserAction = UserActionBuiltin | (string & {});
 
+// ─── Link traits and the actions they stand for ─────────────────────────────
+// Two ways to say the same thing, both legitimate (§5): the trait says "there
+// is a link here" without modelling where it goes; the action is a modelled
+// transition. Carrying both means the screen advertises the affordance twice,
+// so renderers show the action and drop the trait's chrome, and validation
+// mentions it.
+//
+// Deliberately only the 1:1 pairs. `social-login-buttons` overlaps with the
+// per-provider actions (`google`, `apple`, …) but is 1:N and renders as a
+// different affordance (provider buttons, not a link), so it is not reconciled
+// here — see USABILITY UF-038.
+export const LINK_TRAIT_ACTION = {
+  'forgot-password-link': 'forgot-password',
+  'alternative-method-link': 'try-another-method',
+} as const satisfies Partial<Record<TraitId, UserActionBuiltin>>;
+
+export type LinkTrait = keyof typeof LINK_TRAIT_ACTION;
+
+/** The action a link trait stands for, or undefined when it stands for none. */
+export function actionForLinkTrait(trait: string): string | undefined {
+  return (LINK_TRAIT_ACTION as Record<string, string>)[trait];
+}
+
 // ─── Predicate operators (CLOSED set) ───────────────────────────────────────
 
 export const PREDICATE_OPS = [

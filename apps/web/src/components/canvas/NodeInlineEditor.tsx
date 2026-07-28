@@ -16,6 +16,7 @@ import type {
 } from '@authprint/dsl';
 import {
   ACTION_KINDS_BUILTIN,
+  actionForLinkTrait,
   DECISION_KINDS_BUILTIN,
   EXTERNAL_KINDS_BUILTIN,
   FIELD_TYPES_BUILTIN,
@@ -197,6 +198,7 @@ export function NodeInlineEditor({
   const decision = node.type === 'decision' ? node : null;
   const errorSource = node.type === 'action' || node.type === 'external' ? node : null;
   const screenActionRows = screen ? screenActions(flow, screen.id) : [];
+  const screenActionLabels = new Set(screenActionRows.map((a) => a.action));
 
   return (
     <div className="space-y-4">
@@ -281,9 +283,20 @@ export function NodeInlineEditor({
 
       {screen && (
         <Section title={t('sections.traits')}>
+          <p className="mb-1.5 text-[11px] text-fg-subtle">{t('traits.hint')}</p>
           <div className="flex flex-wrap gap-1">
             {TRAIT_IDS.map((trait) => {
               const on = screen.traits.includes(trait);
+              // A link trait stands for an action. Carrying both says the same
+              // thing twice, and the rendering now drops the trait, so say so
+              // where the choice is made rather than leaving a dead chip on.
+              const pairedAction = actionForLinkTrait(trait);
+              const redundant = on && !!pairedAction && screenActionLabels.has(pairedAction);
+              const traitTitle = pairedAction
+                ? redundant
+                  ? t('traits.redundant', { action: pairedAction })
+                  : t('traits.linkTrait', { action: pairedAction })
+                : undefined;
               if (trait === 'error-banner' && on) {
                 const visible = screenLayout?.displayErrorState === true;
                 return (
@@ -322,6 +335,7 @@ export function NodeInlineEditor({
                 <button
                   key={trait}
                   type="button"
+                  title={traitTitle}
                   onClick={() =>
                     actions.setTraits(
                       node.id,
@@ -329,9 +343,11 @@ export function NodeInlineEditor({
                     )
                   }
                   className={`rounded-full border px-2 py-0.5 font-mono text-[11px] ${
-                    on
-                      ? 'border-accent-primary-border bg-accent-primary-selected-bg text-accent-primary-selected-fg'
-                      : 'border-border-default text-fg-subtle dark:border-border-default dark:text-fg-subtle'
+                    redundant
+                      ? 'border-border-default text-fg-subtle line-through opacity-70 dark:border-border-default'
+                      : on
+                        ? 'border-accent-primary-border bg-accent-primary-selected-bg text-accent-primary-selected-fg'
+                        : 'border-border-default text-fg-subtle dark:border-border-default dark:text-fg-subtle'
                   }`}
                 >
                   {trait}

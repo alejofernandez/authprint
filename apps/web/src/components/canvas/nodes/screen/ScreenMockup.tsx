@@ -9,6 +9,7 @@
 // "Acme" + indigo placeholder when it hasn't.
 
 import type { Branding, Field, ScreenNode, TraitId } from '@authprint/dsl';
+import { actionForLinkTrait } from '@authprint/dsl';
 import { PlayerScreenCard } from './PlayerScreenCard.tsx';
 import {
   ActionHighlightShell,
@@ -183,13 +184,22 @@ export function ScreenMockup({
 }) {
   const cta = screenCta(node.kind);
   const traitSet = new Set(node.traits);
-  const traitsAfterCta = postCtaTraits(node.traits);
+
   const highlight = useScreenActionHighlight(node, highlightedAction, highlightedActionLabel);
   const companyName = branding?.companyName || PLACEHOLDER_COMPANY_NAME;
   const primaryColor = branding?.primaryColor || PLACEHOLDER_PRIMARY_COLOR;
   const playerFrame = stageLayout === 'player';
   const showErrorSlot = playerFrame && hasErrorBannerTrait(node.traits);
   const secondarySet = new Set(secondaryActions);
+  // A link trait and the action it stands for say the same thing, so the screen
+  // would advertise it twice (`alternative-method-link` renders "Try another
+  // way" next to a `try-another-method` action rendering "Try another method").
+  // The modelled transition wins: traits add no transitions (§5), so when both
+  // are present the trait is the one carrying no information. US-128 / UF-038.
+  const traitsAfterCta = postCtaTraits(node.traits).filter((trait) => {
+    const paired = actionForLinkTrait(trait);
+    return !paired || !secondarySet.has(paired);
+  });
   const showActionCallout =
     (highlight.target === 'retreat' || highlight.target === 'callout') &&
     !(highlightedAction && secondarySet.has(highlightedAction));
