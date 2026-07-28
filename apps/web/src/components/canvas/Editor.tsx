@@ -234,9 +234,15 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   useRecentFlowAutosave(sessionId ?? '', doc, flowName);
   const { hasUnexportedChanges, markExported } = useUnexportedChanges(doc);
 
+  // Deliberately NOT gated on `phase === 'active'` (UF-046). Going Home only
+  // parks the session: the doc, its session id and its dirty flag all survive,
+  // so edit → Home → Blank flow used to replace unexported work in silence
+  // while the same action from the canvas asked first. The guard is about
+  // *replacing* a session, not about which screen you happen to be looking at.
+  // `sessionId` keeps a cold start quiet, when there is nothing to replace.
   const needsReplaceConfirm = useCallback(
-    () => hasUnexportedChanges && phase === 'active',
-    [hasUnexportedChanges, phase],
+    () => hasUnexportedChanges && sessionId !== null,
+    [hasUnexportedChanges, sessionId],
   );
 
   const guardedReplace = useCallback(
@@ -403,9 +409,18 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
 
   const resumeRecent = useCallback(
     (entry: RecentFlowEntry) => {
-      loadFlowFromSource(entry.bundle, entry.name, { sessionId: entry.sessionId });
+      const resume = () =>
+        loadFlowFromSource(entry.bundle, entry.name, { sessionId: entry.sessionId });
+      // Reopening the session you are already in is a resume, not a replace:
+      // it restores the very work the prompt would be protecting. Only a switch
+      // to a *different* flow displaces anything.
+      if (entry.sessionId === sessionId) {
+        resume();
+        return;
+      }
+      guardedReplace(resume);
     },
-    [loadFlowFromSource],
+    [loadFlowFromSource, guardedReplace, sessionId],
   );
 
   const openFilePickerInner = useCallback(() => {
