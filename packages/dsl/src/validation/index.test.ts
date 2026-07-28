@@ -70,7 +70,7 @@ describe('validate — orchestrator', () => {
     expect(canExport(parsed.flow)).toBe(true);
   });
 
-  test('warning-only flow: canExport true', () => {
+  test('info-only flow (custom kind): no warning, no error, canExport true', () => {
     // Custom (unknown) kind triggers a vocabulary warning but no errors.
     const flow = FlowSchema.parse({
       id: 'f1',
@@ -96,8 +96,12 @@ describe('validate — orchestrator', () => {
       ],
     });
     const diagnostics = validate(flow);
-    // Should have a warning but no errors.
-    expect(diagnostics.some((d) => d.severity === 'warning')).toBe(true);
+    // A custom kind is accepted, so it is `info` — not a warning and not an
+    // error. Flagging an accepted value as a defect is what users pushed back
+    // on (USABILITY UF-043).
+    const custom = diagnostics.find((d) => d.code === 'vocabulary-unknown-screen-kind');
+    expect(custom?.severity).toBe('info');
+    expect(diagnostics.some((d) => d.severity === 'warning')).toBe(false);
     expect(diagnostics.some((d) => d.severity === 'error')).toBe(false);
     expect(canExport(flow)).toBe(true);
   });

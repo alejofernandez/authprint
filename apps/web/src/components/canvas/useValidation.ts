@@ -19,6 +19,8 @@ export type ValidationResult = {
   byEdge: Map<string, Diagnostic[]>;
   errorCount: number;
   warningCount: number;
+  /** Accepted-but-noteworthy count. Never drives a cue or a badge. */
+  infoCount: number;
 };
 
 function push(map: Map<string, Diagnostic[]>, id: string, d: Diagnostic) {
@@ -33,22 +35,26 @@ export function computeValidation(flow: Flow): ValidationResult {
   const byEdge = new Map<string, Diagnostic[]>();
   let errorCount = 0;
   let warningCount = 0;
+  let infoCount = 0;
 
   for (const d of diagnostics) {
     if (d.severity === 'error') errorCount++;
-    else warningCount++;
+    else if (d.severity === 'warning') warningCount++;
+    else infoCount++;
     if (d.target?.kind === 'node') push(byNode, d.target.id, d);
     else if (d.target?.kind === 'edge') push(byEdge, d.target.id, d);
     // target-less diagnostics (flow-level, scenario/context) count + list only.
   }
 
-  return { diagnostics, byNode, byEdge, errorCount, warningCount };
+  return { diagnostics, byNode, byEdge, errorCount, warningCount, infoCount };
 }
 
-/** Worst severity in a diagnostic list (error beats warning) — for node/edge styling. */
+/** Worst severity in a diagnostic list (error > warning > info) — for node/edge
+ *  styling. `info`-only lists return null: accepted values get no cue. */
 export function worstSeverity(diagnostics: Diagnostic[] | undefined): 'error' | 'warning' | null {
   if (!diagnostics || diagnostics.length === 0) return null;
-  return diagnostics.some((d) => d.severity === 'error') ? 'error' : 'warning';
+  if (diagnostics.some((d) => d.severity === 'error')) return 'error';
+  return diagnostics.some((d) => d.severity === 'warning') ? 'warning' : null;
 }
 
 export function useValidation(flow: Flow): ValidationResult {

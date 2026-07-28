@@ -26,33 +26,33 @@ export function checkVocabulary(flow: Flow): Diagnostic[] {
     switch (node.type) {
       case 'screen':
         if (!isBuiltinScreenKind(node.kind)) {
-          warnings.push(warn('vocabulary-unknown-screen-kind', node.kind, path, node.id));
+          warnings.push(note('vocabulary-unknown-screen-kind', node.kind, path, node.id));
         }
         node.fields.forEach((field, fi) => {
           const fpath = `nodes[${i}].fields[${fi}].type`;
           if (!isBuiltinFieldType(field.type)) {
-            warnings.push(warn('vocabulary-unknown-field-type', field.type, fpath, node.id));
+            warnings.push(note('vocabulary-unknown-field-type', field.type, fpath, node.id));
           }
         });
         break;
       case 'decision':
         if (!isBuiltinDecisionKind(node.kind)) {
-          warnings.push(warn('vocabulary-unknown-decision-kind', node.kind, path, node.id));
+          warnings.push(note('vocabulary-unknown-decision-kind', node.kind, path, node.id));
         }
         break;
       case 'action':
         if (!isBuiltinActionKind(node.kind)) {
-          warnings.push(warn('vocabulary-unknown-action-kind', node.kind, path, node.id));
+          warnings.push(note('vocabulary-unknown-action-kind', node.kind, path, node.id));
         }
         break;
       case 'external':
         if (!isBuiltinExternalKind(node.kind)) {
-          warnings.push(warn('vocabulary-unknown-external-kind', node.kind, path, node.id));
+          warnings.push(note('vocabulary-unknown-external-kind', node.kind, path, node.id));
         }
         break;
       case 'outcome':
         if (!isBuiltinOutcomeKind(node.kind)) {
-          warnings.push(warn('vocabulary-unknown-outcome-kind', node.kind, path, node.id));
+          warnings.push(note('vocabulary-unknown-outcome-kind', node.kind, path, node.id));
         }
         break;
       case 'entry':
@@ -64,10 +64,18 @@ export function checkVocabulary(flow: Flow): Diagnostic[] {
   return warnings;
 }
 
-function warn(code: DiagnosticCode, value: string, path: string, nodeId: string): Diagnostic {
+// `info`, not `warning`: these values are *accepted*. Flagging something the
+// tool takes happily as a problem is what users pushed back on (USABILITY
+// UF-005, then UF-043 from peer testing). The message already said "this is a
+// custom kind"; the severity was the part still calling it a defect.
+//
+// When E41 lands a `vocabulary:` declaration block (ADR 0002), *undeclared*
+// non-built-ins may earn `warning` back, since a typo will then be
+// distinguishable from a deliberate custom value. Declared ones go silent.
+function note(code: DiagnosticCode, value: string, path: string, nodeId: string): Diagnostic {
   const noun = code === 'vocabulary-unknown-field-type' ? 'field type' : 'kind';
   return {
-    severity: 'warning',
+    severity: 'info',
     code,
     message: `'${value}' is a custom ${noun} (not in the built-in vocabulary)`,
     path,

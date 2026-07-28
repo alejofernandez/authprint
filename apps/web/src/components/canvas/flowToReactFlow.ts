@@ -28,7 +28,9 @@ const EDGE_STROKE = { error: '#ef4444', warning: '#f59e0b' } as const;
 
 function edgeStroke(diagnostics: Diagnostic[] | undefined): string | null {
   if (!diagnostics || diagnostics.length === 0) return null;
-  return diagnostics.some((d) => d.severity === 'error') ? EDGE_STROKE.error : EDGE_STROKE.warning;
+  if (diagnostics.some((d) => d.severity === 'error')) return EDGE_STROKE.error;
+  // info-only → no recolour; the value is accepted (US-043).
+  return diagnostics.some((d) => d.severity === 'warning') ? EDGE_STROKE.warning : null;
 }
 
 // Which source handle an edge leaves from. Handle ids match the ones declared

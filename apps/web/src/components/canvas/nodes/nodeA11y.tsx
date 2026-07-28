@@ -58,10 +58,14 @@ export function CanvasNodeRoot({
   );
 }
 
-/** Non-color validation cue: icon badge paired with the colored error/warning ring. */
+/** Non-color validation cue: icon badge paired with the colored error/warning
+ *  ring. Renders nothing for `info`-only diagnostics — they get no ring, so a
+ *  badge would be a cue for a cue that isn't there (US-043). */
 export function ValidationCue({ diagnostics }: { diagnostics?: Diagnostic[] }) {
   if (!diagnostics || diagnostics.length === 0) return null;
   const isError = diagnostics.some((d) => d.severity === 'error');
+  const isWarning = diagnostics.some((d) => d.severity === 'warning');
+  if (!isError && !isWarning) return null;
   return (
     <span
       className="pointer-events-none absolute top-0 right-0 z-20 flex h-4 w-4 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full bg-bg-panel text-[10px] leading-none shadow-sm"

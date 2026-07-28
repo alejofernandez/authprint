@@ -8,6 +8,7 @@
 import type { Diagnostic } from '@authprint/dsl';
 import { useReactFlow } from '@xyflow/react';
 import { useState } from 'react';
+import { SEVERITY_GLYPH } from './nodes/nodeValidation.ts';
 import type { ValidationResult } from './useValidation.ts';
 
 export function ProblemsPanel({
@@ -20,9 +21,13 @@ export function ProblemsPanel({
   onToggleOutlines: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const { errorCount, warningCount, diagnostics } = validation;
+  const { errorCount, warningCount, infoCount, diagnostics } = validation;
   const { getNode, setCenter } = useReactFlow();
 
+  // `info` is deliberately absent from `total`: the pill stays in its clean
+  // state for a flow whose only diagnostics are accepted custom values. The
+  // list still opens on `diagnostics.length`, so they remain discoverable
+  // rather than merely silenced (US-043).
   const total = errorCount + warningCount;
 
   const focus = (d: Diagnostic) => {
@@ -36,7 +41,7 @@ export function ProblemsPanel({
 
   return (
     <div className="relative">
-      {open && total > 0 && (
+      {open && diagnostics.length > 0 && (
         <div className="absolute right-0 bottom-full z-10 mb-1 max-h-72 w-80 overflow-auto rounded-lg border border-border-subtle bg-bg-panel p-1 shadow-xl dark:border-border-default">
           {diagnostics.map((d, i) => (
             <button
@@ -51,7 +56,7 @@ export function ProblemsPanel({
                   : 'cursor-default'
               }`}
             >
-              <span className="mt-px shrink-0">{d.severity === 'error' ? '⛔' : '⚠️'}</span>
+              <span className="mt-px shrink-0">{SEVERITY_GLYPH[d.severity]}</span>
               <span className="text-fg-secondary dark:text-fg-muted">{d.message}</span>
             </button>
           ))}
@@ -67,12 +72,17 @@ export function ProblemsPanel({
       >
         <button
           type="button"
-          onClick={() => total > 0 && setOpen((o) => !o)}
+          onClick={() => diagnostics.length > 0 && setOpen((o) => !o)}
           className="flex items-center gap-2 px-2.5 py-1.5 text-sm"
           aria-expanded={open}
         >
           {total === 0 ? (
-            <span>✓ Valid</span>
+            <>
+              <span>✓ Valid</span>
+              {/* Keeps the clean (green) state — an accepted custom value is not
+                  a problem — while still offering a way in to read it. */}
+              {infoCount > 0 && <span className="text-xs opacity-70">ℹ️ {infoCount}</span>}
+            </>
           ) : (
             <>
               {errorCount > 0 && (

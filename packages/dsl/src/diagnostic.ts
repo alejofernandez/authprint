@@ -3,7 +3,15 @@
 // shape so consumers (CLI, canvas overlays, CI checks) can treat them
 // uniformly.
 
-export type DiagnosticSeverity = 'error' | 'warning';
+/**
+ * `error`   — the flow could not run. Describes the flow; does **not** gate the
+ *             tool (imports accept error-bearing files, so writes must too).
+ * `warning` — probably a mistake, worth looking at.
+ * `info`    — accepted and legal, mentioned only so it is discoverable. An
+ *             `info` must never decorate the canvas or inflate a problem count:
+ *             a value the tool accepts has no business looking like a defect.
+ */
+export type DiagnosticSeverity = 'error' | 'warning' | 'info';
 
 export type DiagnosticCode =
   // ── Parser codes ─────────────────────────────────────────────────────────

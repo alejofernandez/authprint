@@ -39,7 +39,13 @@ export function validate(flow: Flow): Diagnostic[] {
 
 /**
  * True iff the flow can be exported as valid DSL — i.e., `validate(flow)`
- * returns no `severity: 'error'` diagnostics. Warnings do not block export.
+ * returns no `severity: 'error'` diagnostics.
+ *
+ * NOTE: this is a predicate for **library consumers** (a CI gate, a publish
+ * step, a badge). It is deliberately NOT the editor's policy: Authprint never
+ * blocks a write on validation, because it accepts error-bearing files on
+ * import and refusing to write them back would strand the author's work.
+ * See REQUIREMENTS §6 (revised 2026-07-27).
  *
  * The serializer remains pure (always emits); callers gate exports by
  * consulting this helper separately.
@@ -49,11 +55,13 @@ export function canExport(flow: Flow): boolean {
 }
 
 // ─── Deterministic sort ─────────────────────────────────────────────────────
-// Order by (severity: error first), then (code alphabetical), then (path).
+// Order by (severity: error, then warning, then info), then (code
+// alphabetical), then (path).
 // Produces stable test output as the rule set grows.
 
 function sortDiagnostics(diagnostics: Diagnostic[]): Diagnostic[] {
-  const severityRank = (s: Diagnostic['severity']): number => (s === 'error' ? 0 : 1);
+  const severityRank = (s: Diagnostic['severity']): number =>
+    s === 'error' ? 0 : s === 'warning' ? 1 : 2;
   return [...diagnostics].sort((a, b) => {
     const sevDiff = severityRank(a.severity) - severityRank(b.severity);
     if (sevDiff !== 0) return sevDiff;
