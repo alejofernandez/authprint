@@ -61,6 +61,38 @@ describe('effective handles', () => {
     ).toBe('false');
     expect(effectiveTargetHandle('outcome', { targetSide: 'top' })).toBe(GEO_TARGET_TOP);
   });
+
+  test('screen and action top overrides map to top-out (UF-040)', () => {
+    expect(
+      effectiveSourceHandle(
+        'screen',
+        { type: 'interaction', action: 'resend-code' },
+        {
+          sourceSide: 'top',
+        },
+      ),
+    ).toBe(GEO_SOURCE_TOP);
+    expect(
+      effectiveSourceHandle(
+        'screen',
+        { type: 'interaction', action: 'submit' },
+        {
+          sourceSide: 'top',
+        },
+      ),
+    ).toBe(GEO_SOURCE_TOP);
+    expect(effectiveSourceHandle('action', { type: 'on-error' }, { sourceSide: 'top' })).toBe(
+      GEO_SOURCE_TOP,
+    );
+    expect(effectiveSourceHandle('action', { type: 'on-success' }, { sourceSide: 'top' })).toBe(
+      GEO_SOURCE_TOP,
+    );
+    // Without override, semantic defaults still apply (top was previously a silent no-op).
+    expect(effectiveSourceHandle('screen', { type: 'interaction', action: 'submit' })).toBe(
+      'default',
+    );
+    expect(effectiveSourceHandle('action', { type: 'on-error' })).toBe('on-error');
+  });
 });
 
 describe('decisionGeometricHandleVisible', () => {
@@ -293,5 +325,75 @@ describe('applyEdgeReconnect', () => {
     });
     expect(ok).toBe(true);
     expect(edgeLayoutMap(doc).get('e2')).toEqual({ sourceSide: 'bottom' });
+  });
+
+  test('UF-040: relocates screen and action edges onto top-out', () => {
+    const screenFlow: Flow = {
+      id: 'f',
+      name: 'F',
+      branding: { theme: 'light' },
+      context: {},
+      nodes: [
+        { type: 'entry', id: 'entry' },
+        {
+          type: 'screen',
+          id: 's1',
+          name: 'OTP',
+          kind: 'email-verify',
+          traits: [],
+          fields: [],
+        },
+        {
+          type: 'action',
+          id: 'a1',
+          name: 'Verify OTP',
+          kind: 'verify-otp',
+        },
+        { type: 'outcome', id: 'o1', name: 'Ok', kind: 'authenticated' },
+      ],
+      edges: [
+        { id: 'e1', source: 'entry', target: 's1', trigger: { type: 'unconditional' } },
+        {
+          id: 'e2',
+          source: 's1',
+          target: 'a1',
+          trigger: { type: 'interaction', action: 'submit' },
+        },
+        { id: 'e3', source: 'a1', target: 's1', trigger: { type: 'on-error' } },
+      ],
+      annotations: [],
+      scenarios: [],
+    };
+    const doc = hydrate(screenFlow);
+    expect(
+      applyEdgeReconnect(doc, screenFlow, {}, 'e2', {
+        source: 's1',
+        target: 'a1',
+        sourceHandle: GEO_SOURCE_TOP,
+        targetHandle: null,
+      }),
+    ).toBe(true);
+    expect(edgeLayoutMap(doc).get('e2')).toEqual({ sourceSide: 'top' });
+
+    expect(
+      applyEdgeReconnect(doc, screenFlow, {}, 'e3', {
+        source: 'a1',
+        target: 's1',
+        sourceHandle: GEO_SOURCE_TOP,
+        targetHandle: null,
+      }),
+    ).toBe(true);
+    expect(edgeLayoutMap(doc).get('e3')).toEqual({ sourceSide: 'top' });
+
+    // Move action error back to its semantic bottom — clears the override.
+    expect(
+      applyEdgeReconnect(doc, screenFlow, { e3: { sourceSide: 'top' } }, 'e3', {
+        source: 'a1',
+        target: 's1',
+        sourceHandle: 'on-error',
+        targetHandle: null,
+      }),
+    ).toBe(true);
+    expect(edgeLayoutMap(doc).has('e3')).toBe(false);
   });
 });

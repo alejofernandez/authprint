@@ -62,6 +62,10 @@ describe('triggerFor', () => {
     expect(triggerFor('screen', 'default')).toEqual({ type: 'interaction', action: 'submit' });
     expect(triggerFor('screen', 'alt')).toEqual({ type: 'interaction', action: 'back' });
   });
+  test('screen top-out is not a semantic catch-all (UF-040)', () => {
+    expect(triggerFor('screen', GEO_SOURCE_TOP)).toBeNull();
+    expect(triggerFor('screen', 'nonsense')).toBeNull();
+  });
   test('decision true/false → branch', () => {
     expect(triggerFor('decision', 'true')).toEqual({ type: 'branch', value: true });
     expect(triggerFor('decision', 'false')).toEqual({ type: 'branch', value: false });
@@ -165,6 +169,65 @@ describe('createConnectedNode', () => {
     expect(id).not.toBeNull();
     const edge = [...edgesMap(doc).values()].map(readEdgeMap).find((e) => e.target === id);
     expect(edge?.trigger).toEqual({ type: 'branch', value: true });
+    expect(edgeLayoutMap(doc).get(edge?.id ?? '')?.sourceSide).toBe('top');
+  });
+
+  test('UF-040: screen top-out creates submit with top side', () => {
+    const doc = hydrate(base());
+    const id = createConnectedNode(doc, {
+      sourceId: 's1',
+      sourceHandle: GEO_SOURCE_TOP,
+      type: 'outcome',
+      position: { x: 0, y: 0 },
+    });
+    expect(id).not.toBeNull();
+    const edge = [...edgesMap(doc).values()].map(readEdgeMap).find((e) => e.target === id);
+    expect(edge?.trigger).toEqual({ type: 'interaction', action: 'submit' });
+    expect(edgeLayoutMap(doc).get(edge?.id ?? '')?.sourceSide).toBe('top');
+  });
+
+  test('UF-040: screen top-out keeps sourceSide when US-125 overrides the action', () => {
+    const doc = hydrate(base());
+    const id = createConnectedNode(doc, {
+      sourceId: 's1',
+      sourceHandle: GEO_SOURCE_TOP,
+      type: 'outcome',
+      position: { x: 0, y: 0 },
+      triggerOverride: { type: 'interaction', action: 'resend-code' },
+    });
+    expect(id).not.toBeNull();
+    const edge = [...edgesMap(doc).values()].map(readEdgeMap).find((e) => e.target === id);
+    expect(edge?.trigger).toEqual({ type: 'interaction', action: 'resend-code' });
+    expect(edgeLayoutMap(doc).get(edge?.id ?? '')?.sourceSide).toBe('top');
+  });
+
+  test('UF-040: action top-out picks first open exit with top side', () => {
+    expect(resolveCreateFromHandle('action', 'a1', GEO_SOURCE_TOP, [])).toEqual({
+      trigger: { type: 'on-success' },
+      sourceSide: 'top',
+    });
+    expect(
+      resolveCreateFromHandle('action', 'a1', GEO_SOURCE_TOP, [
+        { id: 'e1', source: 'a1', target: 'o1', trigger: { type: 'on-success' } },
+      ]),
+    ).toEqual({ trigger: { type: 'on-error' }, sourceSide: 'top' });
+    expect(
+      resolveCreateFromHandle('action', 'a1', GEO_SOURCE_TOP, [
+        { id: 'e1', source: 'a1', target: 'o1', trigger: { type: 'on-success' } },
+        { id: 'e2', source: 'a1', target: 's1', trigger: { type: 'on-error' } },
+      ]),
+    ).toBeNull();
+
+    const doc = hydrate(base());
+    const id = createConnectedNode(doc, {
+      sourceId: 'a1',
+      sourceHandle: GEO_SOURCE_TOP,
+      type: 'outcome',
+      position: { x: 0, y: 0 },
+    });
+    expect(id).not.toBeNull();
+    const edge = [...edgesMap(doc).values()].map(readEdgeMap).find((e) => e.target === id);
+    expect(edge?.trigger).toEqual({ type: 'on-success' });
     expect(edgeLayoutMap(doc).get(edge?.id ?? '')?.sourceSide).toBe('top');
   });
 

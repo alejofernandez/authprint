@@ -59,8 +59,11 @@ export function triggerFor(sourceType: DslNode['type'], handleId: string | null)
     case 'entry':
       return { type: 'unconditional' };
     case 'screen':
-      // default → forward interaction, alt → retreat; label is editable later.
-      return { type: 'interaction', action: handleId === 'alt' ? 'back' : 'submit' };
+      // Explicit ids only — a catch-all would treat top-out as submit with no
+      // sourceSide (UF-040). Geometric handles go through resolveCreateFromHandle.
+      if (handleId === 'default') return { type: 'interaction', action: 'submit' };
+      if (handleId === 'alt') return { type: 'interaction', action: 'back' };
+      return null;
     case 'decision':
       if (handleId === 'true') return { type: 'branch', value: true };
       if (handleId === 'false') return { type: 'branch', value: false };
@@ -90,6 +93,10 @@ function branchUsed(edges: Edge[], sourceId: string, value: boolean): boolean {
   );
 }
 
+function actionExitUsed(edges: Edge[], sourceId: string, type: 'on-success' | 'on-error'): boolean {
+  return edges.some((e) => e.source === sourceId && e.trigger.type === type);
+}
+
 function triggersEqual(a: Trigger, b: Trigger): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
@@ -104,6 +111,22 @@ export function resolveCreateFromHandle(
 ): CreateFromHandle | null {
   const direct = triggerFor(sourceType, sourceHandle);
   if (direct) return { trigger: direct };
+
+  if (sourceHandle === GEO_SOURCE_TOP && sourceType === 'screen') {
+    // Same trigger the right-hand `+` would start with; US-125 picker runs in
+    // the Editor when that action is already used.
+    return { trigger: { type: 'interaction', action: 'submit' }, sourceSide: 'top' };
+  }
+
+  if (sourceHandle === GEO_SOURCE_TOP && sourceType === 'action') {
+    if (!actionExitUsed(edges, sourceId, 'on-success')) {
+      return { trigger: { type: 'on-success' }, sourceSide: 'top' };
+    }
+    if (!actionExitUsed(edges, sourceId, 'on-error')) {
+      return { trigger: { type: 'on-error' }, sourceSide: 'top' };
+    }
+    return null;
+  }
 
   if (sourceType !== 'decision') return null;
 
@@ -237,9 +260,11 @@ export function createConnectedNode(doc: Y.Doc, args: CreateConnectedNodeArgs): 
   if (!resolved) return null;
 
   const trigger = triggerOverride ?? resolved.trigger;
+  // Keep geometric sourceSide from the handle even when US-125 overrides the
+  // interaction label — otherwise top-out create silently lands on the right.
   const resolvedForLayout: CreateFromHandle = {
     trigger,
-    sourceSide: triggerOverride ? undefined : resolved.sourceSide,
+    sourceSide: resolved.sourceSide,
   };
 
   const nodeId = `${type}-${rid()}`;
@@ -290,7 +315,7 @@ export function connectNodes(doc: Y.Doc, args: ConnectNodesArgs): string | null 
   const trigger = triggerOverride ?? resolved.trigger;
   const resolvedForLayout: CreateFromHandle = {
     trigger,
-    sourceSide: triggerOverride ? undefined : resolved.sourceSide,
+    sourceSide: resolved.sourceSide,
   };
 
   const edge: Edge = {

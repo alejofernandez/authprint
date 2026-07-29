@@ -5,6 +5,7 @@
 
 import type { ScreenNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
+import { GEO_SOURCE_TOP } from '../connectionSides.ts';
 import { SourceHandlePlus } from './HandlePlus.tsx';
 import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
 import { canvasNodeOpacity, canvasNodeRing, canvasNodeTitle } from './nodeValidation.ts';
@@ -20,6 +21,8 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
   // Each `+` hides once its handle carries an edge (like every other node type).
   // A second interaction off an already-wired handle is added via drag-from-
   // handle (US-050), not by stacking another `+` on a connected handle.
+  // Top-out (UF-040) is drag/reconnect only — no `+`, so resting chrome stays
+  // the completeness signal (§7) and node baselines do not grow a third affordance.
   return (
     <CanvasNodeRoot
       nodeId={node.id}
@@ -37,6 +40,7 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
           secondaryActions={data.secondaryActions}
         />
       </div>
+      <Handle type="source" position={Position.Top} id={GEO_SOURCE_TOP} title="Exit from the top" />
       <Handle type="source" position={Position.Right} id="default" />
       <Handle type="source" position={Position.Bottom} id="alt" />
       <SourceHandlePlus

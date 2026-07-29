@@ -28,6 +28,10 @@ export function isGeometricSourceHandle(
   nodeType: DslNode['type'],
   handleId: string | null | undefined,
 ): boolean {
+  // Screen/Action top-out is geometric relocation only (UF-040) — no semantic id.
+  if (handleId === GEO_SOURCE_TOP && (nodeType === 'screen' || nodeType === 'action')) {
+    return true;
+  }
   return nodeType === 'decision' && DECISION_GEO_SOURCE_HANDLES.has(handleId ?? '');
 }
 
@@ -58,6 +62,8 @@ export function screenInteractionAllowedOnHandle(
   action: string,
   handleId: string | null | undefined,
 ): boolean {
+  // Geometric top is view-state relocation (UF-040), not a tier side — any action.
+  if (handleId === GEO_SOURCE_TOP) return true;
   const side = screenSourceHandleToSide(handleId);
   if (!side) return false;
   return screenActionAllowedOnSide(action, side === 'bottom' ? 'bottom' : 'right');
@@ -115,6 +121,9 @@ export function isSideRelocationSourceHandle(
 ): boolean {
   if (isGeometricSourceHandle(nodeType, handleId)) return true;
   if (nodeType === 'screen') return isScreenSourceHandle(handleId);
+  if (nodeType === 'action') {
+    return handleId === 'on-success' || handleId === 'on-error';
+  }
   if (nodeType !== 'decision') return false;
   return handleId === 'true' || handleId === 'false';
 }
@@ -166,7 +175,12 @@ export function effectiveSourceHandle(
   layout?: EdgeLayoutRecord,
 ): string | undefined {
   const side = layout?.sourceSide ?? defaultSourceSide(trigger);
-  if (nodeType === 'decision' && side === 'top') return GEO_SOURCE_TOP;
+  if (
+    side === 'top' &&
+    (nodeType === 'decision' || nodeType === 'screen' || nodeType === 'action')
+  ) {
+    return GEO_SOURCE_TOP;
+  }
   if (side === 'bottom') {
     const semantic = sourceHandleFor(trigger);
     if (semantic && sourceHandleToSide(semantic) === 'bottom') return semantic;

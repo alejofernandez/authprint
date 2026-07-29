@@ -264,6 +264,58 @@ describe('bundle round-trip', () => {
     expect(edgeLayoutMap(hydrate(flow, layout, edgeLayout)).get('e2')).toEqual(edgeLayout.e2);
   });
 
+  test('UF-040: screen/action top exits survive bundle save → reopen', () => {
+    const tidied: Flow = {
+      ...flow,
+      nodes: [
+        ...flow.nodes,
+        {
+          type: 'action',
+          id: 'a1',
+          name: 'Verify',
+          kind: 'verify-otp',
+        },
+        {
+          type: 'screen',
+          id: 's1',
+          name: 'OTP',
+          kind: 'email-verify',
+          traits: [],
+          fields: [],
+        },
+      ],
+      edges: [
+        ...flow.edges,
+        {
+          id: 'e-screen-up',
+          source: 's1',
+          target: 'entry',
+          trigger: { type: 'interaction', action: 'resend-code' },
+        },
+        {
+          id: 'e-action-up',
+          source: 'a1',
+          target: 's1',
+          trigger: { type: 'on-error' },
+        },
+      ],
+    };
+    const layout: LayoutPositions = {
+      entry: { x: 0, y: 0 },
+      s1: { x: 200, y: 200 },
+      a1: { x: 400, y: 200 },
+    };
+    const edgeLayout: EdgeRoutes = {
+      'e-screen-up': { sourceSide: 'top' },
+      'e-action-up': { sourceSide: 'top' },
+    };
+    const out = reload(serializeBundle({ flow: tidied, layout, edgeLayout }));
+    expect(out.edgeLayout).toEqual(edgeLayout);
+    const doc = hydrate(out.flow, out.layout, out.edgeLayout);
+    expect(edgeLayoutMap(doc).get('e-screen-up')).toEqual({ sourceSide: 'top' });
+    expect(edgeLayoutMap(doc).get('e-action-up')).toEqual({ sourceSide: 'top' });
+  });
+
   test('no manual positions → bundle is the plain semantic file (no layout: key)', () => {
     const bundle = serializeBundle({ flow, layout: {} });
     expect(bundle).toBe(serialize(flow));
