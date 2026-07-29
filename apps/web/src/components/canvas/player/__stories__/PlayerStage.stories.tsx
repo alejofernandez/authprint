@@ -164,6 +164,10 @@ export const InterstitialActionWithBackdropLight: Story = {
   },
 };
 
+// `flow` is what makes this story a real guard: the backdrop derives its action
+// links from it (US-126), and without a flow the baseline would happily accept a
+// backdrop that has silently dropped them and shrunk. That is the regression this
+// story now covers.
 export const InterstitialDecisionWithBackdropLight: Story = {
   args: {
     theme: 'light',
@@ -172,6 +176,7 @@ export const InterstitialDecisionWithBackdropLight: Story = {
     node: fixtureDecision,
     backdropStep: stepScreenMockup,
     backdropNode: fixtureScreenMockup,
+    flow: fixtureRecordFlow,
     branding,
     flowTheme: 'light',
   },

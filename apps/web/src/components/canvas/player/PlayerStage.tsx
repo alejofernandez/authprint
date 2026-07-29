@@ -296,6 +296,7 @@ function StageContent({
             branding={branding}
             editorTheme={editorTheme}
             flowTheme={flowTheme}
+            flow={flow}
             immersive={immersive}
           />
         );
@@ -374,6 +375,7 @@ function InterstitialOverlayStage({
   branding,
   editorTheme,
   flowTheme,
+  flow,
   immersive = false,
 }: {
   step: PlayerStep;
@@ -383,9 +385,18 @@ function InterstitialOverlayStage({
   branding?: Branding;
   editorTheme: 'light' | 'dark';
   flowTheme: FlowTheme;
+  flow?: Flow;
   immersive?: boolean;
 }) {
   const screenTheme = resolveScreenTheme(flowTheme, editorTheme);
+  // The backdrop is the same screen the previous step rendered, so it has to be
+  // derived the same way (US-126). Without this it drops its action links and
+  // the card visibly shrinks as the player steps onto a decision or action.
+  const backdropSecondaryActions = flow
+    ? screenActions(flow, backdropNode.id)
+        .filter((a) => a.prominence === 'secondary')
+        .map((a) => a.action)
+    : [];
 
   return (
     <div
@@ -402,6 +413,7 @@ function InterstitialOverlayStage({
           branding={branding}
           errorBannerCopy={null}
           stageLayout="player"
+          secondaryActions={backdropSecondaryActions}
         />
       </div>
       <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-bg-canvas/25 dark:bg-bg-canvas/45">
