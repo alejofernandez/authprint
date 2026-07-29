@@ -117,7 +117,6 @@ export function PlayButton({
               tab order. As a focusable button it was a full-viewport stop whose
               accessible name claimed it opened the picker while it closed it.
               Escape is the keyboard path (above). */}
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: pointer-only dismiss layer; Escape is the keyboard equivalent. */}
           <div
             aria-hidden="true"
             className="fixed inset-0 z-40 cursor-default"
