@@ -21,7 +21,13 @@ const CTA: Record<string, string | null> = {
   'phone-verify': 'Verify',
   'provider-select': null,
   'magic-link-sent': null,
-  'signup-confirmation': null,
+  // Not `null`, unlike its neighbour above. `magic-link-sent` is genuinely
+  // actionless — you leave it by clicking a link in an email — but a "your
+  // account is ready" screen almost always carries a button into the app.
+  // Since a screen's primary action is rendered *by* the kind CTA (US-126
+  // filters primary actions out of `secondaryActions`), mapping this to null
+  // made a screen with a `submit` edge render no button at all.
+  'signup-confirmation': 'Continue',
   'account-recovery': 'Continue',
   error: null,
   loading: null,
