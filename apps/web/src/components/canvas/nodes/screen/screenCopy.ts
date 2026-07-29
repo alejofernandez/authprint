@@ -21,6 +21,7 @@ const CTA: Record<string, string | null> = {
   'phone-verify': 'Verify',
   'provider-select': null,
   'magic-link-sent': null,
+  'signup-confirmation': null,
   'account-recovery': 'Continue',
   error: null,
   loading: null,

@@ -70,6 +70,37 @@ describe('validate — orchestrator', () => {
     expect(canExport(parsed.flow)).toBe(true);
   });
 
+  test('signup-confirmation builtin: no vocabulary diagnostic', () => {
+    // UF-042: once built-in, the kind must not emit vocabulary-unknown-screen-kind
+    // (info since UF-043). Assert absence of the diagnostic, not severity.
+    const flow = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      nodes: [
+        { type: 'entry', id: 'e1' },
+        {
+          type: 'screen',
+          id: 's1',
+          name: 'Account ready',
+          kind: 'signup-confirmation',
+        },
+        { type: 'outcome', id: 'o1', name: 'Done', kind: 'account-created' },
+      ],
+      edges: [
+        { id: 'edge-1', source: 'e1', target: 's1', trigger: { type: 'unconditional' } },
+        {
+          id: 'edge-2',
+          source: 's1',
+          target: 'o1',
+          trigger: { type: 'interaction', action: 'submit' },
+        },
+      ],
+    });
+    const diagnostics = validate(flow);
+    expect(diagnostics.some((d) => d.code === 'vocabulary-unknown-screen-kind')).toBe(false);
+    expect(diagnostics).toEqual([]);
+  });
+
   test('info-only flow (custom kind): no warning, no error, canExport true', () => {
     // Custom (unknown) kind triggers a vocabulary warning but no errors.
     const flow = FlowSchema.parse({

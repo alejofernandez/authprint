@@ -48,6 +48,7 @@ Curated kinds for `screen` nodes. Custom strings allowed; render with generic vi
 | `phone-verify` | Phone verification challenge |
 | `provider-select` | Identity-provider chooser (renamed from `idp-select`) |
 | `magic-link-sent` | "Check your email" confirmation after magic-link send |
+| `signup-confirmation` | "Your account is ready" confirmation after signup |
 | `account-recovery` | Account recovery entry point |
 | `error` | Error display |
 | `loading` | Async-operation loading state |

@@ -33,6 +33,7 @@ export const SCREEN_KINDS_BUILTIN = [
   'phone-verify',
   'provider-select',
   'magic-link-sent',
+  'signup-confirmation',
   'account-recovery',
   'error',
   'loading',
