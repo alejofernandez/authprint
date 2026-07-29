@@ -173,6 +173,13 @@
     "indicatorLabel": "Not exported",
     "indicatorTitle": "Saved locally, not exported as a file yet"
   },
+  "topbar": {
+    "home": "Home",
+    "open": "Open",
+    "save": "Save",
+    "playScenario": "Play {name}",
+    "recordScenario": "Record scenario"
+  },
   "player": {
     "context": {
       "toggle": "Context",

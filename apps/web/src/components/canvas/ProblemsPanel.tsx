@@ -1,7 +1,7 @@
-// Problems disclosure (E33 / US-058): a small corner badge with the live
-// error/warning counts; click to expand a dockable, dismissable list of all
-// diagnostics. Clicking a diagnostic that targets a node/edge centers it on the
-// canvas. Transient and opt-in — never a permanent side panel (a deliberate product anti-pattern).
+// Problems disclosure (E33 / US-058): a small badge with the live error/warning
+// counts; click to expand a dismissable list of all diagnostics. Clicking a
+// diagnostic that targets a node/edge centers it on the canvas. Lives in the
+// toolbar (US-132); the list opens downward.
 
 'use client';
 
@@ -40,9 +40,9 @@ export function ProblemsPanel({
   };
 
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       {open && diagnostics.length > 0 && (
-        <div className="absolute right-0 bottom-full z-10 mb-1 max-h-72 w-80 overflow-auto rounded-lg border border-border-subtle bg-bg-panel p-1 shadow-xl dark:border-border-default">
+        <div className="absolute top-full right-0 z-50 mt-1 max-h-72 w-80 overflow-auto rounded-lg border border-border-subtle bg-bg-panel p-1 shadow-xl dark:border-border-default">
           {diagnostics.map((d, i) => (
             <button
               // biome-ignore lint/suspicious/noArrayIndexKey: diagnostics are a stable derived list for this render
@@ -50,7 +50,7 @@ export function ProblemsPanel({
               type="button"
               disabled={d.target?.kind !== 'node'}
               onClick={() => focus(d)}
-              className={`flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-xs ${
+              className={`flex min-h-6 w-full items-start gap-2 rounded px-2 py-1.5 text-left text-xs ${
                 d.target?.kind === 'node'
                   ? 'cursor-pointer hover:bg-bg-canvas dark:hover:bg-bg-subtle'
                   : 'cursor-default'
@@ -73,7 +73,7 @@ export function ProblemsPanel({
         <button
           type="button"
           onClick={() => diagnostics.length > 0 && setOpen((o) => !o)}
-          className="flex items-center gap-2 px-2.5 py-1.5 text-sm"
+          className="flex min-h-6 items-center gap-2 px-2.5 py-1 text-sm"
           aria-expanded={open}
         >
           {total === 0 ? (
@@ -95,7 +95,7 @@ export function ProblemsPanel({
                   ⚠️ {warningCount}
                 </span>
               )}
-              <span className="text-fg-subtle text-xs">Problems</span>
+              <span className="hidden text-fg-subtle text-xs min-[420px]:inline">Problems</span>
             </>
           )}
         </button>
@@ -109,7 +109,7 @@ export function ProblemsPanel({
                 ? 'Hide validation outlines on the canvas'
                 : 'Show validation outlines on the canvas'
             }
-            className={`border-border-default border-l px-2 py-1.5 text-sm dark:border-border-default ${
+            className={`min-h-6 border-border-default border-l px-2 py-1 text-sm dark:border-border-default ${
               showOutlines
                 ? 'text-accent-primary-solid dark:text-accent-primary'
                 : 'text-fg-subtle line-through'

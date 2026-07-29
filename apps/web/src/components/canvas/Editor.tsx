@@ -10,7 +10,7 @@
 
 import '@xyflow/react/dist/style.css';
 
-import type { Flow } from '@authprint/dsl';
+import type { Flow, Scenario } from '@authprint/dsl';
 import {
   Background,
   type Connection,
@@ -69,7 +69,6 @@ import { type Notice, NoticeToast } from './NoticeToast.tsx';
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
 import { NodeActivateProvider } from './nodes/nodeA11y.tsx';
-import { ProblemsPanel } from './ProblemsPanel.tsx';
 import { PlayerMode } from './player/PlayerMode.tsx';
 import { PlayerModeProvider, useOptionalPlayerMode } from './player/PlayerModeContext.tsx';
 import { usePlayerMode } from './player/usePlayerMode.ts';
@@ -78,7 +77,6 @@ import { useRecentFlowAutosave } from './recentFlows/useRecentFlowAutosave.ts';
 import { useUnexportedChanges } from './recentFlows/useUnexportedChanges.ts';
 import { reconcileFlowEdges, reconcileFlowNodes } from './reconcileFlowState.ts';
 import { StartScreen } from './StartScreen.tsx';
-import { StatusCluster } from './StatusCluster.tsx';
 import { Topbar } from './Topbar.tsx';
 import { UnexportedChangesConfirmDialog } from './UnexportedChangesConfirmDialog.tsx';
 import { useValidation } from './useValidation.ts';
@@ -233,6 +231,11 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
   const flowTheme = flowBranding.theme;
   useRecentFlowAutosave(sessionId ?? '', doc, flowName);
   const { hasUnexportedChanges, markExported } = useUnexportedChanges(doc);
+  // Toolbar chrome (US-132) reads validation outside FlowCanvas; the canvas
+  // keeps its own copy for outline styling so the two stay independent.
+  const { flow: liveFlow } = useYDocFlow(doc);
+  const validation = useValidation(liveFlow);
+  const [showOutlines, setShowOutlines] = useState(false);
 
   // Deliberately NOT gated on `phase === 'active'` (UF-046). Going Home only
   // parks the session: the doc, its session id and its dirty flag all survive,
@@ -476,26 +479,23 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     next: stepPlayer,
     prev: backPlayer,
     togglePlay: togglePlayerPlay,
-    enterEmpty,
     enterPlay,
     enterEdit,
     startRecording,
   } = player;
 
-  const openPlayerEntry = useCallback(() => {
-    const flow = docToArtifact(doc).flow;
-    const [first] = flow.scenarios;
-    if (!first) {
-      enterEmpty(flow);
-      return;
-    }
-    enterPlay(first, flow);
-  }, [doc, enterEmpty, enterPlay]);
-
   const recordNewScenario = useCallback(() => {
     const flow = docToArtifact(doc).flow;
     startRecording(flow, tPlayer('defaultScenarioName'));
   }, [doc, startRecording, tPlayer]);
+
+  const playScenario = useCallback(
+    (scenario: Scenario) => {
+      const flow = docToArtifact(doc).flow;
+      enterPlay(scenario, flow);
+    },
+    [doc, enterPlay],
+  );
 
   const revealOnCanvas = useCallback(
     (nodeId: string) => {
@@ -510,8 +510,6 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
     },
     [exitPlayer, getNode, setCenter],
   );
-
-  const playFirstScenario = openPlayerEntry;
 
   const goHome = useCallback(() => {
     exitPlayer();
@@ -839,12 +837,23 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
         </>
       ) : (
         <div className="flex h-dvh w-full flex-col bg-bg-canvas">
-          <Topbar
-            flowName={flowName}
-            onGoHome={goHome}
-            onFlowNameClick={() => setDocPrefsOpen(true)}
-            hasUnexportedChanges={hasUnexportedChanges}
-          />
+          {!playerShellMode ? (
+            <Topbar
+              flowName={flowName}
+              onGoHome={goHome}
+              onFlowNameClick={() => setDocPrefsOpen(true)}
+              hasUnexportedChanges={hasUnexportedChanges}
+              onOpen={openFilePicker}
+              onSave={saveFlow}
+              onOpenPalette={() => setPaletteOpen(true)}
+              validation={validation}
+              showOutlines={showOutlines}
+              onToggleOutlines={() => setShowOutlines((v) => !v)}
+              scenarios={scenarios}
+              onPlayScenario={playScenario}
+              onRecordScenario={recordNewScenario}
+            />
+          ) : null}
           {/* biome-ignore lint/a11y/noStaticElementInteractions: file drop zone; palette "Open file" is the keyboard equivalent. */}
           <div
             className="relative h-full min-h-0 flex-1"
@@ -857,7 +866,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
             }}
             onDrop={onDrop}
           >
-            <FlowCanvas key={revision} doc={doc} />
+            <FlowCanvas key={revision} doc={doc} showOutlines={showOutlines} />
 
             {dragging && (
               <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-accent-primary/10 backdrop-blur-sm">
@@ -868,39 +877,6 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
             )}
 
             {notice && <NoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
-
-            <div className="absolute bottom-4 left-14 z-20 flex items-center gap-2">
-              {!playerShellMode ? (
-                <button
-                  type="button"
-                  onClick={playFirstScenario}
-                  aria-label={
-                    scenarios.length > 0
-                      ? tPlayer('canvasPlay', { name: scenarios[0]?.name ?? '' })
-                      : tPlayer('canvasPlayEmpty')
-                  }
-                  title={
-                    scenarios.length > 0
-                      ? tPlayer('canvasPlay', { name: scenarios[0]?.name ?? '' })
-                      : tPlayer('canvasPlayEmpty')
-                  }
-                  className="flex shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-bg-panel/95 px-2.5 py-1.5 text-accent-primary-fg-emphasis text-sm shadow-lg backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default dark:bg-bg-panel/95 dark:text-accent-primary-fg-on-bg"
-                >
-                  ▶
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => setPaletteOpen(true)}
-                aria-label={tPalette('openPalette')}
-                className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-panel/95 px-2.5 py-1.5 text-fg-muted text-sm shadow-lg backdrop-blur transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default dark:bg-bg-panel/95"
-              >
-                {tPalette('searchButton')}
-                <kbd className="rounded border border-border-default bg-bg-subtle px-1.5 py-0.5 font-mono text-[11px] text-fg-subtle">
-                  ⌘K
-                </kbd>
-              </button>
-            </div>
 
             {playerShellMode ? (
               <PlayerMode onRevealOnCanvas={revealOnCanvas} onNewScenario={recordNewScenario} />
@@ -1049,7 +1025,7 @@ function alignedNodePosition(
   return { x: x + sw / 2 - width / 2, y: y - NEW_NODE_GAP - height };
 }
 
-function FlowCanvas({ doc }: { doc: Y.Doc }) {
+function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }) {
   const {
     flow,
     layout,
@@ -1066,8 +1042,7 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
   const readOnly = playerMode?.shellMode != null;
   // Error outlines on the canvas are opt-in (off while building — the per-handle
   // `+` already hints at incompleteness; the Problems badge tracks the count).
-  // Flip them on to review. Gates both node rings and edge recoloring.
-  const [showOutlines, setShowOutlines] = useState(false);
+  // Flip them on from the toolbar Problems control (US-132).
   const { getNode, screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [menu, setMenu] = useState<CreateMenu | null>(null);
   const [pendingActionCreate, setPendingActionCreate] = useState<PendingActionCreate | null>(null);
@@ -1400,13 +1375,6 @@ function FlowCanvas({ doc }: { doc: Y.Doc }) {
               onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
               readOnly={readOnly}
             />
-            <StatusCluster>
-              <ProblemsPanel
-                validation={validation}
-                showOutlines={showOutlines}
-                onToggleOutlines={() => setShowOutlines((v) => !v)}
-              />
-            </StatusCluster>
             {!readOnly && pickerPlacement && (
               <NodeTypePicker
                 placement={pickerPlacement}
