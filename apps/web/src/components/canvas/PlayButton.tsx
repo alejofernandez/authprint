@@ -5,7 +5,7 @@
 
 import type { Scenario } from '@authprint/dsl';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const btnBase =
   'inline-flex min-h-6 min-w-6 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium transition-colors duration-[var(--duration-fast)] ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border';
@@ -23,6 +23,16 @@ export function PlayButton({
   const tPlayer = useTranslations('player');
   const [lastPlayedId, setLastPlayedId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Escape closes it, like every other dismissable surface on this canvas.
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPickerOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [pickerOpen]);
 
   if (scenarios.length === 0) {
     return (
@@ -67,16 +77,28 @@ export function PlayButton({
   }
 
   return (
-    <div className="relative flex min-w-0 items-stretch">
+    // No `min-w-0` here: it would let this shrink below the glyph + chevron the
+    // two buttons need, and flex children that overflow their own parent get
+    // drawn under the next sibling (the ⌘K pill landed on top of them at
+    // narrow widths). The label span inside absorbs the squeeze instead.
+    <div className="relative flex items-stretch">
       <button
         type="button"
         onClick={() => play(preferred)}
         aria-label={playAria}
         title={playAria}
-        className={`${btnBase} min-w-0 rounded-r-none bg-accent-primary text-white hover:opacity-90`}
+        className={`${btnBase} min-w-0 shrink rounded-r-none bg-accent-primary text-white hover:opacity-90`}
       >
         <span aria-hidden="true">▶</span>
-        <span className="max-w-[7rem] truncate sm:max-w-[9rem]">{playLabel}</span>
+        {/* `min-w-0` makes the label the part that gives way: without it the
+            span's min-content keeps the whole control from shrinking, and the
+            group spills sideways into the flow name. Below the narrow
+            breakpoint it goes entirely, so the bar drops *labels* before it
+            drops *state* — the Problems readout stays visible instead of being
+            clipped off the end. `aria-label` carries the name throughout. */}
+        <span className="hidden min-w-0 max-w-[7rem] truncate min-[520px]:block sm:max-w-[9rem]">
+          {playLabel}
+        </span>
       </button>
       <button
         type="button"
@@ -91,9 +113,13 @@ export function PlayButton({
 
       {pickerOpen ? (
         <>
-          <button
-            type="button"
-            aria-label={tPlayer('scenarioPicker.open')}
+          {/* Click-outside catcher: pointer-only, and deliberately NOT in the
+              tab order. As a focusable button it was a full-viewport stop whose
+              accessible name claimed it opened the picker while it closed it.
+              Escape is the keyboard path (above). */}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: pointer-only dismiss layer; Escape is the keyboard equivalent. */}
+          <div
+            aria-hidden="true"
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setPickerOpen(false)}
           />

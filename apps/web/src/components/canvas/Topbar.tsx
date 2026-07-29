@@ -50,7 +50,7 @@ export function Topbar({
 
   return (
     <header className="relative grid h-12 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-border-subtle border-b bg-bg-panel px-2 sm:px-3">
-      <div className="flex min-w-0 items-center gap-0.5 sm:gap-1">
+      <div className="flex min-w-0 items-center gap-0.5 overflow-hidden sm:gap-1">
         <button
           type="button"
           onClick={onGoHome}
@@ -105,7 +105,10 @@ export function Topbar({
         </svg>
       </button>
 
-      <div className="flex min-w-0 items-center justify-end gap-1 sm:gap-1.5">
+      {/* `overflow-hidden` is the structural guarantee that this group can never
+          spill into the centred flow name, whatever the viewport: content
+          clips, it does not collide. */}
+      <div className="flex min-w-0 items-center justify-end gap-1 overflow-hidden sm:gap-1.5">
         <ProblemsPanel
           validation={validation}
           showOutlines={showOutlines}
@@ -121,7 +124,11 @@ export function Topbar({
           onClick={onOpenPalette}
           aria-label={tPalette('openPalette')}
           title={tPalette('searchButton')}
-          className="inline-flex min-h-6 min-w-6 shrink-0 items-center justify-center rounded-full border border-border-subtle px-2.5 py-1 font-mono text-fg-muted text-xs transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle hover:text-fg-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border dark:border-border-default"
+          // Hidden on a narrow bar, at the same breakpoint the wordmark uses: a
+          // keyboard-shortcut hint is the least load-bearing thing here, and
+          // dropping it first keeps the Play control's scenario name legible
+          // (US-129's "labelled, not a bare glyph") further down the range.
+          className="hidden min-h-6 min-w-6 shrink-0 items-center justify-center rounded-full border border-border-subtle px-2.5 py-1 font-mono text-fg-muted text-xs transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-bg-subtle hover:text-fg-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary-border min-[520px]:inline-flex dark:border-border-default"
         >
           ⌘K
         </button>
