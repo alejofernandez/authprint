@@ -88,7 +88,8 @@
       "hideErrorBanner": "Hide error banner on canvas",
       "hint": "Traits change how the screen looks. For an affordance that leads somewhere, add an action instead.",
       "linkTrait": "Shows a link without saying where it goes. Add a \"{action}\" action if the flow should follow it.",
-      "redundant": "The \"{action}\" action already covers this, so the trait no longer renders. Click to remove it."
+      "redundant": "The \"{action}\" action already covers this, so the trait no longer renders. Click to remove it.",
+      "redundantTraitWins": "This is how the \"{action}\" action is drawn, so that action has no separate link. Both are fine to keep."
     },
     "placeholders": {
       "errorMessage": "Shown on error-banner screens when this step fails"

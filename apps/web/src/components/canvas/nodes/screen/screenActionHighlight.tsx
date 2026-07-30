@@ -1,4 +1,5 @@
 import type { Field, ScreenNode, TraitId } from '@authprint/dsl';
+import { EQUIVALENT_TRAIT_ACTION } from '@authprint/dsl';
 import type { ReactNode } from 'react';
 import { screenInteractionSideTier } from '../../screenInteractionSides.ts';
 import { humanize } from './screenCopy.ts';
@@ -21,10 +22,12 @@ const TRAIT_TARGETS = new Set<ScreenActionHighlightTarget>([
   'passkey-promotion',
 ]);
 
-const ACTION_TO_TRAIT: Partial<Record<string, TraitId>> = {
-  'forgot-password': 'forgot-password-link',
-  'try-another-method': 'alternative-method-link',
-};
+// Derived from the DSL's pair table rather than restated, so adding a pair there
+// teaches the player's highlight about it too. Restating it is how the passkey
+// pair ended up known to the renderer and invisible to the highlight (UF-049).
+const ACTION_TO_TRAIT: Partial<Record<string, TraitId>> = Object.fromEntries(
+  Object.entries(EQUIVALENT_TRAIT_ACTION).map(([trait, action]) => [action, trait as TraitId]),
+);
 
 export const PLAYER_ACTION_HIGHLIGHT_CLASS =
   'rounded-md ring-2 ring-accent-primary-border ring-offset-2 ring-offset-white motion-reduce:transition-none transition-shadow duration-[var(--duration-fast)] flow-dark:ring-offset-zinc-900';

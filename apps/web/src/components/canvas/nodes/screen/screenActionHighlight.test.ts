@@ -33,3 +33,19 @@ describe('resolveScreenActionHighlightTarget', () => {
     expect(resolveScreenActionHighlightTarget('back', [], [], 'password')).toBe('retreat');
   });
 });
+
+// UF-049: the passkey banner is how a `use-passkey` action is drawn, so the
+// player must highlight the banner rather than falling through to a callout for
+// an action link that is no longer rendered. The map is derived from the DSL's
+// pair table, so this also guards against that derivation being restated.
+describe('use-passkey highlighting (UF-049)', () => {
+  test('maps use-passkey to the passkey banner when the trait is present', () => {
+    expect(
+      resolveScreenActionHighlightTarget('use-passkey', ['passkey-promotion'], [], 'password'),
+    ).toBe('passkey-promotion');
+  });
+
+  test('falls back to a callout when the screen has no passkey trait', () => {
+    expect(resolveScreenActionHighlightTarget('use-passkey', [], [], 'password')).toBe('callout');
+  });
+});

@@ -174,31 +174,44 @@ export const USER_ACTIONS_BUILTIN = [
   'resend-code',
   'accept',
   'decline',
+  'use-passkey',
 ] as const;
 export type UserActionBuiltin = (typeof USER_ACTIONS_BUILTIN)[number];
 export type UserAction = UserActionBuiltin | (string & {});
 
-// ─── Link traits and the actions they stand for ─────────────────────────────
+// ─── Traits and the actions they stand for ──────────────────────────────────
 // Two ways to say the same thing, both legitimate (§5): the trait says "there
-// is a link here" without modelling where it goes; the action is a modelled
-// transition. Carrying both means the screen advertises the affordance twice,
-// so renderers show the action and drop the trait's chrome, and validation
-// mentions it.
+// is an affordance here" without modelling where it goes; the action is a
+// modelled transition. Carrying both means the screen advertises it twice, so
+// renderers draw exactly one and validation mentions the duplication.
+//
+// **Which one renders is a view decision, not a vocabulary one**, and it is not
+// always the action (UF-049): when the trait's chrome is a richer affordance
+// than a text link — the passkey banner against a "Use passkey" link — the
+// chrome is the better drawing of the same step. This map only asserts the two
+// are equivalent; `traitChrome.tsx` owns the choice, since chrome shape is
+// known there and not here.
 //
 // Deliberately only the 1:1 pairs. `social-login-buttons` overlaps with the
 // per-provider actions (`google`, `apple`, …) but is 1:N and renders as a
 // different affordance (provider buttons, not a link), so it is not reconciled
 // here — see USABILITY UF-038.
-export const LINK_TRAIT_ACTION = {
+export const EQUIVALENT_TRAIT_ACTION = {
   'forgot-password-link': 'forgot-password',
   'alternative-method-link': 'try-another-method',
+  'passkey-promotion': 'use-passkey',
 } as const satisfies Partial<Record<TraitId, UserActionBuiltin>>;
 
-export type LinkTrait = keyof typeof LINK_TRAIT_ACTION;
+export type EquivalentTrait = keyof typeof EQUIVALENT_TRAIT_ACTION;
 
-/** The action a link trait stands for, or undefined when it stands for none. */
-export function actionForLinkTrait(trait: string): string | undefined {
-  return (LINK_TRAIT_ACTION as Record<string, string>)[trait];
+/** The action a trait stands for, or undefined when it stands for none. */
+export function actionForTrait(trait: string): string | undefined {
+  return (EQUIVALENT_TRAIT_ACTION as Record<string, string>)[trait];
+}
+
+/** The trait an action is equivalent to, or undefined when none is. */
+export function traitForAction(action: string): string | undefined {
+  return Object.entries(EQUIVALENT_TRAIT_ACTION).find(([, a]) => a === action)?.[0];
 }
 
 // ─── Predicate operators (CLOSED set) ───────────────────────────────────────

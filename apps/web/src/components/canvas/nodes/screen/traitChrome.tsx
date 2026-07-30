@@ -24,6 +24,23 @@ export function hasErrorBannerTrait(traits: readonly TraitId[]): boolean {
   return traits.includes('error-banner');
 }
 
+// When a trait and an action are equivalent (`EQUIVALENT_TRAIT_ACTION`), the
+// screen must draw exactly one of them — and which one is a *view* decision,
+// which is why it lives here next to the chrome rather than in the DSL.
+//
+// The rule is: the richer affordance wins. For a trait whose chrome is a plain
+// link the two renderings are the same shape and only the label differs, so the
+// modelled action wins and its label is used (US-128). For a trait whose chrome
+// is a banner or a button, that chrome communicates more than a line of link
+// text ever will, so it survives and the action's link is dropped instead
+// (UF-049). Either way exactly one affordance is drawn for one transition.
+const RICHER_THAN_A_LINK = new Set<TraitId>(['passkey-promotion']);
+
+/** Does this trait's chrome outrank the plain link an equivalent action draws? */
+export function traitChromeOutranksActionLink(trait: TraitId): boolean {
+  return RICHER_THAN_A_LINK.has(trait);
+}
+
 export function ErrorBanner({ copy, singleLine = false }: { copy: string; singleLine?: boolean }) {
   return (
     <div

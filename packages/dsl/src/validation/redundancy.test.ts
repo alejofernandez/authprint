@@ -58,4 +58,27 @@ describe('checkRedundantLinkTraits', () => {
   test('does not flag social-login-buttons against a google action', () => {
     expect(checkRedundantLinkTraits(flowWith(['social-login-buttons'], ['google']))).toEqual([]);
   });
+
+  // UF-049: the passkey banner and a use-passkey action are the same step. The
+  // lint fires like any other pair; which one *renders* is the view's call and
+  // is deliberately absent from the message.
+  test('pairs passkey-promotion with use-passkey', () => {
+    const out = checkRedundantLinkTraits(flowWith(['passkey-promotion'], ['use-passkey']));
+    expect(out).toHaveLength(1);
+    expect(out[0]?.severity).toBe('info');
+    expect(out[0]?.message).toContain('use-passkey');
+  });
+
+  test('message does not promise which of the pair survives', () => {
+    const out = checkRedundantLinkTraits(flowWith(['passkey-promotion'], ['use-passkey']));
+    expect(out[0]?.message).not.toContain('adds nothing');
+  });
+
+  test('silent when the passkey action is a custom look-alike', () => {
+    // Only the declared pair is reconciled. A custom `continue-with-passkey`
+    // reads as the same thing to a human but the tool must not guess (UF-049).
+    expect(
+      checkRedundantLinkTraits(flowWith(['passkey-promotion'], ['continue-with-passkey'])),
+    ).toEqual([]);
+  });
 });

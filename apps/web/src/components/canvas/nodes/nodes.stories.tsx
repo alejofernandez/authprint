@@ -185,6 +185,39 @@ export const ScreenMockupActionsOnePlusTwoDark: Story = {
     ...actionsCanvas,
   },
 };
+// UF-049: the passkey banner and a `use-passkey` action are the same step, and
+// the richer affordance wins — so the banner renders and the action gets no
+// separate link. The `try-another-method` action is here to prove only the
+// paired action is suppressed, not every secondary link.
+const passkeyPromoScreen: ScreenNode = {
+  type: 'screen',
+  id: 'identifier-passkey',
+  name: 'Enter email or phone',
+  kind: 'identifier-collect',
+  traits: ['passkey-promotion'],
+  fields: [{ name: 'identifier', type: 'email', required: true }],
+};
+
+export const ScreenMockupPasskeyBannerWinsLight: Story = {
+  args: {
+    type: 'screen',
+    node: passkeyPromoScreen,
+    theme: 'light',
+    secondaryActions: ['use-passkey', 'try-another-method'],
+    ...actionsCanvas,
+  },
+};
+export const ScreenMockupPasskeyBannerWinsDark: Story = {
+  args: {
+    type: 'screen',
+    node: passkeyPromoScreen,
+    theme: 'dark',
+    flowTheme: 'dark',
+    secondaryActions: ['use-passkey', 'try-another-method'],
+    ...actionsCanvas,
+  },
+};
+
 export const ScreenMockupActionsRetreatOnlyLight: Story = {
   args: {
     type: 'screen',

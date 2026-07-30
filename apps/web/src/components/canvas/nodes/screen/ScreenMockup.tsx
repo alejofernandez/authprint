@@ -9,7 +9,7 @@
 // "Acme" + indigo placeholder when it hasn't.
 
 import type { Branding, Field, ScreenNode, TraitId } from '@authprint/dsl';
-import { actionForLinkTrait } from '@authprint/dsl';
+import { actionForTrait, traitForAction } from '@authprint/dsl';
 import { PlayerScreenCard } from './PlayerScreenCard.tsx';
 import {
   ActionHighlightShell,
@@ -27,6 +27,7 @@ import {
   postCtaTraits,
   ShowPasswordToggle,
   TraitChromeBlock,
+  traitChromeOutranksActionLink,
 } from './traitChrome.tsx';
 
 const MASKED_TYPES = new Set(['password', 'new-password', 'confirm-password']);
@@ -191,14 +192,22 @@ export function ScreenMockup({
   const playerFrame = stageLayout === 'player';
   const showErrorSlot = playerFrame && hasErrorBannerTrait(node.traits);
   const secondarySet = new Set(secondaryActions);
-  // A link trait and the action it stands for say the same thing, so the screen
-  // would advertise it twice (`alternative-method-link` renders "Try another
-  // way" next to a `try-another-method` action rendering "Try another method").
-  // The modelled transition wins: traits add no transitions (§5), so when both
-  // are present the trait is the one carrying no information. US-128 / UF-038.
+  // A trait and the action it stands for say the same thing, so the screen would
+  // otherwise advertise it twice: `alternative-method-link` renders "Try another
+  // way" next to a `try-another-method` action rendering "Try another method".
+  // Exactly one is drawn, and the richer affordance wins (US-128 / UF-049) —
+  // see `traitChromeOutranksActionLink`.
   const traitsAfterCta = postCtaTraits(node.traits).filter((trait) => {
-    const paired = actionForLinkTrait(trait);
-    return !paired || !secondarySet.has(paired);
+    const paired = actionForTrait(trait);
+    if (!paired || !secondarySet.has(paired)) return true;
+    return traitChromeOutranksActionLink(trait);
+  });
+  // The other half of the same rule: drop the action's link when the trait's
+  // chrome is the one being drawn for it.
+  const displayedSecondaryActions = secondaryActions.filter((action) => {
+    const trait = traitForAction(action);
+    if (!trait || !traitSet.has(trait as TraitId)) return true;
+    return !traitChromeOutranksActionLink(trait as TraitId);
   });
   const showActionCallout =
     (highlight.target === 'retreat' || highlight.target === 'callout') &&
@@ -268,9 +277,9 @@ export function ScreenMockup({
           </div>
         </ActionHighlightShell>
       ) : null}
-      {secondaryActions.length > 0 ? (
+      {displayedSecondaryActions.length > 0 ? (
         <div className="space-y-2">
-          {secondaryActions.map((action) => (
+          {displayedSecondaryActions.map((action) => (
             <ActionHighlightShell
               key={action}
               active={highlightedAction === action}

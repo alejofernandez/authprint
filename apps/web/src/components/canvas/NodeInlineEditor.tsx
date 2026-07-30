@@ -16,7 +16,7 @@ import type {
 } from '@authprint/dsl';
 import {
   ACTION_KINDS_BUILTIN,
-  actionForLinkTrait,
+  actionForTrait,
   DECISION_KINDS_BUILTIN,
   EXTERNAL_KINDS_BUILTIN,
   FIELD_TYPES_BUILTIN,
@@ -28,6 +28,7 @@ import {
 } from '@authprint/dsl';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { traitChromeOutranksActionLink } from './nodes/screen/traitChrome.tsx';
 import { screenActions } from './screenActions.ts';
 import type { NodeLayoutRecord } from './ydoc/schema.ts';
 
@@ -290,11 +291,16 @@ export function NodeInlineEditor({
               // A link trait stands for an action. Carrying both says the same
               // thing twice, and the rendering now drops the trait, so say so
               // where the choice is made rather than leaving a dead chip on.
-              const pairedAction = actionForLinkTrait(trait);
+              const pairedAction = actionForTrait(trait);
               const redundant = on && !!pairedAction && screenActionLabels.has(pairedAction);
+              // Which of the pair survives decides which sentence is true here
+              // (UF-049): for a banner-shaped trait the chrome is what gets
+              // drawn, so telling the author it "no longer renders" is wrong.
               const traitTitle = pairedAction
                 ? redundant
-                  ? t('traits.redundant', { action: pairedAction })
+                  ? traitChromeOutranksActionLink(trait)
+                    ? t('traits.redundantTraitWins', { action: pairedAction })
+                    : t('traits.redundant', { action: pairedAction })
                   : t('traits.linkTrait', { action: pairedAction })
                 : undefined;
               if (trait === 'error-banner' && on) {

@@ -4,16 +4,17 @@
 
 import type { Diagnostic } from '../diagnostic.ts';
 import type { Flow } from '../schema/flow.ts';
-import { actionForLinkTrait } from '../vocabulary.ts';
+import { actionForTrait } from '../vocabulary.ts';
 
 /**
- * A screen carrying a link trait *and* the action that trait stands for says
- * the same thing twice: `alternative-method-link` renders "Try another way"
- * beside a `try-another-method` action rendering "Try another method".
+ * A screen carrying a trait *and* the action that trait stands for says the
+ * same thing twice: `alternative-method-link` renders "Try another way" beside
+ * a `try-another-method` action rendering "Try another method".
  *
- * The edge wins (§5: traits add no transitions, so the modelled one is the
- * real affordance), renderers drop the trait's chrome, and this lint tells the
- * author the trait is now doing nothing.
+ * Renderers draw exactly one of the two. **Which one is deliberately not
+ * decided here** (UF-049): it depends on the shape of the trait's chrome, which
+ * is a view concern. So the message says the pair is redundant and leaves the
+ * resolution to the renderer rather than promising which survives.
  */
 export function checkRedundantLinkTraits(flow: Flow): Diagnostic[] {
   const out: Diagnostic[] = [];
@@ -29,12 +30,12 @@ export function checkRedundantLinkTraits(flow: Flow): Diagnostic[] {
     if (actions.size === 0) continue;
 
     for (const [traitIdx, trait] of node.traits.entries()) {
-      const paired = actionForLinkTrait(trait);
+      const paired = actionForTrait(trait);
       if (!paired || !actions.has(paired)) continue;
       out.push({
         severity: 'info',
         code: 'validation-redundant-link-trait',
-        message: `screen '${node.id}' has the '${trait}' trait and a '${paired}' action; the action is the one the flow follows, so the trait adds nothing`,
+        message: `screen '${node.id}' has the '${trait}' trait and a '${paired}' action; they are two ways to show the same step, so only one is drawn`,
         path: `nodes[${idx}].traits[${traitIdx}]`,
         target: { kind: 'node', id: node.id },
       });

@@ -212,6 +212,7 @@ Used as the `action` value of an `interaction` trigger. Curated set; custom labe
 | `resend-code` | Request a fresh OTP / magic link |
 | `accept` | Accept (consent / terms) |
 | `decline` | Decline (consent / terms) |
+| `use-passkey` | Continue with a passkey instead of the screen's primary method |
 
 ---
 
