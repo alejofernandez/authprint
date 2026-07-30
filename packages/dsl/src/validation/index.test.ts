@@ -13,19 +13,11 @@ const specRoot = `${here}/../../../dsl-spec/examples`;
 // new user would see on their first load.
 const PATTERN_FILES = [
   'patterns/airbnb-style-unified-login-signup.authprint',
+  'patterns/passwordless-with-otp-and-passkeys.authprint',
   'patterns/x-style-passwordless-with-password-fallback.authprint',
   'passkey-enrollment.authprint',
   'magic-link-signin.authprint',
 ];
-
-// Held out of the clean list on purpose: `Associate passkey` (`action-786f8bc0`)
-// has an on-success edge and no on-error, so the flow raises
-// `validation-action-missing-error-edge`. That is a real gap in the flow's
-// modelling rather than a tool defect, and completing it means choosing an error
-// target, which is the author's call. Asserted precisely so the gap is visible
-// here instead of silently excluded, and so this test starts failing the moment
-// it is fixed.
-const PATTERN_FILE_WITH_KNOWN_GAP = 'patterns/passwordless-with-otp-and-passkeys.authprint';
 
 function expectFlowValidatesClean(relativePath: string): void {
   const text = readFileSync(`${specRoot}/${relativePath}`, 'utf8');
@@ -219,14 +211,4 @@ describe('validate — pattern library', () => {
       expectFlowValidatesClean(file);
     });
   }
-
-  test(`${PATTERN_FILE_WITH_KNOWN_GAP}: parses, with exactly one known gap`, () => {
-    const text = readFileSync(`${specRoot}/${PATTERN_FILE_WITH_KNOWN_GAP}`, 'utf8');
-    const parsed = parse(text);
-    expect(parsed.flow).not.toBeNull();
-    if (!parsed.flow) return;
-
-    const diagnostics = validate(parsed.flow);
-    expect(diagnostics.map((d) => d.code)).toEqual(['validation-action-missing-error-edge']);
-  });
 });
