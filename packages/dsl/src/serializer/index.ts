@@ -113,7 +113,13 @@ function canonicalizeScreen(n: ScreenNode): Record<string, unknown> {
     kind: n.kind,
   };
   if (n.traits.length > 0) out.traits = n.traits;
-  if (n.fields.length > 0) out.fields = n.fields.map(canonicalizeField);
+  // A field with a blank name is dropped rather than written. `FieldSchema`
+  // requires a non-empty name, so emitting one produces a file this same
+  // library then refuses to parse — the editor could write a flow it could not
+  // reopen. A nameless field also carries nothing worth preserving. The author
+  // is told before it comes to this: `validation-unnamed-field` is an error.
+  const named = n.fields.filter((f) => f.name.trim().length > 0);
+  if (named.length > 0) out.fields = named.map(canonicalizeField);
   return out;
 }
 

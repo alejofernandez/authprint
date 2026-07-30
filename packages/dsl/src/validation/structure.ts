@@ -5,7 +5,38 @@ import type { Edge } from '../schema/edge.ts';
 import type { Flow } from '../schema/flow.ts';
 
 export function checkStructure(flow: Flow): Diagnostic[] {
-  return [...checkEntryPresence(flow), ...checkReachability(flow), ...checkTerminability(flow)];
+  return [
+    ...checkEntryPresence(flow),
+    ...checkReachability(flow),
+    ...checkTerminability(flow),
+    ...checkNamedFields(flow),
+  ];
+}
+
+// ─── Field names ────────────────────────────────────────────────────────────
+// A screen field row is created empty and filled in, so a blank name is a
+// legitimate transient state in the editor but never a legitimate saved one:
+// `FieldSchema` requires a non-empty name, so a persisted blank name is a flow
+// the parser rejects. The serializer drops such fields rather than writing an
+// unreadable file; this diagnostic is what tells the author first, so the drop
+// is never a surprise.
+
+function checkNamedFields(flow: Flow): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  for (const [idx, node] of flow.nodes.entries()) {
+    if (node.type !== 'screen') continue;
+    for (const [fieldIdx, field] of node.fields.entries()) {
+      if (field.name.trim().length > 0) continue;
+      out.push({
+        severity: 'error',
+        code: 'validation-unnamed-field',
+        message: `screen '${node.id}' has a field with no name; name it or remove it, or it will not be saved`,
+        path: `nodes[${idx}].fields[${fieldIdx}]`,
+        target: { kind: 'node', id: node.id },
+      });
+    }
+  }
+  return out;
 }
 
 // ─── Entry presence ─────────────────────────────────────────────────────────

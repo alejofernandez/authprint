@@ -19,6 +19,60 @@ function reparse(flow: Flow): Flow {
 }
 
 describe('round-trip — hand-built flows', () => {
+  // A screen field row is born with a blank name and filled in, so an unfinished
+  // one reaches the serializer. `FieldSchema` requires a non-empty name, so
+  // writing it produced a file this library then refused to parse: the editor
+  // could save a flow it could not reopen. Found in the wild on a real sample
+  // flow. The field is dropped instead, and validation flags it first.
+  // Built valid then blanked, which is how the editor reaches this state: the
+  // `+` in the fields list writes `{ name: '' }` into the doc immediately.
+  const withBlankedField = (fields: { name: string; type: string; required: boolean }[]): Flow => {
+    const flow = FlowSchema.parse({
+      id: 'f1',
+      name: 'Unfinished field',
+      nodes: [
+        { type: 'entry', id: 'e1' },
+        {
+          type: 'screen',
+          id: 's1',
+          name: 'New screen',
+          kind: 'passkey-enroll',
+          fields: fields.map((f, i) => ({ ...f, name: f.name || `placeholder-${i}` })),
+        },
+      ],
+    });
+    const screen = flow.nodes.find((n) => n.id === 's1');
+    if (screen && 'fields' in screen) {
+      screen.fields = screen.fields.map((f, i) => ({ ...f, name: fields[i]?.name ?? f.name }));
+    }
+    return flow;
+  };
+
+  test('a field with a blank name is dropped rather than written unreadable', () => {
+    const flow = withBlankedField([{ name: '', type: 'passkey', required: false }]);
+
+    const text = serialize(flow);
+    expect(text).not.toContain('name: ""');
+    const result = parse(text);
+    expect(result.diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
+    expect(result.flow).not.toBeNull();
+    const screen = result.flow?.nodes.find((n) => n.id === 's1');
+    expect(screen && 'fields' in screen ? screen.fields : null).toEqual([]);
+  });
+
+  test('a named field alongside a blank one keeps the named one', () => {
+    const flow = withBlankedField([
+      { name: 'email', type: 'email', required: true },
+      { name: '   ', type: 'text', required: false },
+    ]);
+
+    const round = reparse(flow);
+    const screen = round.nodes.find((n) => n.id === 's1');
+    expect(screen && 'fields' in screen ? screen.fields.map((f) => f.name) : null).toEqual([
+      'email',
+    ]);
+  });
+
   test('minimal flow with just an entry round-trips', () => {
     const flow = FlowSchema.parse({
       id: 'f1',

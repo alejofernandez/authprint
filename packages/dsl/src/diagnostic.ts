@@ -33,6 +33,7 @@ export type DiagnosticCode =
   | 'validation-entry-multiple'
   | 'validation-unreachable-node'
   | 'validation-non-terminable-node'
+  | 'validation-unnamed-field'
 
   // ── Structural validation: edge completeness ────────────────────────────
   | 'validation-decision-branch-missing'
