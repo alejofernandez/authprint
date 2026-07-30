@@ -175,9 +175,36 @@ export const USER_ACTIONS_BUILTIN = [
   'accept',
   'decline',
   'use-passkey',
+  // Social sign-in. Providers are modelled as *actions*, never as traits: the
+  // trait set is closed and curated by design (§5) and providers are an
+  // open-ended set, so they belong on the axis that already accepts custom
+  // values freely. These five are the common ones; any other provider is a
+  // custom `social-*` action and needs no addition here.
+  'social-login',
+  'social-google',
+  'social-apple',
+  'social-microsoft',
+  'social-facebook',
+  'social-github',
 ] as const;
 export type UserActionBuiltin = (typeof USER_ACTIONS_BUILTIN)[number];
 export type UserAction = UserActionBuiltin | (string & {});
+
+/** Prefix marking an action as social sign-in, built-in or custom. */
+export const SOCIAL_ACTION_PREFIX = 'social-';
+
+/** Whether an action is social sign-in. `social-login` (the generic provider
+ *  chooser) counts; it is one button rather than none. */
+export function isSocialAction(action: string): boolean {
+  return action.startsWith(SOCIAL_ACTION_PREFIX);
+}
+
+/** The provider an action names, or null for the generic `social-login`.
+ *  Returns the raw segment so custom providers work without registration. */
+export function socialProviderForAction(action: string): string | null {
+  if (!isSocialAction(action) || action === 'social-login') return null;
+  return action.slice(SOCIAL_ACTION_PREFIX.length) || null;
+}
 
 // ─── Traits and the actions they stand for ──────────────────────────────────
 // Two ways to say the same thing, both legitimate (§5): the trait says "there

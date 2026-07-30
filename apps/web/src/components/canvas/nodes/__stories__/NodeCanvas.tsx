@@ -22,6 +22,8 @@ export type NodeCanvasProps = {
   displayErrorState?: boolean;
   /** Non-primary interaction actions for screen mockups (US-126). */
   secondaryActions?: readonly string[];
+  /** `social-*` actions — the derived provider button cluster (UF-051). */
+  socialActions?: readonly string[];
 };
 
 // Renders one structural node on a minimal, non-interactive React Flow canvas at
@@ -37,6 +39,7 @@ export function NodeCanvas({
   height = 240,
   displayErrorState = false,
   secondaryActions,
+  socialActions,
 }: NodeCanvasProps) {
   const nodes: RfNode[] = [
     {
@@ -62,6 +65,7 @@ export function NodeCanvas({
           screenTheme: resolveScreenTheme(flowTheme, theme),
           displayErrorState,
           ...(secondaryActions && secondaryActions.length > 0 ? { secondaryActions } : {}),
+          ...(socialActions && socialActions.length > 0 ? { socialActions } : {}),
         }),
       },
       draggable: false,

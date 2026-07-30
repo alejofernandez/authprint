@@ -49,3 +49,34 @@ describe('use-passkey highlighting (UF-049)', () => {
     expect(resolveScreenActionHighlightTarget('use-passkey', [], [], 'password')).toBe('callout');
   });
 });
+
+// UF-051: providers are actions, so each social action draws its own button and
+// the highlight lands on that button. Before this, any flexible action on a
+// screen carrying the trait lit up the whole anonymous cluster (UF-038).
+describe('social action highlighting (UF-051)', () => {
+  test('a social action targets its own provider button', () => {
+    expect(
+      resolveScreenActionHighlightTarget('social-google', ['social-login-buttons'], [], 'password'),
+    ).toBe('social-action');
+  });
+
+  test('social actions target their button even with no trait on the screen', () => {
+    expect(resolveScreenActionHighlightTarget('social-apple', [], [], 'password')).toBe(
+      'social-action',
+    );
+  });
+
+  test('a custom provider is still a social action', () => {
+    expect(resolveScreenActionHighlightTarget('social-okta', [], [], 'password')).toBe(
+      'social-action',
+    );
+  });
+
+  test('the anonymous cluster is still the target for a non-social flexible action', () => {
+    // The trait cannot name a provider, so while the flow models none it stays
+    // the best available target for a generic flexible action.
+    expect(
+      resolveScreenActionHighlightTarget('continue', ['social-login-buttons'], [], 'password'),
+    ).toBe('social-login-buttons');
+  });
+});

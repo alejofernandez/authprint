@@ -43,7 +43,9 @@ function usedDecisionBranchesEqual(
   return connectedHandlesEqual(a, b);
 }
 
-function secondaryActionsEqual(
+/** Order-sensitive: both action groups render in graph order, so a reorder is a
+ *  visible change. Used for `secondaryActions` and `socialActions` alike. */
+function actionListEqual(
   a: readonly string[] | undefined,
   b: readonly string[] | undefined,
 ): boolean {
@@ -60,7 +62,8 @@ function canvasNodeDataEqual(a: CanvasNodeData, b: CanvasNodeData): boolean {
   if (!diagnosticsEqual(a.diagnostics, b.diagnostics)) return false;
   if (!connectedHandlesEqual(a.connectedHandles, b.connectedHandles)) return false;
   if (!usedDecisionBranchesEqual(a.usedDecisionBranches, b.usedDecisionBranches)) return false;
-  if (!secondaryActionsEqual(a.secondaryActions, b.secondaryActions)) return false;
+  if (!actionListEqual(a.secondaryActions, b.secondaryActions)) return false;
+  if (!actionListEqual(a.socialActions, b.socialActions)) return false;
   if (a.node === b.node) return true;
   if (a.node.id !== b.node.id || a.node.type !== b.node.type) return false;
   return JSON.stringify(a.node) === JSON.stringify(b.node);

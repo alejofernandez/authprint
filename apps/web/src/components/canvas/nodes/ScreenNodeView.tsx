@@ -38,6 +38,7 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
           branding={data.branding}
           displayErrorState={data.displayErrorState}
           secondaryActions={data.secondaryActions}
+          socialActions={data.socialActions}
         />
       </div>
       <Handle type="source" position={Position.Top} id={GEO_SOURCE_TOP} title="Exit from the top" />

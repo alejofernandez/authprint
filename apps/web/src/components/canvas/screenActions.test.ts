@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { FlowSchema } from '@authprint/dsl';
-import { screenActions } from './screenActions.ts';
+import { screenActionGroups, screenActions } from './screenActions.ts';
 
 const flow = FlowSchema.parse({
   id: 'f1',
@@ -65,5 +65,60 @@ describe('screenActions', () => {
   test('returns empty for unknown screen or screen with no exits', () => {
     expect(screenActions(flow, 'missing')).toEqual([]);
     expect(screenActions(flow, 's2')).toEqual([]);
+  });
+});
+
+// UF-051: providers are modelled as actions, so a screen's provider buttons are
+// derived from its `social-*` edges. They are a third prominence rather than
+// secondary links, because a stack of "Social google" links is not what a social
+// sign-in screen looks like.
+describe('screenActionGroups — social prominence (UF-051)', () => {
+  const social = FlowSchema.parse({
+    id: 'f2',
+    name: 'Social',
+    nodes: [
+      { type: 'entry', id: 'e1' },
+      { type: 'screen', id: 's1', name: 'Sign in', kind: 'identifier-collect' },
+      { type: 'outcome', id: 'o1', name: 'Done', kind: 'authenticated' },
+    ],
+    edges: [
+      { id: 'x1', source: 'e1', target: 's1', trigger: { type: 'unconditional' } },
+      { id: 'x2', source: 's1', target: 'o1', trigger: { type: 'interaction', action: 'submit' } },
+      {
+        id: 'x3',
+        source: 's1',
+        target: 'o1',
+        trigger: { type: 'interaction', action: 'social-google' },
+      },
+      {
+        id: 'x4',
+        source: 's1',
+        target: 'o1',
+        trigger: { type: 'interaction', action: 'social-okta' },
+      },
+      {
+        id: 'x5',
+        source: 's1',
+        target: 'o1',
+        trigger: { type: 'interaction', action: 'forgot-password' },
+      },
+    ],
+  });
+
+  test('social actions are their own group, in graph order', () => {
+    expect(screenActionGroups(social, 's1').social).toEqual(['social-google', 'social-okta']);
+  });
+
+  test('social actions are kept out of the secondary links', () => {
+    expect(screenActionGroups(social, 's1').secondary).toEqual(['forgot-password']);
+  });
+
+  test('a custom provider groups as social without being registered anywhere', () => {
+    const actions = screenActions(social, 's1');
+    expect(actions.find((a) => a.action === 'social-okta')?.prominence).toBe('social');
+  });
+
+  test('both groups are empty for a screen with no exits', () => {
+    expect(screenActionGroups(social, 'o1')).toEqual({ secondary: [], social: [] });
   });
 });

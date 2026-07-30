@@ -1,5 +1,5 @@
 import type { Field, ScreenNode, TraitId } from '@authprint/dsl';
-import { EQUIVALENT_TRAIT_ACTION } from '@authprint/dsl';
+import { EQUIVALENT_TRAIT_ACTION, isSocialAction } from '@authprint/dsl';
 import type { ReactNode } from 'react';
 import { screenInteractionSideTier } from '../../screenInteractionSides.ts';
 import { humanize } from './screenCopy.ts';
@@ -10,6 +10,7 @@ export type ScreenActionHighlightTarget =
   | 'forgot-password-link'
   | 'alternative-method-link'
   | 'social-login-buttons'
+  | 'social-action'
   | 'passkey-promotion'
   | 'passkey-field'
   | 'retreat'
@@ -47,6 +48,14 @@ export function resolveScreenActionHighlightTarget(
     return mappedTrait as ScreenActionHighlightTarget;
   }
 
+  // A social action draws its own provider button, so the highlight lands on that
+  // button. This replaces the 1:N fudge UF-038 recorded, where *any* flexible
+  // action on a screen carrying the trait lit up the whole anonymous cluster
+  // because no single button could be identified (UF-051).
+  if (isSocialAction(action)) return 'social-action';
+
+  // The trait's placeholder cluster is anonymous by design, so it is the right
+  // target only while the flow models no providers at all.
   if (traits.includes('social-login-buttons') && screenInteractionSideTier(action) === 'flexible') {
     return 'social-login-buttons';
   }

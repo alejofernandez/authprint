@@ -9,7 +9,7 @@
 // "Acme" + indigo placeholder when it hasn't.
 
 import type { Branding, Field, ScreenNode, TraitId } from '@authprint/dsl';
-import { actionForTrait, traitForAction } from '@authprint/dsl';
+import { actionForTrait, socialProviderForAction, traitForAction } from '@authprint/dsl';
 import { PlayerScreenCard } from './PlayerScreenCard.tsx';
 import {
   ActionHighlightShell,
@@ -18,6 +18,7 @@ import {
 } from './screenActionHighlight.tsx';
 import { humanize, screenCta } from './screenCopy.ts';
 import type { ScreenStageLayout } from './screenStageLayout.ts';
+import { SocialProviderButton, socialChromeForProvider } from './socialProviders.tsx';
 import {
   ErrorBanner,
   ErrorBannerPlaceholder,
@@ -172,6 +173,7 @@ export function ScreenMockup({
   highlightedAction = null,
   highlightedActionLabel = null,
   secondaryActions = [],
+  socialActions = [],
 }: {
   node: ScreenNode;
   branding?: Branding;
@@ -182,6 +184,9 @@ export function ScreenMockup({
   highlightedActionLabel?: string | null;
   /** Non-primary interaction actions (US-126), graph order — omit/empty = unchanged DOM. */
   secondaryActions?: readonly string[];
+  /** `social-*` actions (UF-051), graph order. These draw the provider cluster,
+   *  which is why they are separate from `secondaryActions` rather than links. */
+  socialActions?: readonly string[];
 }) {
   const cta = screenCta(node.kind);
   const traitSet = new Set(node.traits);
@@ -198,6 +203,12 @@ export function ScreenMockup({
   // Exactly one is drawn, and the richer affordance wins (US-128 / UF-049) —
   // see `traitChromeOutranksActionLink`.
   const traitsAfterCta = postCtaTraits(node.traits).filter((trait) => {
+    // `social-login-buttons` is the 1:N case the pair table deliberately skips:
+    // one trait against any number of provider actions. So the test is not a
+    // paired lookup but simply whether the flow models providers. When it does,
+    // `SocialProviderCluster` draws them and the trait's anonymous placeholder
+    // would be a second, vaguer copy of the same thing (UF-051).
+    if (trait === 'social-login-buttons') return socialActions.length === 0;
     const paired = actionForTrait(trait);
     if (!paired || !secondarySet.has(paired)) return true;
     return traitChromeOutranksActionLink(trait);
@@ -286,6 +297,21 @@ export function ScreenMockup({
               label={highlight.label ?? undefined}
             >
               <MockLink>{humanize(action)}</MockLink>
+            </ActionHighlightShell>
+          ))}
+        </div>
+      ) : null}
+      {socialActions.length > 0 ? (
+        <div className="space-y-1.5">
+          {socialActions.map((action) => (
+            <ActionHighlightShell
+              key={action}
+              active={highlightedAction === action}
+              label={highlight.label ?? undefined}
+            >
+              <SocialProviderButton
+                chrome={socialChromeForProvider(socialProviderForAction(action))}
+              />
             </ActionHighlightShell>
           ))}
         </div>

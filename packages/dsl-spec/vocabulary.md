@@ -213,6 +213,14 @@ Used as the `action` value of an `interaction` trigger. Curated set; custom labe
 | `accept` | Accept (consent / terms) |
 | `decline` | Decline (consent / terms) |
 | `use-passkey` | Continue with a passkey instead of the screen's primary method |
+| `social-login` | Continue with a social provider, chooser not modelled per provider |
+| `social-google` | Continue with Google |
+| `social-apple` | Continue with Apple |
+| `social-microsoft` | Continue with Microsoft |
+| `social-facebook` | Continue with Facebook |
+| `social-github` | Continue with GitHub |
+
+**Social providers are actions, not traits.** The trait vocabulary is closed and curated; providers are an open-ended set, so they live on the axis that accepts custom values freely. A provider not listed above is written as a custom `social-<provider>` action and needs no addition to this table. Renderers derive a screen's provider buttons from these actions, so the buttons a screen shows are the providers its flow actually models.
 
 ---
 

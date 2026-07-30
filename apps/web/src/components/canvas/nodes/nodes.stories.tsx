@@ -218,6 +218,60 @@ export const ScreenMockupPasskeyBannerWinsDark: Story = {
   },
 };
 
+// UF-051: the provider cluster is derived from `social-*` actions. Four buttons
+// here: two registered providers, one unregistered custom provider (`social-okta`,
+// which must still render a real labelled button), and the generic chooser.
+const socialScreen: ScreenNode = {
+  type: 'screen',
+  id: 'social-signin',
+  name: 'Sign in',
+  kind: 'identifier-collect',
+  traits: [],
+  fields: [{ name: 'email', type: 'email', required: true }],
+};
+
+export const ScreenMockupSocialProvidersLight: Story = {
+  args: {
+    type: 'screen',
+    node: socialScreen,
+    theme: 'light',
+    ...actionsCanvas,
+    height: 520,
+    secondaryActions: ['forgot-password'],
+    socialActions: ['social-google', 'social-apple', 'social-okta', 'social-login'],
+  },
+};
+export const ScreenMockupSocialProvidersDark: Story = {
+  args: {
+    type: 'screen',
+    node: socialScreen,
+    theme: 'dark',
+    flowTheme: 'dark',
+    ...actionsCanvas,
+    height: 520,
+    secondaryActions: ['forgot-password'],
+    socialActions: ['social-google', 'social-apple', 'social-okta', 'social-login'],
+  },
+};
+
+// The trait's anonymous placeholder, which is what a screen shows while the flow
+// models no providers yet. Real actions replace it entirely.
+const socialStubScreen: ScreenNode = {
+  ...socialScreen,
+  id: 'social-stub',
+  traits: ['social-login-buttons'],
+};
+
+export const ScreenMockupSocialStubLight: Story = {
+  args: {
+    type: 'screen',
+    node: socialStubScreen,
+    theme: 'light',
+    ...actionsCanvas,
+    height: 460,
+  },
+};
+
 export const ScreenMockupActionsRetreatOnlyLight: Story = {
   args: {
     type: 'screen',

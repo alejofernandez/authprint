@@ -20,6 +20,8 @@ export type CanvasNodeData<TNode extends Node = Node> = {
    * submit-only screen.
    */
   secondaryActions?: readonly string[];
+  /** `social-*` actions (UF-051) — drawn as the provider button cluster. */
+  socialActions?: readonly string[];
   /** Live validation diagnostics targeting this node (E33). Absent = clean. */
   diagnostics?: Diagnostic[];
   /**

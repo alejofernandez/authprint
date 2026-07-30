@@ -12,7 +12,7 @@ import type {
 import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
 import { ScreenMockup } from '../nodes/screen/ScreenMockup.tsx';
 import { resolveScreenTheme } from '../nodes/screen/screenTheme.ts';
-import { screenActions } from '../screenActions.ts';
+import { screenActionGroups } from '../screenActions.ts';
 import { divergenceDetail, divergenceFocusNodeId, divergenceHeadline } from './divergenceCopy.ts';
 import { isWarmOutcomeKind, nodeKindLabel } from './playerClipTone.ts';
 import {
@@ -342,11 +342,7 @@ function ScreenStageFrame({
   const errorBannerCopy =
     step.errorBannerCopy ??
     (flow && runTrace ? screenErrorBannerCopyForStep(flow, runTrace, step.index) : null);
-  const secondaryActions = flow
-    ? screenActions(flow, node.id)
-        .filter((a) => a.prominence === 'secondary')
-        .map((a) => a.action)
-    : [];
+  const groups = flow ? screenActionGroups(flow, node.id) : { secondary: [], social: [] };
   return (
     <div
       className={`${screenTheme === 'dark' ? 'flow-theme-dark ' : ''}origin-center`}
@@ -360,7 +356,8 @@ function ScreenStageFrame({
           stageLayout="player"
           highlightedAction={step.exitActionId}
           highlightedActionLabel={step.exitTriggerLabel}
-          secondaryActions={secondaryActions}
+          secondaryActions={groups.secondary}
+          socialActions={groups.social}
         />
       </div>
     </div>
@@ -392,11 +389,9 @@ function InterstitialOverlayStage({
   // The backdrop is the same screen the previous step rendered, so it has to be
   // derived the same way (US-126). Without this it drops its action links and
   // the card visibly shrinks as the player steps onto a decision or action.
-  const backdropSecondaryActions = flow
-    ? screenActions(flow, backdropNode.id)
-        .filter((a) => a.prominence === 'secondary')
-        .map((a) => a.action)
-    : [];
+  const backdropGroups = flow
+    ? screenActionGroups(flow, backdropNode.id)
+    : { secondary: [], social: [] };
 
   return (
     <div
@@ -413,7 +408,8 @@ function InterstitialOverlayStage({
           branding={branding}
           errorBannerCopy={null}
           stageLayout="player"
-          secondaryActions={backdropSecondaryActions}
+          secondaryActions={backdropGroups.secondary}
+          socialActions={backdropGroups.social}
         />
       </div>
       <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-bg-canvas/25 dark:bg-bg-canvas/45">

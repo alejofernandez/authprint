@@ -11,7 +11,7 @@ import { effectiveSourceHandle, effectiveTargetHandle } from './connectionSides.
 import type { CanvasNodeData } from './nodes/index.ts';
 import { buildNodeAriaLabel } from './nodes/nodeAriaLabel.ts';
 import { resolveScreenTheme } from './nodes/screen/screenTheme.ts';
-import { screenActions } from './screenActions.ts';
+import { screenActionGroups } from './screenActions.ts';
 import { defaultScreenSourceSideForAction } from './screenInteractionSides.ts';
 import { type EdgeRoutes, edgeLayoutPoints, type LayoutPositions } from './ydoc/schema.ts';
 
@@ -139,15 +139,15 @@ export function flowToReactFlow(
     set.add(edge.trigger.value ? 'yes' : 'no');
   }
 
-  // Secondary (non-primary) screen actions in graph order — one derivation for
-  // the canvas mockup (inspector derives the full list from the same helper).
+  // Screen action groups in graph order, from the shared helper so this site and
+  // the player's two cannot drift (UF-048 was one of them drifting).
   const secondaryActionsByScreen = new Map<string, string[]>();
+  const socialActionsByScreen = new Map<string, string[]>();
   for (const node of flow.nodes) {
     if (node.type !== 'screen') continue;
-    const secondary = screenActions(flow, node.id)
-      .filter((a) => a.prominence === 'secondary')
-      .map((a) => a.action);
+    const { secondary, social } = screenActionGroups(flow, node.id);
     if (secondary.length > 0) secondaryActionsByScreen.set(node.id, secondary);
+    if (social.length > 0) socialActionsByScreen.set(node.id, social);
   }
 
   const nodes: RfNode<CanvasNodeData>[] = flow.nodes.map((node) => ({
@@ -170,6 +170,9 @@ export function flowToReactFlow(
         displayErrorState: nodeLayout[node.id]?.displayErrorState === true,
         ...(secondaryActionsByScreen.has(node.id) && {
           secondaryActions: secondaryActionsByScreen.get(node.id),
+        }),
+        ...(socialActionsByScreen.has(node.id) && {
+          socialActions: socialActionsByScreen.get(node.id),
         }),
       }),
     },

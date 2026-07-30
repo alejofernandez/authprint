@@ -101,16 +101,22 @@ export function ShowPasswordToggle() {
   );
 }
 
+// The trait's own chrome, which only renders when the screen has **no** social
+// actions: the trait says "there is social sign-in here" without saying which
+// providers or where they go, and that sketch state is legitimate (§5). Once the
+// flow models providers, `SocialProviderCluster` draws them instead. Kept
+// anonymous on purpose, since naming providers is exactly what the trait cannot
+// do.
 function SocialLoginButtons() {
-  const providers = ['G', 'A', 'M'] as const;
   return (
-    <div className="flex justify-center gap-2">
-      {providers.map((label) => (
+    <div className="space-y-1.5">
+      {['row-a', 'row-b'].map((key) => (
         <div
-          key={label}
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 bg-white text-[9px] font-semibold text-zinc-500 flow-dark:border-zinc-600 flow-dark:bg-zinc-800 flow-dark:text-zinc-300"
+          key={key}
+          className="flex h-7 items-center gap-2 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-2 flow-dark:border-zinc-600 flow-dark:bg-zinc-800/40"
         >
-          {label}
+          <span className="h-4 w-4 shrink-0 rounded-[4px] bg-zinc-200 flow-dark:bg-zinc-700" />
+          <span className="h-1.5 w-20 rounded-full bg-zinc-200 flow-dark:bg-zinc-700" />
         </div>
       ))}
     </div>
