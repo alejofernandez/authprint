@@ -1,0 +1,432 @@
+id: pattern-airbnb-style-unified-login-signup
+name: Airbnb style unified Login / Signup
+branding:
+  companyName: Airbnb
+  primaryColor: "#FC642D"
+context:
+  user_exists:
+    type: boolean
+nodes:
+  - type: entry
+    id: entry
+  - type: screen
+    id: screen-951b235f
+    name: Enter your email
+    kind: email-collect
+    fields:
+      - name: Email
+        type: text
+        required: false
+  - type: screen
+    id: screen-18373d5a
+    name: Enter your phone
+    kind: identifier-collect
+    fields:
+      - name: Phone
+        type: phone
+        required: false
+  - type: action
+    id: action-420c3a6f
+    name: Send OTP code
+    kind: send-otp
+  - type: screen
+    id: screen-e5ff4658
+    name: Enter your code
+    kind: password
+    traits:
+      - error-banner
+    fields:
+      - name: code
+        type: otp
+        required: false
+  - type: screen
+    id: screen-a378f434
+    name: Enter your password
+    kind: password
+    fields:
+      - name: Password
+        type: password
+        required: false
+  - type: action
+    id: action-ff0cb3c6
+    name: Verify Password
+    kind: validate-credentials
+  - type: outcome
+    id: outcome-e13b4b76
+    name: Authenticated
+    kind: authenticated
+  - type: action
+    id: action-18e87d65
+    name: Verify otp
+    kind: verify-otp
+  - type: outcome
+    id: outcome-ac80b3aa
+    name: Unexpected error
+    kind: error
+  - type: decision
+    id: decision-234ca577
+    name: User exists?
+    kind: user-exists
+    predicate:
+      slot: user_exists
+      op: equals
+      value: true
+  - type: outcome
+    id: outcome-33390d98
+    name: Authenticated
+    kind: authenticated
+  - type: screen
+    id: screen-023c5435
+    name: Create your account
+    kind: signup-confirmation
+    traits:
+      - password-strength-meter
+    fields:
+      - name: First Name
+        type: text
+        required: false
+      - name: Last Name
+        type: text
+        required: false
+      - name: Password (optional)
+        type: new-password
+        required: false
+  - type: outcome
+    id: outcome-b7c1cb97
+    name: Account created
+    kind: authenticated
+  - type: outcome
+    id: outcome-ab61b016
+    name: Abandoned
+    kind: abandoned
+edges:
+  - id: e-833910d2
+    source: entry
+    target: screen-951b235f
+    trigger:
+      type: unconditional
+  - id: e-e6ec47f5
+    source: screen-951b235f
+    target: screen-18373d5a
+    trigger:
+      type: interaction
+      action: continue-with-phone
+  - id: e-e5554e6f
+    source: screen-18373d5a
+    target: screen-951b235f
+    trigger:
+      type: interaction
+      action: continue-with-email
+  - id: e-9281ff1e
+    source: screen-951b235f
+    target: action-420c3a6f
+    trigger:
+      type: interaction
+      action: submit
+  - id: e-54e601a3
+    source: screen-18373d5a
+    target: action-420c3a6f
+    trigger:
+      type: interaction
+      action: submit
+  - id: e-59bb5b8b
+    source: action-420c3a6f
+    target: screen-e5ff4658
+    trigger:
+      type: on-success
+  - id: e-f8afbcc9
+    source: screen-e5ff4658
+    target: screen-a378f434
+    trigger:
+      type: interaction
+      action: use-a-password
+  - id: e-141d94a6
+    source: screen-a378f434
+    target: screen-e5ff4658
+    trigger:
+      type: interaction
+      action: send-me-a-code
+  - id: e-32029bae
+    source: screen-e5ff4658
+    target: action-420c3a6f
+    trigger:
+      type: interaction
+      action: resend-code
+  - id: e-2d5e3709
+    source: screen-a378f434
+    target: action-ff0cb3c6
+    trigger:
+      type: interaction
+      action: submit
+  - id: e-f1112e87
+    source: action-ff0cb3c6
+    target: screen-a378f434
+    trigger:
+      type: on-error
+  - id: e-b21b8bfa
+    source: action-ff0cb3c6
+    target: outcome-e13b4b76
+    trigger:
+      type: on-success
+  - id: e-c35c3f5c
+    source: screen-e5ff4658
+    target: action-18e87d65
+    trigger:
+      type: interaction
+      action: submit
+  - id: e-50824411
+    source: action-18e87d65
+    target: screen-e5ff4658
+    trigger:
+      type: on-error
+  - id: e-00768f49
+    source: action-420c3a6f
+    target: outcome-ac80b3aa
+    trigger:
+      type: on-error
+  - id: e-70663798
+    source: action-18e87d65
+    target: decision-234ca577
+    trigger:
+      type: on-success
+  - id: e-3639676c
+    source: decision-234ca577
+    target: outcome-33390d98
+    trigger:
+      type: branch
+      value: true
+  - id: e-c68e4f3f
+    source: decision-234ca577
+    target: screen-023c5435
+    trigger:
+      type: branch
+      value: false
+  - id: e-835119e6
+    source: screen-023c5435
+    target: outcome-b7c1cb97
+    trigger:
+      type: interaction
+      action: submit
+  - id: e-bf1cc401
+    source: screen-023c5435
+    target: outcome-ab61b016
+    trigger:
+      type: interaction
+      action: cancel
+scenarios:
+  - id: sc-1
+    name: Login with email
+    initialContext:
+      user_exists: true
+    inputScript:
+      - type: screen
+        nodeId: screen-951b235f
+        action: submit
+      - type: action
+        nodeId: action-420c3a6f
+        result: success
+      - type: screen
+        nodeId: screen-e5ff4658
+        action: submit
+      - type: action
+        nodeId: action-18e87d65
+        result: success
+    expectedOutcome:
+      outcomeId: outcome-33390d98
+  - id: sc-2
+    name: Login with phone
+    initialContext:
+      user_exists: true
+    inputScript:
+      - type: screen
+        nodeId: screen-951b235f
+        action: continue-with-phone
+      - type: screen
+        nodeId: screen-18373d5a
+        action: submit
+      - type: action
+        nodeId: action-420c3a6f
+        result: success
+      - type: screen
+        nodeId: screen-e5ff4658
+        action: submit
+      - type: action
+        nodeId: action-18e87d65
+        result: success
+    expectedOutcome:
+      outcomeId: outcome-33390d98
+  - id: sc-3
+    name: Signup with email
+    initialContext:
+      user_exists: false
+    inputScript:
+      - type: screen
+        nodeId: screen-951b235f
+        action: submit
+      - type: action
+        nodeId: action-420c3a6f
+        result: success
+      - type: screen
+        nodeId: screen-e5ff4658
+        action: submit
+      - type: action
+        nodeId: action-18e87d65
+        result: success
+      - type: screen
+        nodeId: screen-023c5435
+        action: submit
+    expectedOutcome:
+      outcomeId: outcome-b7c1cb97
+  - id: sc-4
+    name: Signup with phone
+    initialContext:
+      user_exists: false
+    inputScript:
+      - type: screen
+        nodeId: screen-951b235f
+        action: continue-with-phone
+      - type: screen
+        nodeId: screen-18373d5a
+        action: submit
+      - type: action
+        nodeId: action-420c3a6f
+        result: success
+      - type: screen
+        nodeId: screen-e5ff4658
+        action: submit
+      - type: action
+        nodeId: action-18e87d65
+        result: success
+      - type: screen
+        nodeId: screen-023c5435
+        action: submit
+    expectedOutcome:
+      outcomeId: outcome-b7c1cb97
+  - id: sc-5
+    name: Login with a password
+    initialContext: {}
+    inputScript:
+      - type: screen
+        nodeId: screen-951b235f
+        action: submit
+      - type: action
+        nodeId: action-420c3a6f
+        result: success
+      - type: screen
+        nodeId: screen-e5ff4658
+        action: use-a-password
+      - type: screen
+        nodeId: screen-a378f434
+        action: submit
+      - type: action
+        nodeId: action-ff0cb3c6
+        result: success
+    expectedOutcome:
+      outcomeId: outcome-e13b4b76
+  - id: sc-6
+    name: Login with retry code error
+    initialContext:
+      user_exists: true
+    inputScript:
+      - type: screen
+        nodeId: screen-951b235f
+        action: submit
+      - type: action
+        nodeId: action-420c3a6f
+        result: success
+      - type: screen
+        nodeId: screen-e5ff4658
+        action: resend-code
+      - type: action
+        nodeId: action-420c3a6f
+        result: success
+      - type: screen
+        nodeId: screen-e5ff4658
+        action: submit
+      - type: action
+        nodeId: action-18e87d65
+        result: error
+        errorMessage: Invalid code, please try again
+      - type: screen
+        nodeId: screen-e5ff4658
+        action: submit
+      - type: action
+        nodeId: action-18e87d65
+        result: success
+    expectedOutcome:
+      outcomeId: outcome-33390d98
+layout:
+  nodes:
+    action-18e87d65:
+      x: 1586
+      y: 6
+    action-420c3a6f:
+      x: 830
+      y: 5
+    action-ff0cb3c6:
+      x: 1747
+      y: 445
+    decision-234ca577:
+      x: 1858
+      y: -16
+    entry:
+      x: 24
+      y: 15
+    outcome-33390d98:
+      x: 2119
+      y: 12
+    outcome-ab61b016:
+      x: 2472
+      y: -159
+    outcome-ac80b3aa:
+      x: 982
+      y: 767
+    outcome-b7c1cb97:
+      x: 2469
+      y: -319
+    outcome-e13b4b76:
+      x: 2003
+      y: 455
+    screen-023c5435:
+      x: 2049
+      y: -482
+    screen-18373d5a:
+      x: 481
+      y: 251
+    screen-951b235f:
+      x: 304
+      y: -90
+    screen-a378f434:
+      x: 1400
+      y: 351
+    screen-e5ff4658:
+      x: 1166
+      y: -105
+  edges:
+    e-141d94a6:
+      points:
+        - x: 0
+          y: 32
+      sourceSide: bottom
+    e-32029bae:
+      points:
+        - x: 0
+          y: -410
+      sourceSide: bottom
+    e-50824411:
+      - x: 0
+        y: -229
+    e-c68e4f3f:
+      sourceSide: top
+    e-e5554e6f:
+      points:
+        - x: 0
+          y: 38
+      sourceSide: bottom
+    e-e6ec47f5:
+      sourceSide: bottom
+    e-f1112e87:
+      - x: 0
+        y: -217
+    e-f8afbcc9:
+      sourceSide: bottom

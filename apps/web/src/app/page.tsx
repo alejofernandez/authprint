@@ -12,13 +12,16 @@ const PATTERNS_DIR = join(EXAMPLES_DIR, 'patterns');
 
 type PatternFileEntry = { file: string; dir: string; isDemo?: boolean };
 
+// Demo Flow Zero stays the flagship. The three patterns beneath it are the
+// real-world flows Alejo authored in the tool itself, which replaced the six
+// hand-written starters. `passkey-enrollment` and `magic-link-signin` remain in
+// `dsl-spec/examples` as documented spec examples; they just no longer appear as
+// starting points here.
 const PATTERN_FILES: PatternFileEntry[] = [
   { file: 'demo-flow-zero.authprint', dir: EXAMPLES_DIR, isDemo: true },
-  { file: 'social-account-link.authprint', dir: PATTERNS_DIR },
-  { file: 'step-up-mfa.authprint', dir: PATTERNS_DIR },
-  { file: 'email-password-verification.authprint', dir: PATTERNS_DIR },
-  { file: 'passkey-enrollment.authprint', dir: EXAMPLES_DIR },
-  { file: 'magic-link-signin.authprint', dir: EXAMPLES_DIR },
+  { file: 'airbnb-style-unified-login-signup.authprint', dir: PATTERNS_DIR },
+  { file: 'passwordless-with-otp-and-passkeys.authprint', dir: PATTERNS_DIR },
+  { file: 'x-style-passwordless-with-password-fallback.authprint', dir: PATTERNS_DIR },
 ];
 
 async function loadPatterns(): Promise<PatternFlow[]> {

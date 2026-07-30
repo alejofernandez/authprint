@@ -84,6 +84,11 @@ export function AboutModal({
             </ul>
           </div>
 
+          {/* The bundled patterns model real products by name and brand colour,
+              which is nominative use rather than a claim of association. Saying
+              so is the cheap part of doing that honestly. */}
+          <p className="mt-5 text-fg-subtle text-xs leading-relaxed">{t('trademarks')}</p>
+
           <Dialog.Close asChild>
             <button
               type="button"
