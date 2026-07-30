@@ -6,7 +6,7 @@
 
 import type { ExternalNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
-import { GEO_TARGET_BOTTOM, GEO_TARGET_TOP } from '../connectionSides.ts';
+import { GEO_SOURCE_TOP, GEO_TARGET_BOTTOM, GEO_TARGET_TOP } from '../connectionSides.ts';
 import { SourceHandlePlus } from './HandlePlus.tsx';
 import { NodeShellContent } from './NodeShell.tsx';
 import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
@@ -30,7 +30,10 @@ export function ExternalNodeView({ data, selected }: ExternalNodeProps) {
     >
       <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />
-      <Handle type="target" position={Position.Top} id={GEO_TARGET_TOP} />
+      {/* External is the one node with both an entrance and an exit on top, so
+          they are offset rather than stacked on the same point: the incoming
+          handle sits left of centre and the outgoing one right of it. */}
+      <Handle type="target" position={Position.Top} id={GEO_TARGET_TOP} style={{ left: '35%' }} />
       <Handle type="target" position={Position.Bottom} id={GEO_TARGET_BOTTOM} />
       <div className="absolute top-1.5 right-2 text-teal-600 dark:text-teal-400" aria-hidden>
         ↗
@@ -38,6 +41,14 @@ export function ExternalNodeView({ data, selected }: ExternalNodeProps) {
       <NodeShellContent typeLabel="External" name={node.name} id={node.id} kind={node.kind} />
       <Handle type="source" position={Position.Right} id="on-success" />
       <Handle type="source" position={Position.Bottom} id="on-error" />
+      <Handle type="source" position={Position.Top} id={GEO_SOURCE_TOP} style={{ left: '65%' }} />
+      <SourceHandlePlus
+        handleId={GEO_SOURCE_TOP}
+        position="top"
+        connected={connected}
+        force={selected}
+        anchored={data.pickerAnchorHandle === GEO_SOURCE_TOP}
+      />
       <SourceHandlePlus
         handleId="on-success"
         position="right"

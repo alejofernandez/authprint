@@ -33,6 +33,13 @@ export function ActionNodeView({ data, selected }: ActionNodeProps) {
       <Handle type="source" position={Position.Right} id="on-success" />
       <Handle type="source" position={Position.Bottom} id="on-error" />
       <SourceHandlePlus
+        handleId={GEO_SOURCE_TOP}
+        position="top"
+        connected={connected}
+        force={selected}
+        anchored={data.pickerAnchorHandle === GEO_SOURCE_TOP}
+      />
+      <SourceHandlePlus
         handleId="on-success"
         position="right"
         connected={connected}

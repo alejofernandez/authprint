@@ -28,8 +28,12 @@ export function isGeometricSourceHandle(
   nodeType: DslNode['type'],
   handleId: string | null | undefined,
 ): boolean {
-  // Screen/Action top-out is geometric relocation only (UF-040) — no semantic id.
-  if (handleId === GEO_SOURCE_TOP && (nodeType === 'screen' || nodeType === 'action')) {
+  // Screen/Action/External top-out is a geometric exit with no semantic id
+  // (UF-040, widened to External in UF-052).
+  if (
+    handleId === GEO_SOURCE_TOP &&
+    (nodeType === 'screen' || nodeType === 'action' || nodeType === 'external')
+  ) {
     return true;
   }
   return nodeType === 'decision' && DECISION_GEO_SOURCE_HANDLES.has(handleId ?? '');
@@ -121,7 +125,7 @@ export function isSideRelocationSourceHandle(
 ): boolean {
   if (isGeometricSourceHandle(nodeType, handleId)) return true;
   if (nodeType === 'screen') return isScreenSourceHandle(handleId);
-  if (nodeType === 'action') {
+  if (nodeType === 'action' || nodeType === 'external') {
     return handleId === 'on-success' || handleId === 'on-error';
   }
   if (nodeType !== 'decision') return false;
@@ -177,7 +181,10 @@ export function effectiveSourceHandle(
   const side = layout?.sourceSide ?? defaultSourceSide(trigger);
   if (
     side === 'top' &&
-    (nodeType === 'decision' || nodeType === 'screen' || nodeType === 'action')
+    (nodeType === 'decision' ||
+      nodeType === 'screen' ||
+      nodeType === 'action' ||
+      nodeType === 'external')
   ) {
     return GEO_SOURCE_TOP;
   }

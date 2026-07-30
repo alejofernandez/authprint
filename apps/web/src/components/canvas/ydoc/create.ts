@@ -118,7 +118,7 @@ export function resolveCreateFromHandle(
     return { trigger: { type: 'interaction', action: 'submit' }, sourceSide: 'top' };
   }
 
-  if (sourceHandle === GEO_SOURCE_TOP && sourceType === 'action') {
+  if (sourceHandle === GEO_SOURCE_TOP && (sourceType === 'action' || sourceType === 'external')) {
     if (!actionExitUsed(edges, sourceId, 'on-success')) {
       return { trigger: { type: 'on-success' }, sourceSide: 'top' };
     }

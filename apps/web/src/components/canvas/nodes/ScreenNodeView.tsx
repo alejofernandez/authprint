@@ -44,6 +44,19 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
       <Handle type="source" position={Position.Top} id={GEO_SOURCE_TOP} title="Exit from the top" />
       <Handle type="source" position={Position.Right} id="default" />
       <Handle type="source" position={Position.Bottom} id="alt" />
+      {/* Top `+` (UF-052). Alejo's case for it: with relocation as the only way
+          onto the top handle, getting a third exit up there meant grabbing one
+          of several overlapping edges on the bottom handle, which he could not
+          reliably do. Creating it on the top in the first place avoids the
+          grab entirely, and the ask was simply that the top handle work like
+          the others. */}
+      <SourceHandlePlus
+        handleId={GEO_SOURCE_TOP}
+        position="top"
+        connected={connected}
+        force={selected}
+        anchored={data.pickerAnchorHandle === GEO_SOURCE_TOP}
+      />
       <SourceHandlePlus
         handleId="default"
         position="right"

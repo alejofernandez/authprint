@@ -77,11 +77,13 @@ export function PlayButton({
   }
 
   return (
-    // No `min-w-0` here: it would let this shrink below the glyph + chevron the
-    // two buttons need, and flex children that overflow their own parent get
-    // drawn under the next sibling (the ⌘K pill landed on top of them at
-    // narrow widths). The label span inside absorbs the squeeze instead.
-    <div className="relative flex items-stretch">
+    // An explicit floor rather than `min-w-0` or the `auto` default. `auto`
+    // means min-content, which includes the whole scenario name, so this refused
+    // to shrink and overflowed leftward into the flow name. `min-w-0` was the
+    // opposite failure: it collapsed under the glyph and chevron, and children
+    // overflowing their own parent get drawn under the next sibling. A floor
+    // gives both, shrinking down to exactly the two controls and no further.
+    <div className="relative flex min-w-[3.25rem] items-stretch">
       <button
         type="button"
         onClick={() => play(preferred)}
