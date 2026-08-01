@@ -75,7 +75,8 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
       - name: Install Chromium
-        run: bun --filter '@authprint/web' exec playwright install --with-deps chromium
+        working-directory: apps/web
+        run: bunx playwright install --with-deps chromium
 
       # These assert DOM state, focus order and geometry — not pixels — so unlike
       # the visual baselines they are safe to run on a Linux runner without a
