@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "test-storybook": "test-storybook",
     "test-storybook:update": "test-storybook -u",
     "test-storybook:ci": "storybook build --quiet && concurrently -k -s first -n SB,TEST \"http-server storybook-static --port 6006 --silent\" \"wait-on tcp:127.0.0.1:6006 && test-storybook --url http://127.0.0.1:6006\""
@@ -30,6 +32,7 @@
     "yjs": "^13.6.31"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@storybook/addon-a11y": "^10.4.6",
     "@storybook/addon-docs": "^10.4.6",
     "@storybook/nextjs-vite": "^10.4.6",

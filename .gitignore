@@ -61,3 +61,8 @@ storybook-static
 
 # visual regression: commit baselines, ignore transient failure diffs/actuals
 **/__snapshots__/**/__diff_output__/
+
+# playwright behaviour suite — transient run output
+test-results/
+playwright-report/
+.playwright/

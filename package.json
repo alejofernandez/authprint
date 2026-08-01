@@ -18,6 +18,7 @@
     "typecheck": "bun --filter '*' typecheck",
     "test": "bun test",
     "storybook": "bun --filter '@authprint/web' storybook",
+    "test:e2e": "bun --filter '@authprint/web' test:e2e",
     "test:visual": "bun --filter '@authprint/web' test-storybook:ci",
     "test:visual:update": "bun --filter '@authprint/web' test-storybook:update",
     "op:run": "bun scripts/op-run.ts",
