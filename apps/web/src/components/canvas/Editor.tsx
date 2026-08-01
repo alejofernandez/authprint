@@ -1377,6 +1377,16 @@ function FlowCanvas({
     setEditingId(node.id);
   }, []);
 
+  // US-134: first click selects; clicking an already-selected node opens the
+  // inspector. Enter/Space still goes through onNodeActivate unchanged.
+  const onNodeClick = useCallback<NodeMouseHandler>((_event, node) => {
+    if (node.type === 'entry' || !node.selected) return;
+    setContextMenuAt(null);
+    setFreePlaceAt(null);
+    setEdgeEditor(null);
+    setEditingId(node.id);
+  }, []);
+
   const onNodeActivate = useCallback(
     (nodeId: string) => {
       const target = flow.nodes.find((n) => n.id === nodeId);
@@ -1446,6 +1456,7 @@ function FlowCanvas({
               onReconnectStart={onReconnectStart}
               onReconnectEnd={onReconnectEnd}
               isValidConnection={isValidConnection}
+              onNodeClick={readOnly ? undefined : onNodeClick}
               onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
               onCanvasContextMenu={readOnly ? undefined : openCanvasContextMenu}
               onDismissTransient={closeTransientMenus}
@@ -1556,6 +1567,7 @@ function BoundCanvas({
   onReconnectStart,
   onReconnectEnd,
   isValidConnection,
+  onNodeClick,
   onNodeDoubleClick,
   onCanvasContextMenu,
   onDismissTransient,
@@ -1570,6 +1582,7 @@ function BoundCanvas({
   onReconnectStart: (event: React.MouseEvent, edge: RfEdge) => void;
   onReconnectEnd: () => void;
   isValidConnection: IsValidConnection;
+  onNodeClick?: NodeMouseHandler;
   onNodeDoubleClick?: NodeMouseHandler;
   /** Empty-pane right-click / tap-hold (US-133). */
   onCanvasContextMenu?: (at: { x: number; y: number }) => void;
@@ -1715,6 +1728,7 @@ function BoundCanvas({
       isValidConnection={isValidConnection}
       edgesReconnectable={!readOnly}
       reconnectRadius={24}
+      onNodeClick={onNodeClick}
       onNodeDoubleClick={onNodeDoubleClick}
       onPaneContextMenu={handlePaneContextMenu}
       onMoveStart={handleMoveStart}

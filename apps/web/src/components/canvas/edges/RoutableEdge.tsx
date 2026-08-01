@@ -277,6 +277,32 @@ export function RoutableEdge({
     [id, openTriggerEditor],
   );
 
+  // US-134: label activates on single click / Enter / Space. Spine stays
+  // drag-primary — a single click there must not open the editor.
+  const onLabelClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (!openTriggerEditor) return;
+      event.preventDefault();
+      event.stopPropagation();
+      openTriggerEditor(id, { x: event.clientX, y: event.clientY });
+    },
+    [id, openTriggerEditor],
+  );
+
+  const onLabelKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (!openTriggerEditor || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = event.currentTarget.getBoundingClientRect();
+      openTriggerEditor(id, {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      });
+    },
+    [id, openTriggerEditor],
+  );
+
   const spineCursor =
     dragPolicy.mode === 'u-depth' || dragPolicy.axis === 'y'
       ? 'cursor-ns-resize'
@@ -345,6 +371,8 @@ export function RoutableEdge({
                 color: labelStyle?.color,
                 ...labelStyle,
               }}
+              onClick={onLabelClick}
+              onKeyDown={onLabelKeyDown}
               onDoubleClick={onEdgeDoubleClick}
             >
               {label}

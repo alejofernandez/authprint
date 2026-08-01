@@ -202,7 +202,7 @@
       "pause": "Pause",
       "dragHandle": "Drag transport bar",
       "collapse": "Collapse transport bar",
-      "expand": "Expand transport bar. Double-click the compact bar.",
+      "expand": "Expand transport bar",
       "exit": "Exit"
     },
     "canvasPlay": "Play scenario: {name}",

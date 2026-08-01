@@ -115,7 +115,6 @@ export function PlayerTransportPill({
   const pillRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const pointerMovedRef = useRef(false);
-  const compactClickTimeoutRef = useRef<number | null>(null);
   const compactAnchorRef = useRef<{ x: number; y: number } | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -266,19 +265,11 @@ export function PlayerTransportPill({
       pointerMovedRef.current = false;
       return;
     }
-    if (compactClickTimeoutRef.current) window.clearTimeout(compactClickTimeoutRef.current);
-    compactClickTimeoutRef.current = window.setTimeout(() => {
-      compactClickTimeoutRef.current = null;
-      if (!(atEnd && !diverged && !playing)) onTogglePlay();
-    }, 220);
+    // US-134: play immediately — expand has its own control; no dblclick delay.
+    if (!(atEnd && !diverged && !playing)) onTogglePlay();
   };
 
-  const onCompactDoubleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    if (compactClickTimeoutRef.current) {
-      window.clearTimeout(compactClickTimeoutRef.current);
-      compactClickTimeoutRef.current = null;
-    }
+  const onCompactExpand = () => {
     pointerMovedRef.current = false;
     captureAnchorAndSetCompact(false);
   };
@@ -311,25 +302,37 @@ export function PlayerTransportPill({
       data-compact={compact || undefined}
     >
       {compact ? (
-        <button
-          type="button"
-          aria-label={playLabel}
-          title={`${playLabel}. Double-click to expand.`}
-          className={`flex touch-none items-center rounded-full border px-3 py-1.5 text-sm font-medium shadow-lg backdrop-blur ${pillTone} ${
-            dragging ? 'cursor-grabbing' : 'cursor-grab'
-          } ${atEnd && !diverged && !playing ? 'opacity-60' : ''}`}
-          onClick={onCompactClick}
-          onDoubleClick={onCompactDoubleClick}
-          onPointerDown={onCompactPointerDown}
-          onPointerMove={onCompactPointerMove}
-          onPointerUp={onCompactPointerUp}
-          onPointerCancel={onCompactPointerUp}
+        <div
+          className={`flex touch-none items-center rounded-full border shadow-lg backdrop-blur ${pillTone} ${
+            dragging ? 'cursor-grabbing' : ''
+          }`}
         >
-          {playing ? '⏸' : '▶'}
-          <span className="sr-only">
-            {playLabel}. {labels.expand}. Double-click to expand.
-          </span>
-        </button>
+          <button
+            type="button"
+            aria-label={playLabel}
+            title={playLabel}
+            className={`flex items-center rounded-l-full px-3 py-1.5 text-sm font-medium ${
+              dragging ? 'cursor-grabbing' : 'cursor-grab'
+            } ${atEnd && !diverged && !playing ? 'opacity-60' : ''}`}
+            onClick={onCompactClick}
+            onPointerDown={onCompactPointerDown}
+            onPointerMove={onCompactPointerMove}
+            onPointerUp={onCompactPointerUp}
+            onPointerCancel={onCompactPointerUp}
+          >
+            {playing ? '⏸' : '▶'}
+          </button>
+          <button
+            type="button"
+            aria-label={labels.expand}
+            title={labels.expand}
+            className="flex items-center rounded-r-full border-l border-current/20 px-2 py-1.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
+            onClick={onCompactExpand}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <span aria-hidden="true">▴</span>
+          </button>
+        </div>
       ) : (
         <div
           className={`flex w-max max-w-[calc(100vw-2rem)] items-center gap-1 rounded-full border px-1 py-1.5 shadow-lg backdrop-blur ${pillTone} ${
