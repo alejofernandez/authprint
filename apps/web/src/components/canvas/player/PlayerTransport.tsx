@@ -326,7 +326,9 @@ export function PlayerTransportPill({
             type="button"
             aria-label={labels.expand}
             title={labels.expand}
-            className="flex items-center rounded-r-full border-l border-current/20 px-2 py-1.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
+            // min-w-6 keeps the target on §7's 24px floor: the glyph plus px-2
+            // measures 23.5px, which is under it by half a pixel.
+            className="flex min-w-6 items-center justify-center rounded-r-full border-l border-current/20 px-2 py-1.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
             onClick={onCompactExpand}
             onPointerDown={(event) => event.stopPropagation()}
           >
