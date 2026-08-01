@@ -32,7 +32,7 @@ export function OutcomeNodeView({ data }: OutcomeNodeProps) {
       nodeId={node.id}
       ariaLabel={data.ariaLabel ?? node.id}
       title={canvasNodeTitle(data.diagnostics)}
-      className={`rounded-full border ${surface} ${canvasNodeRing(data.diagnostics)} ${canvasNodeOpacity()}`}
+      className={`rounded-full border ${surface} ${canvasNodeRing(data.diagnostics, data.unwired)} ${canvasNodeOpacity()}`}
     >
       <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />

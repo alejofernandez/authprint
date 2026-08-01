@@ -28,7 +28,7 @@ export function ScreenNodeView({ data, selected }: ScreenNodeProps) {
       nodeId={node.id}
       ariaLabel={data.ariaLabel ?? node.id}
       title={canvasNodeTitle(data.diagnostics)}
-      className={`group relative rounded-xl ${canvasNodeRing(data.diagnostics)} ${canvasNodeOpacity()}`}
+      className={`group relative rounded-xl ${canvasNodeRing(data.diagnostics, data.unwired)} ${canvasNodeOpacity()}`}
     >
       <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />

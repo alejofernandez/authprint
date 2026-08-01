@@ -107,8 +107,13 @@ export function CanvasContextMenu({
 
   return (
     <>
+      {/* Pointer-only dismiss layer: hidden from the a11y tree and out of the tab
+          order, so it can't become a focus stop that announces "Close menu" while
+          Escape is the real keyboard path (the trap US-131 catalogued). */}
       <button
         type="button"
+        aria-hidden="true"
+        tabIndex={-1}
         aria-label={t('close')}
         className="fixed inset-0 z-[55] cursor-default"
         onClick={onClose}
@@ -118,14 +123,19 @@ export function CanvasContextMenu({
         tabIndex={-1}
         role="menu"
         aria-label={t('label')}
+        aria-activedescendant={items[active]?.id}
         className="fixed z-[60] overflow-hidden rounded-lg border border-border-subtle bg-bg-panel p-1 shadow-xl outline-none dark:border-border-default"
         style={{ left: position.left, top: position.top, width: PANEL_WIDTH }}
       >
         {items.map((item, i) => (
           <button
             key={item.id}
+            id={item.id}
             type="button"
             role="menuitem"
+            // Roving focus stays on the menu itself: Tab must not land on an item,
+            // or Enter would fire the focused button *and* the active row.
+            tabIndex={-1}
             onMouseEnter={() => setActive(i)}
             onClick={item.run}
             className={`flex w-full items-center justify-between gap-3 rounded-md px-2 py-1.5 text-left text-sm ${

@@ -1606,6 +1606,11 @@ function BoundCanvas({
     const onDown = (event: Event) => {
       const e = event as PointerEvent;
       if (e.button !== 0) return;
+      // Nodes and edge labels live inside the pane, so their pointerdowns bubble
+      // here. Only a direct hit on empty canvas is a canvas gesture — otherwise a
+      // touch user resting a finger on a node would get the canvas menu, which is
+      // the node menu this story deliberately does not ship.
+      if (e.target !== pane) return;
       clearLongPress();
       const pointerId = e.pointerId;
       const x = e.clientX;

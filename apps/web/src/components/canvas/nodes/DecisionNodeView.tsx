@@ -40,7 +40,7 @@ export function DecisionNodeView({ data, selected }: DecisionNodeProps) {
       nodeId={node.id}
       ariaLabel={data.ariaLabel ?? node.id}
       title={canvasNodeTitle(data.diagnostics)}
-      className={`group relative w-44 h-28 flex items-center justify-center ${canvasNodeRing(data.diagnostics)} ${canvasNodeOpacity()}`}
+      className={`group relative w-44 h-28 flex items-center justify-center ${canvasNodeRing(data.diagnostics, data.unwired)} ${canvasNodeOpacity()}`}
     >
       <ValidationCue diagnostics={data.diagnostics} />
       {/* Diamond background via clip-path on a rotated square. */}

@@ -16,7 +16,7 @@ export function EntryNodeView({ data, selected }: EntryNodeProps) {
       nodeId={data.node.id}
       ariaLabel={data.ariaLabel ?? data.node.id}
       title={canvasNodeTitle(data.diagnostics)}
-      className={`group relative ${canvasNodeRing(data.diagnostics)} ${canvasNodeOpacity()}`}
+      className={`group relative ${canvasNodeRing(data.diagnostics, data.unwired)} ${canvasNodeOpacity()}`}
     >
       <ValidationCue diagnostics={data.diagnostics} />
       <div className="h-16 w-16 rounded-full bg-node-entry-bg border-2 border-node-entry-border flex items-center justify-center">

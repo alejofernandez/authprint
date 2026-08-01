@@ -8,10 +8,11 @@
 // false alarm users pushed back on. They still appear in the tooltip and in the
 // Problems panel, so nothing becomes invisible.
 //
-// `validation-unreachable-node` is an honest error (the flow cannot run) but
-// US-133 deliberately invites free placement of unconnected nodes — so the
-// canvas cue softens to a muted ring rather than shouting danger. Severity and
-// the Problems entry stay untouched; only the painted cue changes.
+// A node with no incident edges (US-133 free placement) is *not wired yet*, not
+// broken: both connectivity errors it raises are explained by the missing edges
+// the user is about to draw. Its canvas cue softens to a muted ring, while the
+// severity and the Problems entry stay untouched. A wired node keeps the danger
+// ring for the same codes — there, a dead end is a real modelling error.
 
 import type { Diagnostic } from '@authprint/dsl';
 
@@ -24,20 +25,21 @@ const RING = {
   unwired: 'ring-2 ring-border-default/70 ring-offset-2 ring-offset-bg-canvas',
 } as const;
 
-const UNREACHABLE = 'validation-unreachable-node';
-
-function shoutingDiagnostics(diagnostics: Diagnostic[]): Diagnostic[] {
-  return diagnostics.filter((d) => d.code !== UNREACHABLE);
-}
+const CONNECTIVITY_CODES = new Set([
+  'validation-unreachable-node',
+  'validation-non-terminable-node',
+]);
 
 /** Tailwind ring classes for a node's diagnostics, or '' when clean. */
-export function validationRing(diagnostics: Diagnostic[] | undefined): string {
+export function validationRing(diagnostics: Diagnostic[] | undefined, unwired = false): string {
   if (!diagnostics || diagnostics.length === 0) return '';
-  const shouting = shoutingDiagnostics(diagnostics);
+  const shouting = unwired
+    ? diagnostics.filter((d) => !CONNECTIVITY_CODES.has(d.code))
+    : diagnostics;
   if (shouting.some((d) => d.severity === 'error')) return RING.error;
   if (shouting.some((d) => d.severity === 'warning')) return RING.warning;
-  // Only unreachable (and/or info) remain — soften; don't paint as broken.
-  if (diagnostics.some((d) => d.code === UNREACHABLE)) return RING.unwired;
+  // Everything left is explained by the node not being wired yet — soften.
+  if (shouting.length < diagnostics.length) return RING.unwired;
   return '';
 }
 
@@ -47,8 +49,8 @@ export function validationTitle(diagnostics: Diagnostic[] | undefined): string |
   return diagnostics.map((d) => `${SEVERITY_GLYPH[d.severity]} ${d.message}`).join('\n');
 }
 
-export function canvasNodeRing(diagnostics: Diagnostic[] | undefined): string {
-  return validationRing(diagnostics);
+export function canvasNodeRing(diagnostics: Diagnostic[] | undefined, unwired?: boolean): string {
+  return validationRing(diagnostics, unwired);
 }
 
 export function canvasNodeOpacity(): string {

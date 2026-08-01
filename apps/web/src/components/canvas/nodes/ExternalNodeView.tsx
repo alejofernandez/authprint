@@ -26,7 +26,7 @@ export function ExternalNodeView({ data, selected }: ExternalNodeProps) {
       nodeId={node.id}
       ariaLabel={data.ariaLabel ?? node.id}
       title={canvasNodeTitle(data.diagnostics)}
-      className={`group relative rounded-md bg-teal-50 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-800 border-t-4 border-t-teal-500 dark:border-t-teal-400 ${canvasNodeRing(data.diagnostics)} ${canvasNodeOpacity()}`}
+      className={`group relative rounded-md bg-teal-50 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-800 border-t-4 border-t-teal-500 dark:border-t-teal-400 ${canvasNodeRing(data.diagnostics, data.unwired)} ${canvasNodeOpacity()}`}
     >
       <ValidationCue diagnostics={data.diagnostics} />
       <Handle type="target" position={Position.Left} />

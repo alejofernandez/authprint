@@ -25,6 +25,12 @@ export type CanvasNodeData<TNode extends Node = Node> = {
   /** Live validation diagnostics targeting this node (E33). Absent = clean. */
   diagnostics?: Diagnostic[];
   /**
+   * No incident edges — the node has been placed but not wired yet (US-133).
+   * Its connectivity errors are all explained by that, so the canvas cue softens
+   * while Problems keeps them at full severity.
+   */
+  unwired?: boolean;
+  /**
    * Source-handle ids that already have an outgoing edge (E26). Drives the
    * per-handle `+` affordance: a single-use handle in this set hides its `+`.
    * The unconditional (entry) handle is keyed by `''`. Absent in contexts that

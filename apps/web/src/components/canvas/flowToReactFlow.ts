@@ -150,6 +150,14 @@ export function flowToReactFlow(
     if (social.length > 0) socialActionsByScreen.set(node.id, social);
   }
 
+  // Nodes with at least one incident edge. A node with none is "not wired yet"
+  // (US-133 free placement) rather than broken — see `validationRing`.
+  const wired = new Set<string>();
+  for (const edge of flow.edges) {
+    wired.add(edge.source);
+    wired.add(edge.target);
+  }
+
   const nodes: RfNode<CanvasNodeData>[] = flow.nodes.map((node) => ({
     id: node.id,
     type: node.type,
@@ -164,6 +172,7 @@ export function flowToReactFlow(
         usedDecisionBranches: usedDecisionBranches.get(node.id),
       }),
       diagnostics: validation?.byNode.get(node.id),
+      unwired: !wired.has(node.id),
       ...(node.type === 'screen' && {
         screenTheme: resolveScreenTheme(flow.branding.theme, editorTheme),
         branding: flow.branding,

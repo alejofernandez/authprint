@@ -34,28 +34,35 @@ describe('validationRing — severity drives the canvas cue', () => {
     );
   });
 
-  // US-133 invites free placement; unreachable stays an error in Problems but
-  // the canvas must not shout "broken" for a node we just asked the user to drop.
-  test('unreachable alone gets a soft unwired ring, not danger', () => {
-    const unreachable: Diagnostic = {
-      severity: 'error',
-      code: 'validation-unreachable-node',
-      message: 'node is not reachable from entry',
-      target: { kind: 'node', id: 'n1' },
-    };
-    const ring = validationRing([unreachable]);
+  // US-133 invites free placement; both connectivity errors stay errors in
+  // Problems, but the canvas must not shout "broken" at a node we just asked the
+  // user to drop. Note the pair: dropping a node raises BOTH codes, so testing
+  // either one alone would pass while the real node still rings red.
+  const connectivity = (code: Diagnostic['code'], message: string): Diagnostic => ({
+    severity: 'error',
+    code,
+    message,
+    target: { kind: 'node', id: 'n1' },
+  });
+  const justDropped = [
+    connectivity('validation-unreachable-node', "node 'n1' is not reachable from entry"),
+    connectivity('validation-non-terminable-node', "node 'n1' cannot reach any outcome"),
+  ];
+
+  test('a just-placed node gets the soft unwired ring, not danger', () => {
+    const ring = validationRing(justDropped, true);
     expect(ring).toContain('ring-border-default');
     expect(ring).not.toContain('signal-danger-ring');
   });
 
-  test('unreachable does not mute a real error on the same node', () => {
-    const unreachable: Diagnostic = {
-      severity: 'error',
-      code: 'validation-unreachable-node',
-      message: 'unreachable',
-      target: { kind: 'node', id: 'n1' },
-    };
-    expect(validationRing([unreachable, diag('error', 'boom')])).toContain('signal-danger-ring');
+  test('the same codes on a wired node stay danger — a dead end is real', () => {
+    expect(validationRing(justDropped, false)).toContain('signal-danger-ring');
+  });
+
+  test('being unwired does not mute an unrelated error on the same node', () => {
+    expect(validationRing([...justDropped, diag('error', 'boom')], true)).toContain(
+      'signal-danger-ring',
+    );
   });
 });
 
