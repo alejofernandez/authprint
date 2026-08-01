@@ -182,6 +182,13 @@
     "playScenario": "Play {name}",
     "recordScenario": "Record scenario"
   },
+  "canvasContextMenu": {
+    "label": "Canvas menu",
+    "close": "Close menu",
+    "addNode": "Add node",
+    "playScenario": "Play scenario: {name}",
+    "recordScenario": "Record a scenario"
+  },
   "player": {
     "context": {
       "toggle": "Context",

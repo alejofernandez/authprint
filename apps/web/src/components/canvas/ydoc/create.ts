@@ -291,6 +291,21 @@ export function createConnectedNode(doc: Y.Doc, args: CreateConnectedNodeArgs): 
   return nodeId;
 }
 
+/** Place an unconnected node at `position` (US-133 / UF-041 free placement).
+ *  One transaction = one undo step — same contract as `createConnectedNode`. */
+export function createUnconnectedNode(
+  doc: Y.Doc,
+  args: { type: CreatableType; position: Position },
+): string {
+  const nodeId = `${args.type}-${rid()}`;
+  const node = defaultNode(args.type, nodeId);
+  doc.transact(() => {
+    nodesMap(doc).set(nodeId, buildNodeMap(node));
+    layoutMap(doc).set(nodeId, args.position);
+  }, LOCAL_ORIGIN);
+  return nodeId;
+}
+
 // ─── Connect (drag-from-handle onto an existing node, US-050) ─────────────────
 
 export type ConnectNodesArgs = {

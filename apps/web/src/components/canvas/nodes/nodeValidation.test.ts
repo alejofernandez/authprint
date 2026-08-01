@@ -33,6 +33,30 @@ describe('validationRing — severity drives the canvas cue', () => {
       'signal-warning-ring',
     );
   });
+
+  // US-133 invites free placement; unreachable stays an error in Problems but
+  // the canvas must not shout "broken" for a node we just asked the user to drop.
+  test('unreachable alone gets a soft unwired ring, not danger', () => {
+    const unreachable: Diagnostic = {
+      severity: 'error',
+      code: 'validation-unreachable-node',
+      message: 'node is not reachable from entry',
+      target: { kind: 'node', id: 'n1' },
+    };
+    const ring = validationRing([unreachable]);
+    expect(ring).toContain('ring-border-default');
+    expect(ring).not.toContain('signal-danger-ring');
+  });
+
+  test('unreachable does not mute a real error on the same node', () => {
+    const unreachable: Diagnostic = {
+      severity: 'error',
+      code: 'validation-unreachable-node',
+      message: 'unreachable',
+      target: { kind: 'node', id: 'n1' },
+    };
+    expect(validationRing([unreachable, diag('error', 'boom')])).toContain('signal-danger-ring');
+  });
 });
 
 describe('validationTitle — everything stays discoverable', () => {

@@ -47,6 +47,7 @@ import type * as Y from 'yjs';
 import { track } from '@/analytics';
 import { useTheme } from '@/components/theme';
 import { AboutModal } from './AboutModal.tsx';
+import { CanvasContextMenu } from './CanvasContextMenu.tsx';
 import { CommandPalette, type PaletteCommand } from './CommandPalette.tsx';
 import { DocumentPreferencesModal } from './DocumentPreferencesModal.tsx';
 import { type EdgeTriggerActions, EdgeTriggerEditor } from './EdgeTriggerEditor.tsx';
@@ -85,6 +86,7 @@ import {
   type CreatableType,
   connectNodes,
   createConnectedNode,
+  createUnconnectedNode,
   resolveCreateFromHandle,
   resolvedInteractionAlreadyUsed,
   validateConnection,
@@ -866,7 +868,15 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
             }}
             onDrop={onDrop}
           >
-            <FlowCanvas key={revision} doc={doc} showOutlines={showOutlines} />
+            <FlowCanvas
+              key={revision}
+              doc={doc}
+              showOutlines={showOutlines}
+              scenarios={scenarios}
+              onPlayScenario={playScenario}
+              onRecordScenario={recordNewScenario}
+              onOpenPalette={() => setPaletteOpen(true)}
+            />
 
             {dragging && (
               <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-accent-primary/10 backdrop-blur-sm">
@@ -1025,7 +1035,21 @@ function alignedNodePosition(
   return { x: x + sw / 2 - width / 2, y: y - NEW_NODE_GAP - height };
 }
 
-function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }) {
+function FlowCanvas({
+  doc,
+  showOutlines,
+  scenarios,
+  onPlayScenario,
+  onRecordScenario,
+  onOpenPalette,
+}: {
+  doc: Y.Doc;
+  showOutlines: boolean;
+  scenarios: readonly Scenario[];
+  onPlayScenario: (scenario: Scenario) => void;
+  onRecordScenario: () => void;
+  onOpenPalette: () => void;
+}) {
   const {
     flow,
     layout,
@@ -1043,9 +1067,17 @@ function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }
   // Error outlines on the canvas are opt-in (off while building — the per-handle
   // `+` already hints at incompleteness; the Problems badge tracks the count).
   // Flip them on from the toolbar Problems control (US-132).
-  const { getNode, screenToFlowPosition, flowToScreenPosition } = useReactFlow();
+  const { getNode, screenToFlowPosition, flowToScreenPosition, fitView } = useReactFlow();
   const [menu, setMenu] = useState<CreateMenu | null>(null);
+  // US-133: empty-pane context menu, then NodeTypePicker for free placement.
+  const [contextMenuAt, setContextMenuAt] = useState<{ x: number; y: number } | null>(null);
+  const [freePlaceAt, setFreePlaceAt] = useState<{ x: number; y: number } | null>(null);
   const [pendingActionCreate, setPendingActionCreate] = useState<PendingActionCreate | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [edgeEditor, setEdgeEditor] = useState<{
+    edgeId: string;
+    at: { x: number; y: number };
+  } | null>(null);
   const lastPointerRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -1055,6 +1087,25 @@ function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }
     window.addEventListener('pointermove', onMove);
     return () => window.removeEventListener('pointermove', onMove);
   }, []);
+
+  const closeTransientMenus = useCallback(() => {
+    setContextMenuAt(null);
+    setFreePlaceAt(null);
+    setMenu(null);
+  }, []);
+
+  const openCanvasContextMenu = useCallback(
+    (at: { x: number; y: number }) => {
+      if (readOnly) return;
+      setMenu(null);
+      setFreePlaceAt(null);
+      setPendingActionCreate(null);
+      setEditingId(null);
+      setEdgeEditor(null);
+      setContextMenuAt(at);
+    },
+    [readOnly],
+  );
 
   const setEdgeRouteOnDoc = useCallback(
     (edgeId: string, points: { x: number; y: number }[]) => {
@@ -1089,6 +1140,8 @@ function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }
   // A `+` was clicked: record the source handle side so the picker anchors to the
   // node (same placement as the inspector) and the new node aligns on pick.
   const openCreateMenu = useCallback<OpenCreateMenu>((sourceId, sourceHandle, _anchor, side) => {
+    setContextMenuAt(null);
+    setFreePlaceAt(null);
     setMenu({
       sourceId,
       sourceHandle,
@@ -1098,6 +1151,16 @@ function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }
 
   const pickType = useCallback(
     (type: CreatableType) => {
+      // Free placement from the canvas context menu (US-133) — no edge.
+      if (freePlaceAt) {
+        createUnconnectedNode(doc, {
+          type,
+          position: screenToFlowPosition(freePlaceAt),
+        });
+        setFreePlaceAt(null);
+        return;
+      }
+
       if (!menu) return;
       const sourceNode = flow.nodes.find((n) => n.id === menu.sourceId);
       if (!sourceNode) {
@@ -1154,7 +1217,16 @@ function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }
       });
       setMenu(null);
     },
-    [doc, menu, getNode, screenToFlowPosition, flowToScreenPosition, flow.nodes, flow.edges],
+    [
+      doc,
+      menu,
+      freePlaceAt,
+      getNode,
+      screenToFlowPosition,
+      flowToScreenPosition,
+      flow.nodes,
+      flow.edges,
+    ],
   );
 
   // Drag-from-handle onto an existing node → connect only (no new node).
@@ -1250,6 +1322,8 @@ function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }
         sourceHandle: state.fromHandle?.id ?? null,
         placement: { kind: 'drop', at: point },
       });
+      setContextMenuAt(null);
+      setFreePlaceAt(null);
     },
     [flow.nodes, flow.edges],
   );
@@ -1283,17 +1357,12 @@ function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }
     reconnectingEdgeId.current = null;
   }, []);
 
-  // Double-click a node → node-anchored inspector (Entry has nothing to edit).
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [edgeEditor, setEdgeEditor] = useState<{
-    edgeId: string;
-    at: { x: number; y: number };
-  } | null>(null);
-
   const openEdgeTriggerEditor = useCallback(
     (edgeId: string, at: { x: number; y: number }) => {
       const edge = flow.edges.find((e) => e.id === edgeId);
       if (!edge || !isEditableEdgeTrigger(edge.trigger)) return;
+      setContextMenuAt(null);
+      setFreePlaceAt(null);
       setEditingId(null);
       setEdgeEditor({ edgeId, at });
     },
@@ -1302,6 +1371,8 @@ function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }
 
   const onNodeDoubleClick = useCallback<NodeMouseHandler>((_event, node) => {
     if (node.type === 'entry') return;
+    setContextMenuAt(null);
+    setFreePlaceAt(null);
     setEdgeEditor(null);
     setEditingId(node.id);
   }, []);
@@ -1310,6 +1381,8 @@ function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }
     (nodeId: string) => {
       const target = flow.nodes.find((n) => n.id === nodeId);
       if (!target || target.type === 'entry') return;
+      setContextMenuAt(null);
+      setFreePlaceAt(null);
       setEdgeEditor(null);
       setEditingId(nodeId);
     },
@@ -1347,11 +1420,12 @@ function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }
   const editingNode = editingId ? flow.nodes.find((n) => n.id === editingId) : undefined;
 
   const pickerPlacement = useMemo((): NodeTypePickerPlacement | null => {
+    if (freePlaceAt) return { kind: 'point', at: freePlaceAt };
     if (!menu) return null;
     return menu.placement.kind === 'aligned'
       ? { kind: 'node', sourceId: menu.sourceId, side: menu.placement.side }
       : { kind: 'point', at: menu.placement.at };
-  }, [menu]);
+  }, [menu, freePlaceAt]);
 
   if (!graph) return null;
 
@@ -1373,13 +1447,45 @@ function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }
               onReconnectEnd={onReconnectEnd}
               isValidConnection={isValidConnection}
               onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
+              onCanvasContextMenu={readOnly ? undefined : openCanvasContextMenu}
+              onDismissTransient={closeTransientMenus}
               readOnly={readOnly}
             />
+            {!readOnly && contextMenuAt && (
+              <CanvasContextMenu
+                at={contextMenuAt}
+                scenarios={scenarios}
+                onAddNode={() => {
+                  setFreePlaceAt(contextMenuAt);
+                  setContextMenuAt(null);
+                }}
+                onPlay={(scenario) => {
+                  setContextMenuAt(null);
+                  onPlayScenario(scenario);
+                }}
+                onRecord={() => {
+                  setContextMenuAt(null);
+                  onRecordScenario();
+                }}
+                onOpenPalette={() => {
+                  setContextMenuAt(null);
+                  onOpenPalette();
+                }}
+                onFitView={() => {
+                  setContextMenuAt(null);
+                  fitView(FIT_VIEW_OPTIONS);
+                }}
+                onClose={() => setContextMenuAt(null)}
+              />
+            )}
             {!readOnly && pickerPlacement && (
               <NodeTypePicker
                 placement={pickerPlacement}
                 onPick={pickType}
-                onClose={() => setMenu(null)}
+                onClose={() => {
+                  setMenu(null);
+                  setFreePlaceAt(null);
+                }}
               />
             )}
             {!readOnly && editingId && editingNode && (
@@ -1437,6 +1543,9 @@ function FlowCanvas({ doc, showOutlines }: { doc: Y.Doc; showOutlines: boolean }
 // with the full graph and `fitView` fits real bounds on the first frame. Holds
 // React Flow's interactive state locally (smooth drag) while mirroring every
 // change into the Y.Doc; external Y.Doc changes flow back via the `graph` prop.
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_PX = 10;
+
 function BoundCanvas({
   graph,
   nodesToDoc,
@@ -1448,6 +1557,8 @@ function BoundCanvas({
   onReconnectEnd,
   isValidConnection,
   onNodeDoubleClick,
+  onCanvasContextMenu,
+  onDismissTransient,
   readOnly,
 }: {
   graph: ReturnType<typeof flowToReactFlow>;
@@ -1460,12 +1571,78 @@ function BoundCanvas({
   onReconnectEnd: () => void;
   isValidConnection: IsValidConnection;
   onNodeDoubleClick?: NodeMouseHandler;
+  /** Empty-pane right-click / tap-hold (US-133). */
+  onCanvasContextMenu?: (at: { x: number; y: number }) => void;
+  /** Dismiss context menu / free-place picker on pan or scroll. */
+  onDismissTransient?: () => void;
   /** Player mode (US-110): disable all editing; pan/zoom stay live. */
   readOnly?: boolean;
 }) {
   const [nodes, setNodes, onNodesChangeLocal] = useNodesState(graph.nodes);
   const [edges, setEdges, onEdgesChangeLocal] = useEdgesState(graph.edges);
   const { theme: editorTheme } = useTheme();
+  const longPressRef = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+    timer: ReturnType<typeof setTimeout>;
+  } | null>(null);
+
+  const clearLongPress = useCallback(() => {
+    const lp = longPressRef.current;
+    if (!lp) return;
+    clearTimeout(lp.timer);
+    longPressRef.current = null;
+  }, []);
+
+  // Long-press on empty pane (US-133). Bound with native listeners: xyflow's
+  // ReactFlow does not reliably forward React pointer-capture props to the
+  // pane, and pan must still cancel the hold via the move threshold.
+  useEffect(() => {
+    if (!onCanvasContextMenu || readOnly) return;
+    const pane = document.querySelector('.react-flow__pane');
+    if (!pane) return;
+
+    const onDown = (event: Event) => {
+      const e = event as PointerEvent;
+      if (e.button !== 0) return;
+      clearLongPress();
+      const pointerId = e.pointerId;
+      const x = e.clientX;
+      const y = e.clientY;
+      const timer = setTimeout(() => {
+        longPressRef.current = null;
+        onCanvasContextMenu({ x, y });
+      }, LONG_PRESS_MS);
+      longPressRef.current = { pointerId, x, y, timer };
+    };
+    const onMove = (event: Event) => {
+      const e = event as PointerEvent;
+      const lp = longPressRef.current;
+      if (!lp || lp.pointerId !== e.pointerId) return;
+      if (Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > LONG_PRESS_MOVE_PX) {
+        clearLongPress();
+      }
+    };
+    const onEnd = (event: Event) => {
+      const e = event as PointerEvent;
+      const lp = longPressRef.current;
+      if (!lp || lp.pointerId !== e.pointerId) return;
+      clearLongPress();
+    };
+
+    pane.addEventListener('pointerdown', onDown);
+    pane.addEventListener('pointermove', onMove);
+    pane.addEventListener('pointerup', onEnd);
+    pane.addEventListener('pointercancel', onEnd);
+    return () => {
+      pane.removeEventListener('pointerdown', onDown);
+      pane.removeEventListener('pointermove', onMove);
+      pane.removeEventListener('pointerup', onEnd);
+      pane.removeEventListener('pointercancel', onEnd);
+      clearLongPress();
+    };
+  }, [onCanvasContextMenu, readOnly, clearLongPress]);
 
   // Reconcile before paint so a layout-only graph refresh (edge route commit,
   // node drag end) doesn't replace every node object and remeasure handles.
@@ -1500,6 +1677,23 @@ function BoundCanvas({
     [onReconnectDoc, setEdges],
   );
 
+  const handlePaneContextMenu = useCallback(
+    (event: MouseEvent | React.MouseEvent) => {
+      event.preventDefault();
+      if (!onCanvasContextMenu) return;
+      onCanvasContextMenu({ x: event.clientX, y: event.clientY });
+    },
+    [onCanvasContextMenu],
+  );
+
+  const handleMoveStart = useCallback(() => {
+    // Dismiss an open menu on pan/zoom. Do NOT clear the long-press timer here:
+    // xyflow fires moveStart on pane pointerdown (before any movement), which
+    // would kill tap-hold before the 500ms delay. The pane's move threshold
+    // cancels the hold once the pointer actually travels.
+    onDismissTransient?.();
+  }, [onDismissTransient]);
+
   return (
     <ReactFlow
       className="h-full w-full"
@@ -1517,6 +1711,8 @@ function BoundCanvas({
       edgesReconnectable={!readOnly}
       reconnectRadius={24}
       onNodeDoubleClick={onNodeDoubleClick}
+      onPaneContextMenu={handlePaneContextMenu}
+      onMoveStart={handleMoveStart}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       nodesDraggable={!readOnly}

@@ -218,6 +218,14 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* US-133: suppress iOS Safari's native callout on tap-hold so the canvas
+   context menu can own the gesture. Selection is unused on the pane itself. */
+.react-flow__pane {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* Routable edge labels render in EdgeLabelRenderer (between edges and nodes in
    xyflow DOM order). z-index keeps labels above edge strokes but under nodes. */
 .react-flow__edgelabel-renderer {

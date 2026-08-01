@@ -5,6 +5,7 @@ import {
   CREATABLE_TYPES,
   connectNodes,
   createConnectedNode,
+  createUnconnectedNode,
   defaultNode,
   resolveCreateFromHandle,
   resolvedInteractionAlreadyUsed,
@@ -122,6 +123,24 @@ describe('defaultNode', () => {
       );
       expect(vocabularyWarnings).toEqual([]);
     }
+  });
+});
+
+describe('createUnconnectedNode', () => {
+  test('adds a node + layout entry with no edge', () => {
+    const doc = hydrate(base());
+    const beforeEdges = edgesMap(doc).size;
+    const id = createUnconnectedNode(doc, {
+      type: 'screen',
+      position: { x: 120, y: 80 },
+    });
+    expect(id.startsWith('screen-')).toBe(true);
+    const map = nodesMap(doc).get(id);
+    expect(map).toBeDefined();
+    const node = readNodeMap(map as Parameters<typeof readNodeMap>[0]);
+    expect(node.type).toBe('screen');
+    expect(layoutMap(doc).get(id)).toEqual({ x: 120, y: 80 });
+    expect(edgesMap(doc).size).toBe(beforeEdges);
   });
 });
 
