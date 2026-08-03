@@ -235,25 +235,33 @@ test.describe('input capability floor (§7)', () => {
     ).toBeVisible();
   });
 
-  // US-135 owns clearing this. Flip to an active test as its acceptance gate:
-  // NodeTypePicker still ships the full-viewport focusable dismiss layer, and
-  // the `+` is focusable at opacity 0.
-  test.fixme('no interactive target is smaller than 24x24', async ({ page }) => {
+  // US-135 acceptance gate: every interactive target meets the §7 24×24 floor
+  // (HandlePlus, edge labels, transport expand, topbar chrome).
+  test('no interactive target is smaller than 24x24', async ({ page }) => {
     await openSampleFlow(page);
+    // Use layout size (offset*), not getBoundingClientRect — fitView zooms the
+    // viewport and would report transformed sizes under the floor.
     const undersized = await page.evaluate(() => {
       const out: string[] = [];
       for (const el of document.querySelectorAll('button, [role="button"], a[href]')) {
-        const r = el.getBoundingClientRect();
-        if (r.width === 0 && r.height === 0) continue;
-        if (r.width < 24 || r.height < 24) out.push(el.getAttribute('aria-label') ?? el.className);
+        const html = el as HTMLElement;
+        const w = html.offsetWidth;
+        const h = html.offsetHeight;
+        if (w === 0 && h === 0) continue;
+        if (w < 24 || h < 24) out.push(el.getAttribute('aria-label') ?? el.className);
       }
       return out;
     });
     expect(undersized).toEqual([]);
   });
 
-  test.fixme('no full-viewport dismiss layer sits in the tab order', async ({ page }) => {
+  // US-135: NodeTypePicker (and peers) must not park a full-viewport focus stop
+  // in the tab order — Escape is the keyboard dismiss path.
+  test('no full-viewport dismiss layer sits in the tab order', async ({ page }) => {
     await openSampleFlow(page);
+    // Open the picker so its dismiss layer is mounted.
+    await page.getByRole('button', { name: 'Add connected node' }).first().click();
+    await expect(page.getByRole('listbox', { name: 'Node type' })).toBeVisible();
     const offenders = await page.evaluate(() => {
       const out: string[] = [];
       for (const el of document.querySelectorAll('button, [tabindex]')) {
@@ -268,5 +276,16 @@ test.describe('input capability floor (§7)', () => {
       return out;
     });
     expect(offenders).toEqual([]);
+    await page.keyboard.press('Escape');
+  });
+
+  // US-135: the `+` must be visible when it has keyboard focus (§7).
+  test('the handle plus is visible when focused', async ({ page }) => {
+    await openSampleFlow(page);
+    const plus = page.getByRole('button', { name: 'Add connected node' }).first();
+    await plus.evaluate((el) => {
+      (el as HTMLElement).focus();
+    });
+    await expect.poll(async () => plus.evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
   });
 });

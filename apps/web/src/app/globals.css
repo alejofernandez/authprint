@@ -272,3 +272,25 @@ html .react-flow.dark {
   border-bottom-left-radius: calc(var(--radius-lg) - 1px);
   border-bottom-right-radius: calc(var(--radius-lg) - 1px);
 }
+
+/* US-135: keep the painted handle dot at xyflow's default (~6×6) but grow the
+   pointer target to the §7 24×24 floor via an invisible hit overlay. */
+.react-flow__handle {
+  position: relative;
+}
+.react-flow__handle::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: inherit;
+}
+
+/* Attribution link is a real <a> in the tab order; pad it to the 24×24 floor
+   without changing the painted credit. */
+.react-flow__attribution a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+}

@@ -10,7 +10,7 @@
 // button renders nothing.
 
 import { useNodeId } from '@xyflow/react';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { HANDLE_PLUS_FOCUS_VISIBLE } from './nodeA11y.tsx';
 
 /** Open the node-type picker for a `+` clicked on `sourceId`'s `sourceHandle`. */
@@ -52,16 +52,24 @@ export function HandlePlus({
 }) {
   const open = useNodeCreate();
   const sourceId = useNodeId();
+  const [focused, setFocused] = useState(false);
   if (!open || !sourceId) return null;
 
-  const visible = force || anchored;
+  const shown = Boolean(force || anchored || focused);
 
   return (
     <button
       type="button"
       // `nodrag`/`nopan` keep React Flow from treating the click as a node drag.
-      className={`nodrag nopan absolute grid h-5 w-5 place-items-center rounded-full border border-border-default bg-bg-panel text-fg-subtle text-xs leading-none shadow-sm transition-opacity duration-[var(--duration-fast)] ease-standard hover:border-accent-primary-border hover:text-accent-primary-solid dark:text-fg-muted dark:hover:border-accent-primary-border ${HANDLE_PLUS_FOCUS_VISIBLE} ${SIDE[position]} ${anchored ? 'z-[60]' : 'z-10'} ${visible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+      // US-135: 24×24 floor; reveal on focus as well as hover/select/anchor so a
+      // keyboard focus ring never lands on an invisible control (§7). Inline
+      // opacity when shown beats Tailwind's opacity-0 (focus variants lost the
+      // cascade fight against the resting utility).
+      className={`nodrag nopan absolute grid h-6 w-6 place-items-center rounded-full border border-border-default bg-bg-panel text-fg-subtle text-xs leading-none shadow-sm transition-opacity duration-[var(--duration-fast)] ease-standard hover:border-accent-primary-border hover:text-accent-primary-solid dark:text-fg-muted dark:hover:border-accent-primary-border ${HANDLE_PLUS_FOCUS_VISIBLE} ${SIDE[position]} ${anchored ? 'z-[60]' : 'z-10'} ${shown ? '' : 'opacity-0 group-hover:opacity-100'}`}
+      style={shown ? { opacity: 1 } : undefined}
       aria-label="Add connected node"
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       onClick={(e) => {
         e.stopPropagation();
         open(sourceId, handleId, e.currentTarget.getBoundingClientRect(), position);

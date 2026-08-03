@@ -9,8 +9,8 @@ export type ScreenRect = { left: number; top: number; right: number; bottom: num
 const DEFAULT_MARGIN = 12;
 /** Height budget used for flip logic — matches NodeInspector max-height cap. */
 export const PANEL_MAX_HEIGHT = 560;
-/** Extra gap so node-type picker clears the per-handle `+` (12px offset + 20px button). */
-export const PLUS_AFFORDANCE_GAP = 32;
+/** Extra gap so node-type picker clears the per-handle `+` (12px offset + 24px button). */
+export const PLUS_AFFORDANCE_GAP = 36;
 
 type PlacementOpts = {
   margin?: number;

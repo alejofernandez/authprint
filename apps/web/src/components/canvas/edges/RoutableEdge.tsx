@@ -359,9 +359,10 @@ export function RoutableEdge({
             <button
               type="button"
               className={[
-                'nodrag nopan pointer-events-auto absolute select-none border-0 text-[10px] leading-none',
+                // US-135: 24×24 floor via min size; keep the dense 10px type.
+                'nodrag nopan pointer-events-auto absolute flex min-h-6 min-w-6 select-none items-center justify-center border-0 text-[10px] leading-none',
                 labelShowBg !== false &&
-                  'rounded-sm bg-[var(--xy-edge-label-background-color,var(--xy-edge-label-background-color-default,#fff))] px-1 py-0.5 shadow-sm dark:bg-bg-panel',
+                  'rounded-sm bg-[var(--xy-edge-label-background-color,var(--xy-edge-label-background-color-default,#fff))] px-1.5 py-1 shadow-sm dark:bg-bg-panel',
                 selected && 'ring-2 ring-node-decision-ring dark:ring-node-decision-border',
               ]
                 .filter(Boolean)

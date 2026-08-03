@@ -103,8 +103,12 @@ export function NodeTypePicker({
 
   return (
     <>
+      {/* Pointer-only dismiss: out of the tab order (US-135 / US-131 catalog).
+          Escape is the keyboard path; mirroring CanvasContextMenu. */}
       <button
         type="button"
+        aria-hidden="true"
+        tabIndex={-1}
         aria-label="Close menu"
         // Above the inspector (z-50), not below it: this menu can be opened
         // *from* the inspector ("+ Add action"), and a dismiss layer underneath
@@ -132,6 +136,7 @@ export function NodeTypePicker({
             key={type}
             type="button"
             role="option"
+            tabIndex={-1}
             aria-selected={i === active}
             onMouseEnter={() => setActive(i)}
             onClick={() => onPick(type)}
