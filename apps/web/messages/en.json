@@ -136,7 +136,8 @@
     "delete": "Delete edge",
     "closedPair": {
       "current": "Current: {label}",
-      "swap": "Swap with \"{label}\""
+      "swap": "Swap with \"{label}\"",
+      "change": "Change to \"{label}\""
     },
     "interaction": {
       "label": "Action",
@@ -144,7 +145,8 @@
       "chooseFromList": "Choose from list",
       "customValue": "{value} (custom)",
       "customOption": "Custom…"
-    }
+    },
+    "nothingToEdit": "This connection has nothing to change."
   },
   "about": {
     "tagline": "Design authentication flows on a canvas with a portable DSL underneath.",

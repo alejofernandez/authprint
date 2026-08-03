@@ -8,7 +8,11 @@ import type { Flow, Trigger } from '@authprint/dsl';
 import { USER_ACTIONS_BUILTIN } from '@authprint/dsl';
 import { useTranslations } from 'next-intl';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { findSwappableSiblingEdge, usedScreenInteractionActions } from './edgeTriggerUtils.ts';
+import {
+  closedPairCounterpart,
+  findSwappableSiblingEdge,
+  usedScreenInteractionActions,
+} from './edgeTriggerUtils.ts';
 import { placeFloatingPanelAtPoint } from './floatingPanelPlacement.ts';
 import { labelFor } from './flowToReactFlow.ts';
 
@@ -366,6 +370,22 @@ function EdgeTriggerEditEditor({ edgeId, flow, anchorAt, actions, onClose, onDel
     closeAnimated();
   };
 
+  // A closed-pair trigger whose partner edge is not wired yet can simply be
+  // retargeted: with no sibling there is nothing to swap against, and two
+  // on-success edges from one node would be the only illegal outcome (UF-054).
+  const counterpart = sibling ? null : closedPairCounterpart(edge.trigger);
+  const counterpartLabel = counterpart ? (labelFor(counterpart) ?? counterpart.type) : null;
+  const onFlip = () => {
+    if (!counterpart) return;
+    actions.setTrigger(edgeId, counterpart);
+    closeAnimated();
+  };
+
+  // Interaction triggers get the picker; closed pairs get swap or flip. Anything
+  // else has genuinely nothing to edit, and an empty panel reads as broken.
+  const hasEditableContent =
+    edge.trigger.type === 'interaction' || Boolean(sibling) || Boolean(counterpart);
+
   return (
     <div
       ref={panelRef}
@@ -409,6 +429,23 @@ function EdgeTriggerEditEditor({ edgeId, flow, anchorAt, actions, onClose, onDel
             </button>
           </div>
         )}
+
+        {counterpart && counterpartLabel && (
+          <div className="space-y-2">
+            <p className="text-xs text-fg-subtle">
+              {t('closedPair.current', { label: currentLabel })}
+            </p>
+            <button
+              type="button"
+              className="w-full rounded border border-border-default bg-bg-subtle px-2 py-1.5 text-sm text-fg-default hover:bg-bg-muted dark:border-border-default dark:bg-bg-subtle dark:hover:bg-bg-muted"
+              onClick={onFlip}
+            >
+              {t('closedPair.change', { label: counterpartLabel })}
+            </button>
+          </div>
+        )}
+
+        {!hasEditableContent && <p className="text-xs text-fg-subtle">{t('nothingToEdit')}</p>}
 
         {edge.trigger.type === 'interaction' && (
           <label className="block space-y-1" htmlFor={`edge-action-${edgeId}`}>

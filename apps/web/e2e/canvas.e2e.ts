@@ -408,6 +408,38 @@ test.describe('connect two existing nodes (US-137)', () => {
   });
 });
 
+test.describe('closed-pair triggers (UF-054)', () => {
+  test('an action edge with no sibling offers a direct flip, not an empty panel', async ({
+    page,
+  }) => {
+    await openSampleFlow(page);
+
+    // Find an edge label whose trigger is one half of a closed pair.
+    const label = page
+      .locator('.react-flow__edgelabel-renderer button')
+      .filter({ hasText: /^(success|error)$/ })
+      .first();
+    await expect(label).toBeVisible();
+    const before = (await label.innerText()).trim();
+    await label.click({ force: true });
+
+    const panel = page.locator(TRIGGER_EDITOR);
+    await expect(panel).toBeVisible();
+    // The bug: this panel rendered with nothing in it at all.
+    await expect(panel).not.toHaveText(/^\s*$/);
+    const offer = panel.getByRole('button', { name: /Swap with|Change to/ });
+    await expect(offer).toBeVisible();
+
+    await offer.click();
+    await page.waitForTimeout(500);
+    // The edge now carries the other half of the pair.
+    const after = before === 'success' ? 'error' : 'success';
+    await expect(
+      page.locator('.react-flow__edgelabel-renderer button').filter({ hasText: after }).first(),
+    ).toBeVisible();
+  });
+});
+
 test.describe('delete without a keyboard (US-136)', () => {
   test('deleting a node from the inspector is one undo step', async ({ page }) => {
     await openSampleFlow(page);

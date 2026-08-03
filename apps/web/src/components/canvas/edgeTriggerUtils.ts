@@ -13,6 +13,17 @@ export function isEditableEdgeTrigger(trigger: Trigger): boolean {
   }
 }
 
+/** The other half of a closed pair, or null when the trigger is not one.
+ *  Decisions pair yes with no; actions and externals pair success with error.
+ *  Used when the sibling edge does not exist yet, where a plain retarget is
+ *  legal and a swap has nothing to swap with (UF-054). */
+export function closedPairCounterpart(trigger: Trigger): Trigger | null {
+  if (trigger.type === 'branch') return { type: 'branch', value: !trigger.value };
+  if (trigger.type === 'on-success') return { type: 'on-error' };
+  if (trigger.type === 'on-error') return { type: 'on-success' };
+  return null;
+}
+
 /** Closed-pair sibling for swap (decision yes/no, action/external success/error). */
 export function findSwappableSiblingEdge(flow: Flow, edge: Edge): Edge | null {
   if (edge.trigger.type === 'branch') {

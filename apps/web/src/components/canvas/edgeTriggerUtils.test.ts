@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { FlowSchema } from '@authprint/dsl';
 import {
+  closedPairCounterpart,
   findSwappableSiblingEdge,
   isEditableEdgeTrigger,
   usedScreenInteractionActions,
@@ -92,5 +93,31 @@ describe('usedScreenInteractionActions', () => {
     const edge = flow.edges.find((e) => e.id === 'edge-2');
     if (!edge) throw new Error('edge-2 missing');
     expect([...usedScreenInteractionActions(flow, edge)]).toEqual(['back']);
+  });
+});
+
+// UF-054: an action edge whose partner is not wired opens an empty panel, because
+// the swap needs a sibling and the picker only handles interaction triggers. The
+// counterpart is what the panel offers instead.
+describe('closedPairCounterpart', () => {
+  test('pairs success with error, both ways', () => {
+    expect(closedPairCounterpart({ type: 'on-success' })).toEqual({ type: 'on-error' });
+    expect(closedPairCounterpart({ type: 'on-error' })).toEqual({ type: 'on-success' });
+  });
+
+  test('pairs a decision branch with its other value', () => {
+    expect(closedPairCounterpart({ type: 'branch', value: true })).toEqual({
+      type: 'branch',
+      value: false,
+    });
+    expect(closedPairCounterpart({ type: 'branch', value: false })).toEqual({
+      type: 'branch',
+      value: true,
+    });
+  });
+
+  test('is null for triggers that are not one half of a pair', () => {
+    expect(closedPairCounterpart({ type: 'interaction', action: 'submit' })).toBeNull();
+    expect(closedPairCounterpart({ type: 'unconditional' })).toBeNull();
   });
 });
