@@ -315,5 +315,9 @@
         "title": "Session starts"
       }
     }
+  },
+  "connectMode": {
+    "hint": "Pick a target node",
+    "cancel": "Cancel"
   }
 }

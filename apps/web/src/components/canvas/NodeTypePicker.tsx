@@ -35,10 +35,14 @@ export type NodeTypePickerPlacement =
 export function NodeTypePicker({
   placement,
   onPick,
+  onConnectExisting,
   onClose,
 }: {
   placement: NodeTypePickerPlacement;
   onPick: (type: CreatableType) => void;
+  /** US-137: enter target-pick mode instead of creating a node. Absent when the
+   *  picker has no source handle to draw from (free placement, US-133). */
+  onConnectExisting?: () => void;
   onClose: () => void;
 }) {
   const [active, setActive] = useState(0);
@@ -80,6 +84,11 @@ export function NodeTypePicker({
     return placeFloatingPanelBelow(anchor, panel, pickerGap);
   }, [placement, getNode, flowToScreenPosition, transform, panelHeight]);
 
+  // The connect row is one past the last type, so arrow keys walk it like any
+  // other row rather than needing a second navigation model.
+  const rowCount = CREATABLE_TYPES.length + (onConnectExisting ? 1 : 0);
+  const connectRowIndex = onConnectExisting ? CREATABLE_TYPES.length : -1;
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -87,19 +96,23 @@ export function NodeTypePicker({
         onClose();
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setActive((i) => (i + 1) % CREATABLE_TYPES.length);
+        setActive((i) => (i + 1) % rowCount);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setActive((i) => (i - 1 + CREATABLE_TYPES.length) % CREATABLE_TYPES.length);
+        setActive((i) => (i - 1 + rowCount) % rowCount);
       } else if (e.key === 'Enter') {
         e.preventDefault();
+        if (active === connectRowIndex) {
+          onConnectExisting?.();
+          return;
+        }
         const type = CREATABLE_TYPES[active];
         if (type) onPick(type);
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [active, onPick, onClose]);
+  }, [active, onPick, onClose, onConnectExisting, rowCount, connectRowIndex]);
 
   return (
     <>
@@ -150,6 +163,29 @@ export function NodeTypePicker({
             {TYPE_META[type].label}
           </button>
         ))}
+        {onConnectExisting ? (
+          <>
+            <div className="my-1 border-border-subtle border-t dark:border-border-default" />
+            <button
+              type="button"
+              role="option"
+              tabIndex={-1}
+              aria-selected={active === connectRowIndex}
+              onMouseEnter={() => setActive(connectRowIndex)}
+              onClick={onConnectExisting}
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm ${
+                active === connectRowIndex
+                  ? 'bg-accent-primary-selected-bg text-accent-primary-selected-fg'
+                  : 'text-fg-secondary dark:text-fg-muted'
+              }`}
+            >
+              <span aria-hidden="true" className="w-2.5 text-center text-fg-subtle">
+                ⇥
+              </span>
+              Connect to existing…
+            </button>
+          </>
+        ) : null}
       </div>
     </>
   );

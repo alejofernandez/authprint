@@ -290,6 +290,124 @@ test.describe('input capability floor (§7)', () => {
   });
 });
 
+test.describe('connect two existing nodes (US-137)', () => {
+  // Places a fresh screen on empty canvas and returns its `+`. A new node has
+  // every trigger free, so the connect path runs straight through instead of
+  // detouring to US-125's action picker — which is correct behaviour on a
+  // source whose interaction is taken, and is covered by its own test below.
+  async function freshNodePlus(page: Page) {
+    await openSampleFlow(page);
+    await page.mouse.move(860, 220);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.up({ button: 'right' });
+    await page.getByRole('menuitem', { name: 'Add node' }).click();
+    await page.getByRole('option', { name: 'Screen' }).click();
+    await page.waitForTimeout(400);
+    return page
+      .locator('.react-flow__node')
+      .last()
+      .getByRole('button', { name: 'Add connected node' })
+      .first();
+  }
+
+  test('a keyboard-only path connects two existing nodes', async ({ page }) => {
+    const plus = await freshNodePlus(page);
+    const edgesBefore = await page.locator('.react-flow__edge').count();
+
+    // No pointer past this line. Enter on the `+` opens the type picker — which
+    // only works because CanvasNodeRoot no longer swallows keydowns from the
+    // controls nested inside a node.
+    await plus.evaluate((el) => (el as HTMLElement).focus());
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('listbox', { name: 'Node type' })).toBeVisible();
+
+    for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowDown');
+    await expect(page.getByRole('option', { name: /Connect to existing/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await page.keyboard.press('Enter');
+    await expect(page.getByText('Pick a target node')).toBeVisible();
+
+    // Entering the mode parks focus on the first candidate; Tab walks only
+    // candidates from there, so Enter here lands on a legal target.
+    const focused = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      return {
+        isNode: !!el?.closest('.react-flow__node'),
+        disabled: el?.getAttribute('aria-disabled'),
+      };
+    });
+    expect(focused.isNode).toBe(true);
+    expect(focused.disabled).toBeNull();
+
+    await page.keyboard.press('Enter');
+    await expect(page.getByText('Pick a target node')).toHaveCount(0);
+    await expect(page.locator('.react-flow__edge')).toHaveCount(edgesBefore + 1);
+
+    await page.keyboard.press('Control+z');
+    await expect(page.locator('.react-flow__edge')).toHaveCount(edgesBefore);
+  });
+
+  test('an invalid target cannot be picked, not merely styled as such', async ({ page }) => {
+    const plus = await freshNodePlus(page);
+    await plus.click({ force: true });
+    await page.getByRole('option', { name: /Connect to existing/ }).click();
+    await expect(page.getByText('Pick a target node')).toBeVisible();
+    const edgesBefore = await page.locator('.react-flow__edge').count();
+
+    // The source handle stays anchored while the mode runs, so the edge being
+    // drawn keeps a visible origin rather than starting from nowhere.
+    await expect.poll(async () => plus.evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
+
+    // Entry is never a legal target, so it must be unfocusable and inert —
+    // dimming alone would only look like a restriction.
+    const entry = page.locator('.react-flow__node-entry').first();
+    await expect(entry.locator('[aria-disabled="true"]')).toHaveCount(1);
+    expect(
+      await entry
+        .locator('[role="button"]')
+        .first()
+        .evaluate((el) => (el as HTMLElement).tabIndex),
+    ).toBe(-1);
+
+    await entry.click({ force: true });
+    await page.waitForTimeout(300);
+    await expect(page.locator('.react-flow__edge')).toHaveCount(edgesBefore);
+    // A rejected click is not a silent exit from the mode.
+    await expect(page.getByText('Pick a target node')).toBeVisible();
+  });
+
+  test('Escape leaves target-pick mode with no edge', async ({ page }) => {
+    const plus = await freshNodePlus(page);
+    await plus.click({ force: true });
+    await page.getByRole('option', { name: /Connect to existing/ }).click();
+    await expect(page.getByText('Pick a target node')).toBeVisible();
+    const edgesBefore = await page.locator('.react-flow__edge').count();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByText('Pick a target node')).toHaveCount(0);
+    await expect(page.locator('.react-flow__edge')).toHaveCount(edgesBefore);
+  });
+
+  // Drag-to-connect and target-pick share one rule, so a source whose resolved
+  // interaction is already used defers to the action picker on both paths.
+  test('a taken interaction defers to the action picker, as the drag path does', async ({
+    page,
+  }) => {
+    await openSampleFlow(page);
+    const plus = page.getByRole('button', { name: 'Add connected node' }).first();
+    await plus.click({ force: true });
+    await page.getByRole('option', { name: /Connect to existing/ }).click();
+    await expect(page.getByText('Pick a target node')).toBeVisible();
+
+    const candidate = page.locator('.react-flow__node [role="button"][tabindex="0"]').first();
+    await candidate.click({ force: true });
+    await page.waitForTimeout(400);
+    await expect(page.getByRole('dialog')).toBeVisible();
+  });
+});
+
 test.describe('delete without a keyboard (US-136)', () => {
   test('deleting a node from the inspector is one undo step', async ({ page }) => {
     await openSampleFlow(page);

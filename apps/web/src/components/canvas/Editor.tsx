@@ -67,6 +67,7 @@ import { type NodeEditActions, NodeInlineEditor } from './NodeInlineEditor.tsx';
 import { NodeInspector } from './NodeInspector.tsx';
 import { NodeTypePicker, type NodeTypePickerPlacement } from './NodeTypePicker.tsx';
 import { type Notice, NoticeToast } from './NoticeToast.tsx';
+import { type ConnectMode, ConnectModeProvider } from './nodes/connectMode.tsx';
 import { NodeCreateProvider, type OpenCreateMenu } from './nodes/HandlePlus.tsx';
 import { type CanvasNodeData, nodeTypes } from './nodes/index.ts';
 import { NodeActivateProvider } from './nodes/nodeA11y.tsx';
@@ -1074,6 +1075,11 @@ function FlowCanvas({
   // US-133: empty-pane context menu, then NodeTypePicker for free placement.
   const [contextMenuAt, setContextMenuAt] = useState<{ x: number; y: number } | null>(null);
   const [freePlaceAt, setFreePlaceAt] = useState<{ x: number; y: number } | null>(null);
+  // US-137: target-pick mode. The source handle stays anchored while it runs.
+  const [connectFrom, setConnectFrom] = useState<{
+    sourceId: string;
+    sourceHandle: string | null;
+  } | null>(null);
   const [pendingActionCreate, setPendingActionCreate] = useState<PendingActionCreate | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [edgeEditor, setEdgeEditor] = useState<{
@@ -1094,6 +1100,9 @@ function FlowCanvas({
     setContextMenuAt(null);
     setFreePlaceAt(null);
     setMenu(null);
+    // A pan cancels target-pick: the mode must not survive a gesture that moves
+    // the thing it is anchored to (§7 — it cannot be left stranded).
+    setConnectFrom(null);
   }, []);
 
   const openCanvasContextMenu = useCallback(
@@ -1127,17 +1136,30 @@ function FlowCanvas({
       editorTheme,
       layout,
     );
-    if (menu?.placement.kind !== 'aligned') return base;
+    // Keep the source handle's `+` visible while target-pick runs, so the edge
+    // the user is about to draw still has a visible origin (US-137).
+    const anchor = connectFrom ?? (menu?.placement.kind === 'aligned' ? menu : null);
+    if (!anchor) return base;
     // Patch picker anchor into node data so React Flow re-renders the `+`.
     return {
       ...base,
       nodes: base.nodes.map((n) =>
-        n.id === menu.sourceId
-          ? { ...n, data: { ...n.data, pickerAnchorHandle: menu.sourceHandle } }
+        n.id === anchor.sourceId
+          ? { ...n, data: { ...n.data, pickerAnchorHandle: anchor.sourceHandle } }
           : n,
       ),
     };
-  }, [flow, layout, edgeLayout, autoPositions, menu, validation, showOutlines, editorTheme]);
+  }, [
+    flow,
+    layout,
+    edgeLayout,
+    autoPositions,
+    menu,
+    connectFrom,
+    validation,
+    showOutlines,
+    editorTheme,
+  ]);
 
   // A `+` was clicked: record the source handle side so the picker anchors to the
   // node (same placement as the inspector) and the new node aligns on pick.
@@ -1231,38 +1253,39 @@ function FlowCanvas({
     ],
   );
 
-  // Drag-from-handle onto an existing node → connect only (no new node).
-  const onConnect = useCallback<OnConnect>(
-    (c: Connection) => {
-      if (!c.source || !c.target) return;
-      const sourceNode = flow.nodes.find((n) => n.id === c.source);
+  // The one rule for "connect this handle to that existing node". Drag-to-connect
+  // and US-137's target-pick mode both land here, so the action-already-used
+  // detour (US-125) and the trigger resolution cannot drift between them.
+  const connectToTarget = useCallback(
+    (sourceId: string, sourceHandle: string | null, targetId: string) => {
+      const sourceNode = flow.nodes.find((n) => n.id === sourceId);
       if (!sourceNode) return;
-      const resolved = resolveCreateFromHandle(
-        sourceNode.type,
-        c.source,
-        c.sourceHandle ?? null,
-        flow.edges,
-      );
+      const resolved = resolveCreateFromHandle(sourceNode.type, sourceId, sourceHandle, flow.edges);
       if (!resolved) return;
 
-      if (resolvedInteractionAlreadyUsed(resolved, c.source, flow.edges)) {
+      if (resolvedInteractionAlreadyUsed(resolved, sourceId, flow.edges)) {
         setPendingActionCreate({
           kind: 'connect',
-          sourceId: c.source,
-          sourceHandle: c.sourceHandle ?? null,
-          targetId: c.target,
+          sourceId,
+          sourceHandle,
+          targetId,
           at: lastPointerRef.current,
         });
         return;
       }
 
-      connectNodes(doc, {
-        sourceId: c.source,
-        sourceHandle: c.sourceHandle,
-        targetId: c.target,
-      });
+      connectNodes(doc, { sourceId, sourceHandle, targetId });
     },
     [doc, flow.nodes, flow.edges],
+  );
+
+  // Drag-from-handle onto an existing node → connect only (no new node).
+  const onConnect = useCallback<OnConnect>(
+    (c: Connection) => {
+      if (!c.source || !c.target) return;
+      connectToTarget(c.source, c.sourceHandle ?? null, c.target);
+    },
+    [connectToTarget],
   );
 
   const commitPendingAction = useCallback(
@@ -1337,6 +1360,48 @@ function FlowCanvas({
       }),
     [flow],
   );
+
+  // US-137: the mode object handed to every node. `canTarget` is the drag path's
+  // own rule, so a node that cannot be dropped on also cannot be picked.
+  const connectMode = useMemo<ConnectMode | null>(() => {
+    if (!connectFrom) return null;
+    return {
+      sourceId: connectFrom.sourceId,
+      canTarget: (nodeId) =>
+        validateConnection(flow, {
+          source: connectFrom.sourceId,
+          target: nodeId,
+          sourceHandle: connectFrom.sourceHandle,
+          targetHandle: null,
+        }),
+      pick: (nodeId) => {
+        setConnectFrom(null);
+        connectToTarget(connectFrom.sourceId, connectFrom.sourceHandle, nodeId);
+      },
+    };
+  }, [connectFrom, flow, connectToTarget]);
+
+  useEffect(() => {
+    if (!connectFrom) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      setConnectFrom(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [connectFrom]);
+
+  // Entering the mode moves focus to the first candidate. Without this, closing
+  // the picker drops focus to <body> and the first Tab lands in the toolbar —
+  // the mode would be keyboard-operable in principle and unreachable in practice.
+  useEffect(() => {
+    if (!connectFrom) return;
+    const first = document.querySelector<HTMLElement>(
+      '.react-flow__node [role="button"][tabindex="0"]',
+    );
+    first?.focus();
+  }, [connectFrom]);
 
   const onReconnectDoc = useCallback(
     (oldEdge: RfEdge, connection: Connection): boolean => {
@@ -1447,116 +1512,154 @@ function FlowCanvas({
     <EdgeRouteProvider setRoute={readOnly ? null : setEdgeRouteOnDoc}>
       <EdgeTriggerProvider openEditor={readOnly ? null : openEdgeTriggerEditor}>
         <NodeActivateProvider value={readOnly ? null : onNodeActivate}>
-          <NodeCreateProvider value={readOnly ? null : openCreateMenu}>
-            <BoundCanvas
-              graph={graph}
-              nodesToDoc={nodesToDoc}
-              edgesToDoc={edgesToDoc}
-              onConnect={onConnect}
-              onConnectEnd={onConnectEnd}
-              onReconnectDoc={onReconnectDoc}
-              onReconnectStart={onReconnectStart}
-              onReconnectEnd={onReconnectEnd}
-              isValidConnection={isValidConnection}
-              onNodeClick={readOnly ? undefined : onNodeClick}
-              onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
-              onCanvasContextMenu={readOnly ? undefined : openCanvasContextMenu}
-              onDismissTransient={closeTransientMenus}
-              readOnly={readOnly}
-            />
-            {!readOnly && contextMenuAt && (
-              <CanvasContextMenu
-                at={contextMenuAt}
-                scenarios={scenarios}
-                onAddNode={() => {
-                  setFreePlaceAt(contextMenuAt);
-                  setContextMenuAt(null);
-                }}
-                onPlay={(scenario) => {
-                  setContextMenuAt(null);
-                  onPlayScenario(scenario);
-                }}
-                onRecord={() => {
-                  setContextMenuAt(null);
-                  onRecordScenario();
-                }}
-                onOpenPalette={() => {
-                  setContextMenuAt(null);
-                  onOpenPalette();
-                }}
-                onFitView={() => {
-                  setContextMenuAt(null);
-                  fitView(FIT_VIEW_OPTIONS);
-                }}
-                onClose={() => setContextMenuAt(null)}
+          <ConnectModeProvider value={readOnly ? null : connectMode}>
+            <NodeCreateProvider value={readOnly ? null : openCreateMenu}>
+              <BoundCanvas
+                graph={graph}
+                nodesToDoc={nodesToDoc}
+                edgesToDoc={edgesToDoc}
+                onConnect={onConnect}
+                onConnectEnd={onConnectEnd}
+                onReconnectDoc={onReconnectDoc}
+                onReconnectStart={onReconnectStart}
+                onReconnectEnd={onReconnectEnd}
+                isValidConnection={isValidConnection}
+                onNodeClick={readOnly ? undefined : onNodeClick}
+                onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
+                onCanvasContextMenu={readOnly ? undefined : openCanvasContextMenu}
+                onDismissTransient={closeTransientMenus}
+                readOnly={readOnly}
               />
-            )}
-            {!readOnly && pickerPlacement && (
-              <NodeTypePicker
-                placement={pickerPlacement}
-                onPick={pickType}
-                onClose={() => {
-                  setMenu(null);
-                  setFreePlaceAt(null);
-                }}
-              />
-            )}
-            {!readOnly && editingId && editingNode && (
-              <NodeInspector
-                key={editingId}
-                nodeId={editingId}
-                node={editingNode}
-                onClose={() => setEditingId(null)}
-                onDelete={() => {
-                  removeNode(doc, editingId);
-                  setEditingId(null);
-                }}
-              >
-                <NodeInlineEditor
-                  node={editingNode}
-                  context={flow.context}
-                  flow={flow}
-                  actions={editActions}
-                  screenLayout={layout[editingId]}
-                  onAddScreenAction={(anchor) =>
-                    openCreateMenu(editingId, 'default', anchor, 'right')
-                  }
+              {!readOnly && contextMenuAt && (
+                <CanvasContextMenu
+                  at={contextMenuAt}
+                  scenarios={scenarios}
+                  onAddNode={() => {
+                    setFreePlaceAt(contextMenuAt);
+                    setContextMenuAt(null);
+                  }}
+                  onPlay={(scenario) => {
+                    setContextMenuAt(null);
+                    onPlayScenario(scenario);
+                  }}
+                  onRecord={() => {
+                    setContextMenuAt(null);
+                    onRecordScenario();
+                  }}
+                  onOpenPalette={() => {
+                    setContextMenuAt(null);
+                    onOpenPalette();
+                  }}
+                  onFitView={() => {
+                    setContextMenuAt(null);
+                    fitView(FIT_VIEW_OPTIONS);
+                  }}
+                  onClose={() => setContextMenuAt(null)}
                 />
-              </NodeInspector>
-            )}
-            {!readOnly && edgeEditor && (
-              <EdgeTriggerEditor
-                key={edgeEditor.edgeId}
-                edgeId={edgeEditor.edgeId}
-                flow={flow}
-                anchorAt={edgeEditor.at}
-                actions={edgeTriggerActions}
-                onClose={() => setEdgeEditor(null)}
-                onDelete={() => {
-                  removeEdge(doc, edgeEditor.edgeId);
-                  setEdgeEditor(null);
-                }}
-              />
-            )}
-            {!readOnly && pendingActionCreate && (
-              <EdgeTriggerEditor
-                key={`create-action-${pendingActionCreate.sourceId}`}
-                mode="create"
-                flow={flow}
-                sourceId={pendingActionCreate.sourceId}
-                anchorAt={pendingActionCreate.at}
-                disabledActions={usedScreenInteractionActionsFromSource(
-                  flow,
-                  pendingActionCreate.sourceId,
-                )}
-                onPick={commitPendingAction}
-                onCancel={cancelPendingAction}
-              />
-            )}
-          </NodeCreateProvider>
+              )}
+              {!readOnly && pickerPlacement && (
+                <NodeTypePicker
+                  placement={pickerPlacement}
+                  onPick={pickType}
+                  // Only offered when the picker has a source handle to draw from.
+                  // Free placement (US-133) has none, so there is nothing to connect.
+                  onConnectExisting={
+                    menu
+                      ? () => {
+                          setConnectFrom({
+                            sourceId: menu.sourceId,
+                            sourceHandle: menu.sourceHandle,
+                          });
+                          setMenu(null);
+                        }
+                      : undefined
+                  }
+                  onClose={() => {
+                    setMenu(null);
+                    setFreePlaceAt(null);
+                  }}
+                />
+              )}
+              {!readOnly && connectFrom && (
+                <ConnectModeBanner onCancel={() => setConnectFrom(null)} />
+              )}
+              {!readOnly && editingId && editingNode && (
+                <NodeInspector
+                  key={editingId}
+                  nodeId={editingId}
+                  node={editingNode}
+                  onClose={() => setEditingId(null)}
+                  onDelete={() => {
+                    removeNode(doc, editingId);
+                    setEditingId(null);
+                  }}
+                >
+                  <NodeInlineEditor
+                    node={editingNode}
+                    context={flow.context}
+                    flow={flow}
+                    actions={editActions}
+                    screenLayout={layout[editingId]}
+                    onAddScreenAction={(anchor) =>
+                      openCreateMenu(editingId, 'default', anchor, 'right')
+                    }
+                  />
+                </NodeInspector>
+              )}
+              {!readOnly && edgeEditor && (
+                <EdgeTriggerEditor
+                  key={edgeEditor.edgeId}
+                  edgeId={edgeEditor.edgeId}
+                  flow={flow}
+                  anchorAt={edgeEditor.at}
+                  actions={edgeTriggerActions}
+                  onClose={() => setEdgeEditor(null)}
+                  onDelete={() => {
+                    removeEdge(doc, edgeEditor.edgeId);
+                    setEdgeEditor(null);
+                  }}
+                />
+              )}
+              {!readOnly && pendingActionCreate && (
+                <EdgeTriggerEditor
+                  key={`create-action-${pendingActionCreate.sourceId}`}
+                  mode="create"
+                  flow={flow}
+                  sourceId={pendingActionCreate.sourceId}
+                  anchorAt={pendingActionCreate.at}
+                  disabledActions={usedScreenInteractionActionsFromSource(
+                    flow,
+                    pendingActionCreate.sourceId,
+                  )}
+                  onPick={commitPendingAction}
+                  onCancel={cancelPendingAction}
+                />
+              )}
+            </NodeCreateProvider>
+          </ConnectModeProvider>
         </NodeActivateProvider>
       </EdgeTriggerProvider>
     </EdgeRouteProvider>
+  );
+}
+
+/** Target-pick mode is a mode, so it says so and offers its own way out
+ *  (US-137). Escape, a pane click and a pan all cancel it as well. */
+function ConnectModeBanner({ onCancel }: { onCancel: () => void }) {
+  const t = useTranslations('connectMode');
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-4 z-40 flex justify-center">
+      <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-accent-primary-border bg-bg-panel px-4 py-2 text-sm shadow-lg">
+        <span className="text-fg-secondary dark:text-fg-muted">{t('hint')}</span>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="min-h-6 rounded-md px-2 text-fg-subtle text-xs outline-none hover:bg-bg-subtle hover:text-fg-primary focus-visible:ring-2 focus-visible:ring-accent-primary-border"
+        >
+          {t('cancel')}
+        </button>
+      </div>
+    </div>
   );
 }
 
