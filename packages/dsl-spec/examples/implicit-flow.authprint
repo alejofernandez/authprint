@@ -80,7 +80,7 @@ nodes:
         type: text
         required: false
       - name: Terms and Conditions
-        type: consent-checkbox
+        type: checkbox
         required: false
   - type: outcome
     id: outcome-3581d005

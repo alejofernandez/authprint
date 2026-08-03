@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { FIELD_TYPES_BUILTIN } from '../vocabulary.ts';
 import {
   ActionNodeSchema,
   DecisionNodeSchema,
@@ -122,5 +123,29 @@ describe('Node schemas', () => {
   test('NodeSchema rejects unknown type discriminator', () => {
     const r = NodeSchema.safeParse({ type: 'nonsense', id: 'x' });
     expect(r.success).toBe(false);
+  });
+
+  // UF-057 renamed the field type to `checkbox`: a checkbox is a control, and
+  // consent is one use of it alongside remember-me and age confirmation. Field
+  // types are an open set, so the old spelling must keep parsing as a custom
+  // type rather than becoming an error in files written before the rename.
+  test('checkbox is a builtin field type, and the old consent-checkbox still parses', () => {
+    expect(FIELD_TYPES_BUILTIN).toContain('checkbox');
+    expect(FIELD_TYPES_BUILTIN).not.toContain('consent-checkbox');
+
+    for (const type of ['checkbox', 'consent-checkbox']) {
+      const r = NodeSchema.safeParse({
+        type: 'screen',
+        id: 's1',
+        name: 'Accept the terms',
+        kind: 'consent',
+        traits: [],
+        fields: [{ name: 'terms', type, required: true }],
+      });
+      expect(r.success).toBe(true);
+      if (r.success && r.data.type === 'screen') {
+        expect(r.data.fields[0]?.type).toBe(type);
+      }
+    }
   });
 });

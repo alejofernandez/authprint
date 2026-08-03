@@ -164,7 +164,7 @@ Curated types for the `fields` array on `screen` nodes. Each field is `{ name: s
 | `new-password` | New password (for sign-up or password change) |
 | `confirm-password` | Password confirmation |
 | `otp` | One-time numeric code |
-| `consent-checkbox` | Boolean consent toggle |
+| `checkbox` | Boolean toggle. Named for the control, not one use of it: consent, remember-me, marketing opt-in and age confirmation are the same input |
 | `passkey` | Passkey credential (renamed from `webauthn-credential` — practitioners say "passkey", not "WebAuthn credential") |
 | `text` | Generic free-text input |
 | `custom` | Escape hatch for fields the curated vocabulary doesn't cover |

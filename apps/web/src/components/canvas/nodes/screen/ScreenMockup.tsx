@@ -115,7 +115,7 @@ function FieldRow({
   highlightPasskey?: boolean;
   highlightLabel?: string | null;
 }) {
-  if (field.type === 'consent-checkbox') {
+  if (field.type === 'checkbox') {
     // A static mock of a checkbox row — not a real control, so a plain div
     // (not <label>) is correct here.
     return (

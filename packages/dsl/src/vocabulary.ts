@@ -134,7 +134,7 @@ export const FIELD_TYPES_BUILTIN = [
   'new-password',
   'confirm-password',
   'otp',
-  'consent-checkbox',
+  'checkbox',
   'passkey',
   'text',
   'custom',
