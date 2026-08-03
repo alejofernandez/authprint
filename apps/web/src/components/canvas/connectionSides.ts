@@ -86,6 +86,16 @@ export function layoutSideForScreenInteraction(
   const semanticDefault = defaultSourceSide(trigger);
   const tier = screenInteractionSideTier(action);
 
+  // A top exit is never the product of balancing — the canonical fallback below
+  // only ever picks right or bottom, so `top` can only have come from an author
+  // dragging off the top handle (UF-040). Retargeting the action must therefore
+  // leave it alone, whatever the tier says: this function predates top exits,
+  // and without this branch every top-sided edge is relocated on the first edit
+  // (UF-055).
+  if (currentSide === 'top') {
+    return normalizeSideOverride('top', semanticDefault);
+  }
+
   if (
     tier === 'flexible' &&
     currentSide &&

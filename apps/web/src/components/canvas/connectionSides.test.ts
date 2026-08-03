@@ -180,6 +180,16 @@ describe('screen interaction side tiers', () => {
     expect(layoutSideForScreenInteraction('resend-code', 'bottom')).toBe('bottom');
     expect(layoutSideForScreenInteraction('forgot-password', 'bottom')).toBe('bottom');
   });
+
+  // UF-055: retargeting the action on an edge that leaves the top handle used to
+  // relocate it, because this policy predates top exits and its canonical
+  // fallback only chooses between right and bottom. Nothing balances *to* top,
+  // so a top side is always an author's choice and survives the edit.
+  test('a top exit survives a change of action, whatever the tier', () => {
+    for (const action of ['submit', 'back', 'resend-code', 'use-passkey']) {
+      expect(layoutSideForScreenInteraction(action, 'top')).toBe('top');
+    }
+  });
 });
 
 describe('applyEdgeReconnect', () => {

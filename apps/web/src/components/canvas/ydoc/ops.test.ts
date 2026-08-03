@@ -358,6 +358,19 @@ describe('setEdgeTrigger', () => {
     expect(edgeLayoutMap(doc).has('e2')).toBe(false);
   });
 
+  // UF-055, reported from the canvas: connect off a screen's top handle, change
+  // the action, and the edge jumped to the right-hand exit.
+  test('preserves a top override when the action changes', () => {
+    const doc = base();
+    setEdgeSideOverrides(doc, 'e2', { sourceSide: 'top' });
+    expect(setEdgeTrigger(doc, 'e2', { type: 'interaction', action: 'use-passkey' }).ok).toBe(true);
+    expect(edgeLayoutMap(doc).get('e2')?.sourceSide).toBe('top');
+
+    // Including a retreat action, which snaps to bottom from any *other* side.
+    expect(setEdgeTrigger(doc, 'e2', { type: 'interaction', action: 'back' }).ok).toBe(true);
+    expect(edgeLayoutMap(doc).get('e2')?.sourceSide).toBe('top');
+  });
+
   test('preserves a flexible interaction bottom override when the label changes', () => {
     const doc = base();
     setEdgeSideOverrides(doc, 'e2', { sourceSide: 'bottom' });
