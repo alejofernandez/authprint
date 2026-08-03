@@ -275,9 +275,6 @@ html .react-flow.dark {
 
 /* US-135: keep the painted handle dot at xyflow's default (~6×6) but grow the
    pointer target to the §7 24×24 floor via an invisible hit overlay. */
-.react-flow__handle {
-  position: relative;
-}
 .react-flow__handle::before {
   content: '';
   position: absolute;
