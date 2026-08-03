@@ -89,6 +89,12 @@ export function StepPatchRow({
               onChange(Number.isNaN(n) ? null : n);
             }
           }}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.blur();
+          }}
         />
       </label>
     );
@@ -107,6 +113,12 @@ export function StepPatchRow({
         onChange={(e) => {
           const raw = e.target.value;
           onChange(raw.trim().length === 0 ? null : raw);
+        }}
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          e.stopPropagation();
+          e.currentTarget.blur();
         }}
       />
     </label>

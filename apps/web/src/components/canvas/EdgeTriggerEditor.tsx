@@ -37,6 +37,7 @@ export function InteractionActionSelect({
   disabledActions,
   onPick,
   onCustomDraftChange,
+  onCommit,
 }: {
   id: string;
   value: string;
@@ -45,6 +46,10 @@ export function InteractionActionSelect({
   onPick: (action: string) => void;
   /** Custom text field — parent commits on dismiss (edit) or cancel if empty (create). */
   onCustomDraftChange: (action: string) => void;
+  /** Enter in the custom field. Both parents pass their own dismiss handler,
+   *  which already means "commit if non-empty, cancel if not" — Enter must reuse
+   *  that rather than open a second commit route (UF-039). */
+  onCommit?: () => void;
 }) {
   const t = useTranslations('edgeTrigger.interaction');
   const options = USER_ACTIONS_BUILTIN;
@@ -61,6 +66,15 @@ export function InteractionActionSelect({
           onChange={(e) => {
             setDraft(e.target.value);
             onCustomDraftChange(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            e.stopPropagation();
+            // An empty draft is a cancel, not a commit; leave it to the parent's
+            // own dismiss rules rather than deciding here.
+            if (!draft.trim()) return;
+            onCommit?.();
           }}
           // biome-ignore lint/a11y/noAutofocus: focusing the action on open is the point
           autoFocus
@@ -256,6 +270,7 @@ function EdgeTriggerCreateEditor({
             disabledActions={disabledActions}
             onPick={commitPick}
             onCustomDraftChange={setDraftAction}
+            onCommit={() => closeHandlerRef.current()}
           />
         </label>
       </div>
@@ -456,6 +471,7 @@ function EdgeTriggerEditEditor({ edgeId, flow, anchorAt, actions, onClose, onDel
               disabledActions={usedActions}
               onPick={(action) => pickInteractionRef.current(action)}
               onCustomDraftChange={setDraftAction}
+              onCommit={() => closeHandlerRef.current()}
             />
           </label>
         )}

@@ -490,6 +490,13 @@ function ValueInput({
         className={identifierInputCls}
         defaultValue={typeof value === 'number' ? value : 0}
         onBlur={(e) => onChange(e.target.valueAsNumber)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.blur();
+          }
+        }}
       />
     );
   }
@@ -514,6 +521,13 @@ function ValueInput({
       placeholder={t('placeholder')}
       defaultValue={typeof value === 'string' ? value : String(value ?? '')}
       onBlur={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          e.currentTarget.blur();
+        }
+      }}
     />
   );
 }
@@ -530,6 +544,24 @@ function NewSlotForm({
   const [type, setType] = useState<SlotType>('boolean');
   const [values, setValues] = useState('');
 
+  // This sub-form commits through its Add button, not on blur, so Enter has to
+  // run the same handler rather than blur into nothing (UF-039). Guarded by the
+  // same emptiness rule the button's `disabled` uses.
+  const commit = () => {
+    if (name.trim().length === 0) return;
+    const enumValues = values
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+    onAdd(name.trim(), type === 'enum' ? { type, values: enumValues } : { type });
+  };
+  const onEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    e.stopPropagation();
+    commit();
+  };
+
   return (
     <div className="space-y-1 rounded border border-border-subtle p-2 dark:border-border-default">
       <input
@@ -537,6 +569,7 @@ function NewSlotForm({
         placeholder={t('namePlaceholder')}
         value={name}
         onChange={(e) => setName(e.target.value)}
+        onKeyDown={onEnter}
       />
       <select
         className={identifierInputCls}
@@ -555,6 +588,7 @@ function NewSlotForm({
           placeholder={t('enumValuesPlaceholder')}
           value={values}
           onChange={(e) => setValues(e.target.value)}
+          onKeyDown={onEnter}
         />
       )}
       <div className="flex gap-2">
@@ -562,13 +596,7 @@ function NewSlotForm({
           type="button"
           disabled={name.trim().length === 0}
           className="rounded bg-accent-primary-solid px-2 py-1 text-white text-xs disabled:opacity-50"
-          onClick={() => {
-            const enumValues = values
-              .split(',')
-              .map((v) => v.trim())
-              .filter(Boolean);
-            onAdd(name.trim(), type === 'enum' ? { type, values: enumValues } : { type });
-          }}
+          onClick={commit}
         >
           {t('add')}
         </button>
@@ -720,6 +748,13 @@ function FieldsEditor({
             placeholder={t('namePlaceholder')}
             defaultValue={field.name}
             onBlur={(e) => update(i, { name: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.blur();
+              }
+            }}
           />
           <div className="w-28 shrink-0">
             <FieldTypeSelect

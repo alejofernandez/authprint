@@ -75,6 +75,17 @@ export function DocumentPreferencesModal({
     onOpenChange(next);
   };
 
+  // Enter inside a Radix dialog must not lean on blur: the focus trap can
+  // redirect focus before a native blur reaches React's synthetic onBlur, which
+  // is the standing gotcha in AGENTS.md. Closing is this dialog's commit path,
+  // so Enter closes (UF-039).
+  const commitAndClose = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    e.stopPropagation();
+    handleOpenChange(false);
+  };
+
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
@@ -96,9 +107,7 @@ export function DocumentPreferencesModal({
                 onChange={(e) => setNameDraft(e.target.value)}
                 // biome-ignore lint/a11y/noAutofocus: name is the primary field when opening preferences
                 autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') e.currentTarget.blur();
-                }}
+                onKeyDown={commitAndClose}
               />
             </label>
 
@@ -128,6 +137,7 @@ export function DocumentPreferencesModal({
                     className={inputCls}
                     value={companyNameDraft}
                     onChange={(e) => setCompanyNameDraft(e.target.value)}
+                    onKeyDown={commitAndClose}
                     placeholder={t('companyNamePlaceholder')}
                   />
                 </label>
@@ -146,6 +156,7 @@ export function DocumentPreferencesModal({
                       className={`${inputCls} font-mono`}
                       value={primaryColorDraft}
                       onChange={(e) => setPrimaryColorDraft(e.target.value)}
+                      onKeyDown={commitAndClose}
                       placeholder={DEFAULT_PRIMARY_COLOR}
                     />
                   </div>

@@ -408,6 +408,57 @@ test.describe('connect two existing nodes (US-137)', () => {
   });
 });
 
+test.describe('Enter commits (UF-039)', () => {
+  test('a custom action name commits and closes on Enter', async ({ page }) => {
+    await openSampleFlow(page);
+
+    const label = page
+      .locator('.react-flow__edgelabel-renderer button')
+      .filter({ hasText: /^submit$/ })
+      .first();
+    await expect(label).toBeVisible();
+    await label.click({ force: true });
+    await expect(page.locator(TRIGGER_EDITOR)).toBeVisible();
+
+    // Switch the picker to its custom text field.
+    const select = page.locator(`${TRIGGER_EDITOR} select`).first();
+    await select.selectOption('__custom__');
+    const custom = page.locator(`${TRIGGER_EDITOR} input`).first();
+    await expect(custom).toBeVisible();
+
+    await custom.fill('use-magic-link');
+    await custom.press('Enter');
+
+    // Enter both commits and dismisses: the panel goes, the label is the new
+    // action. Before UF-039 it did neither.
+    await expect(page.locator(TRIGGER_EDITOR)).toHaveCount(0);
+    await expect(
+      page
+        .locator('.react-flow__edgelabel-renderer button')
+        .filter({ hasText: /^use-magic-link$/ })
+        .first(),
+    ).toBeVisible();
+  });
+
+  test('Enter on an empty custom action does not commit', async ({ page }) => {
+    await openSampleFlow(page);
+    const label = page
+      .locator('.react-flow__edgelabel-renderer button')
+      .filter({ hasText: /^submit$/ })
+      .first();
+    await label.click({ force: true });
+    const select = page.locator(`${TRIGGER_EDITOR} select`).first();
+    await select.selectOption('__custom__');
+    const custom = page.locator(`${TRIGGER_EDITOR} input`).first();
+    await custom.fill('   ');
+    await custom.press('Enter');
+
+    // Still open: an empty draft is a cancel, and cancelling is the parent's
+    // decision to make on dismiss, not Enter's.
+    await expect(page.locator(TRIGGER_EDITOR)).toBeVisible();
+  });
+});
+
 test.describe('closed-pair triggers (UF-054)', () => {
   test('an action edge with no sibling offers a direct flip, not an empty panel', async ({
     page,

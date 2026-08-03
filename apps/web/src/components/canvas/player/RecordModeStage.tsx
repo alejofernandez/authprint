@@ -439,6 +439,15 @@ function NeedsValuePrompt({
         type="text"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          e.stopPropagation();
+          // Commits through Apply, so Enter runs Apply. Same emptiness guard the
+          // button's `disabled` uses (UF-039).
+          if (draft.trim().length === 0) return;
+          onApply?.({ kind: 'initial-context', slot, value: parseDraftValue(draft, op) });
+        }}
         placeholder={t('valuePlaceholder')}
         className="min-w-0 flex-1 select-text rounded border border-border-default bg-bg-panel px-2 py-1 font-mono text-xs text-fg-default outline-none focus:border-accent-primary-border"
       />
