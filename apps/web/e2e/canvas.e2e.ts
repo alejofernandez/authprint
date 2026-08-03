@@ -289,3 +289,44 @@ test.describe('input capability floor (§7)', () => {
     await expect.poll(async () => plus.evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
   });
 });
+
+test.describe('delete without a keyboard (US-136)', () => {
+  test('deleting a node from the inspector is one undo step', async ({ page }) => {
+    await openSampleFlow(page);
+    const nodesBefore = await page.locator('.react-flow__node').count();
+
+    // Same select-then-activate path as US-134 — not a double-click.
+    const node = page.locator('.react-flow__node-screen').first();
+    const box = await node.boundingBox();
+    if (!box) throw new Error('no node');
+    const x = box.x + box.width / 2;
+    const y = box.y + 6;
+    await page.mouse.click(x, y);
+    await page.waitForTimeout(250);
+    await page.mouse.click(x, y);
+    await expect(page.locator(INSPECTOR)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Delete node' }).click();
+    await expect(page.locator(INSPECTOR)).toHaveCount(0);
+    await expect(page.locator('.react-flow__node')).toHaveCount(nodesBefore - 1);
+
+    // Chromium project (CI + local): Control+z hits the canvas undo listener.
+    await page.keyboard.press('Control+z');
+    await expect(page.locator('.react-flow__node')).toHaveCount(nodesBefore);
+  });
+
+  test('deleting an edge from the trigger editor is one undo step', async ({ page }) => {
+    await openSampleFlow(page);
+    const edgesBefore = await page.locator('.react-flow__edge').count();
+
+    await page.locator('.react-flow__edgelabel-renderer button').first().click({ force: true });
+    await expect(page.locator(TRIGGER_EDITOR)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Delete edge' }).click();
+    await expect(page.locator(TRIGGER_EDITOR)).toHaveCount(0);
+    await expect(page.locator('.react-flow__edge')).toHaveCount(edgesBefore - 1);
+
+    await page.keyboard.press('Control+z');
+    await expect(page.locator('.react-flow__edge')).toHaveCount(edgesBefore);
+  });
+});

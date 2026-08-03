@@ -73,6 +73,7 @@
       "fields": "Fields",
       "predicate": "Predicate"
     },
+    "delete": "Delete node",
     "labels": {
       "name": "Name",
       "kind": "Kind",
@@ -132,6 +133,7 @@
     "title": "Edge trigger",
     "createTitle": "Choose action",
     "close": "Close",
+    "delete": "Delete edge",
     "closedPair": {
       "current": "Current: {label}",
       "swap": "Swap with \"{label}\""

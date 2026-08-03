@@ -95,6 +95,8 @@ import { hydrate } from './ydoc/hydrate.ts';
 import {
   declareContextSlot,
   putScenario,
+  removeEdge,
+  removeNode,
   removeScenario,
   setCompanyName,
   setDecisionPredicate,
@@ -1505,6 +1507,10 @@ function FlowCanvas({
                 nodeId={editingId}
                 node={editingNode}
                 onClose={() => setEditingId(null)}
+                onDelete={() => {
+                  removeNode(doc, editingId);
+                  setEditingId(null);
+                }}
               >
                 <NodeInlineEditor
                   node={editingNode}
@@ -1526,6 +1532,10 @@ function FlowCanvas({
                 anchorAt={edgeEditor.at}
                 actions={edgeTriggerActions}
                 onClose={() => setEdgeEditor(null)}
+                onDelete={() => {
+                  removeEdge(doc, edgeEditor.edgeId);
+                  setEdgeEditor(null);
+                }}
               />
             )}
             {!readOnly && pendingActionCreate && (

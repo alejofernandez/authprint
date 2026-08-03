@@ -6,6 +6,7 @@
 
 import type { Node as DslNode } from '@authprint/dsl';
 import { useReactFlow, useStore } from '@xyflow/react';
+import { useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { nodeScreenRect, PANEL_MAX_HEIGHT, placeFloatingPanel } from './floatingPanelPlacement.ts';
 
@@ -25,11 +26,14 @@ export function NodeInspector({
   nodeId,
   node,
   onClose,
+  onDelete,
   children,
 }: {
   nodeId: string;
   node: DslNode;
   onClose: () => void;
+  /** US-136: remove this node (one undo step). Closes the inspector. */
+  onDelete?: () => void;
   children: ReactNode;
 }) {
   const { getNode, flowToScreenPosition } = useReactFlow();
@@ -132,6 +136,7 @@ export function NodeInspector({
   }, []);
 
   const meta = TYPE_META[node.type as keyof typeof TYPE_META];
+  const t = useTranslations('inspector');
 
   return (
     <div
@@ -169,6 +174,18 @@ export function NodeInspector({
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">{children}</div>
+      {onDelete ? (
+        <div className="shrink-0 border-border-subtle border-t px-3 py-2 dark:border-border-default">
+          <button
+            type="button"
+            aria-label={t('delete')}
+            className="inline-flex min-h-6 items-center rounded-md px-2 text-sm text-fg-subtle outline-none hover:bg-bg-subtle hover:text-signal-danger dark:hover:bg-bg-subtle dark:hover:text-signal-danger-fg focus-visible:ring-2 focus-visible:ring-accent-primary-border"
+            onClick={onDelete}
+          >
+            {t('delete')}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

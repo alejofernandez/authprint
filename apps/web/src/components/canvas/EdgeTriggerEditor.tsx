@@ -106,6 +106,8 @@ type EditProps = {
   anchorAt: { x: number; y: number };
   actions: EdgeTriggerActions;
   onClose: () => void;
+  /** US-136: remove this edge (one undo step). */
+  onDelete?: () => void;
 };
 
 type CreateProps = {
@@ -257,7 +259,7 @@ function EdgeTriggerCreateEditor({
   );
 }
 
-function EdgeTriggerEditEditor({ edgeId, flow, anchorAt, actions, onClose }: EditProps) {
+function EdgeTriggerEditEditor({ edgeId, flow, anchorAt, actions, onClose, onDelete }: EditProps) {
   const t = useTranslations('edgeTrigger');
   const edge = flow.edges.find((e) => e.id === edgeId);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -421,6 +423,18 @@ function EdgeTriggerEditEditor({ edgeId, flow, anchorAt, actions, onClose }: Edi
           </label>
         )}
       </div>
+      {onDelete ? (
+        <div className="shrink-0 border-border-subtle border-t px-3 py-2 dark:border-border-default">
+          <button
+            type="button"
+            aria-label={t('delete')}
+            className="inline-flex min-h-6 items-center rounded-md px-2 text-sm text-fg-subtle outline-none hover:bg-bg-subtle hover:text-signal-danger dark:hover:bg-bg-subtle dark:hover:text-signal-danger-fg focus-visible:ring-2 focus-visible:ring-accent-primary-border"
+            onClick={onDelete}
+          >
+            {t('delete')}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
