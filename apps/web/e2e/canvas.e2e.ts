@@ -294,6 +294,10 @@ test.describe('delete without a keyboard (US-136)', () => {
   test('deleting a node from the inspector is one undo step', async ({ page }) => {
     await openSampleFlow(page);
     const nodesBefore = await page.locator('.react-flow__node').count();
+    // Deleting a node cascades to its incident edges and their routes. Counting
+    // nodes alone would pass even if undo restored the node and left the edges
+    // deleted, which is the half-undo this criterion exists to rule out.
+    const edgesBefore = await page.locator('.react-flow__edge').count();
 
     // Same select-then-activate path as US-134 — not a double-click.
     const node = page.locator('.react-flow__node-screen').first();
@@ -309,10 +313,12 @@ test.describe('delete without a keyboard (US-136)', () => {
     await page.getByRole('button', { name: 'Delete node' }).click();
     await expect(page.locator(INSPECTOR)).toHaveCount(0);
     await expect(page.locator('.react-flow__node')).toHaveCount(nodesBefore - 1);
+    expect(await page.locator('.react-flow__edge').count()).toBeLessThan(edgesBefore);
 
     // Chromium project (CI + local): Control+z hits the canvas undo listener.
     await page.keyboard.press('Control+z');
     await expect(page.locator('.react-flow__node')).toHaveCount(nodesBefore);
+    await expect(page.locator('.react-flow__edge')).toHaveCount(edgesBefore);
   });
 
   test('deleting an edge from the trigger editor is one undo step', async ({ page }) => {
