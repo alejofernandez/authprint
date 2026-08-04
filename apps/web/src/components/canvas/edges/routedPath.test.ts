@@ -169,3 +169,37 @@ describe('buildRoutedPath', () => {
     expect(path).toMatch(/L200 60$/);
   });
 });
+
+// UF-056: a returning edge leaving the TOP handle showed the drag affordance and
+// accepted the gesture, but never moved. `buildBackEdgeRoutedPath` had explicit
+// branches for a Bottom source only; a Top source fell through to
+// getSmoothStepPath, whose Top→Left output has no horizontal middle segment for
+// `centerY` to govern, so the dragged depth was stored and then discarded at
+// render. The loop is the same polyline either way — only its depth differs.
+describe('back-edge routing follows the dragged spine from either vertical exit', () => {
+  // Source on the right, target on the left: the returning shape.
+  // buildRoutedPath takes the resolved absolute spine Y; resolveWaypoints has
+  // already turned the stored relative offset into this by the time it is called.
+  const pathAt = (sourcePosition: Position, targetPosition: Position, spineY: number) =>
+    buildRoutedPath(760, 300, 300, 300, sourcePosition, targetPosition, [{ x: 0, y: spineY }]).path;
+
+  for (const source of [Position.Bottom, Position.Top]) {
+    for (const target of [Position.Left, Position.Right]) {
+      test(`${source} source into a ${target} target tracks the drag`, () => {
+        const paths = [420, 520, 620].map((y) => pathAt(source, target, y));
+        expect(new Set(paths).size).toBe(3);
+        // And the depth is the dragged value, not a derived constant.
+        expect(paths[0]).toContain('420');
+        expect(paths[2]).toContain('620');
+      });
+    }
+  }
+
+  test('a top exit can be routed above both endpoints', () => {
+    // Above means a spine y smaller than either endpoint; it must still render.
+    const above = pathAt(Position.Top, Position.Left, 120);
+    const below = pathAt(Position.Top, Position.Left, 520);
+    expect(above).not.toBe(below);
+    expect(above).toContain('120');
+  });
+});

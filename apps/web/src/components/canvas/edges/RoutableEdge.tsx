@@ -310,9 +310,17 @@ export function RoutableEdge({
         ? 'cursor-ew-resize'
         : undefined;
 
+  // A back edge leaving the top loops above; leaving the bottom, below. The copy
+  // said "below" either way, which was wrong on a top exit and was the clue that
+  // the renderer had no top branch at all (UF-056).
+  // Compared as a string: `Position` in this file is the schema's XY type, not
+  // xyflow's enum, which is a string enum whose Top member is 'top'.
+  const loopsAbove = sourcePosition === 'top';
   const spineTitle =
     dragPolicy.mode === 'u-depth'
-      ? 'Drag to route below'
+      ? loopsAbove
+        ? 'Drag to route above'
+        : 'Drag to route below'
       : dragPolicy.mode === 'axis-center'
         ? 'Drag to adjust bend'
         : undefined;
@@ -346,7 +354,9 @@ export function RoutableEdge({
               title={spineTitle}
               aria-label={
                 dragPolicy.mode === 'u-depth'
-                  ? 'Drag spine vertically to route edge below'
+                  ? loopsAbove
+                    ? 'Drag spine vertically to route edge above'
+                    : 'Drag spine vertically to route edge below'
                   : 'Drag spine to adjust edge bend'
               }
               onPointerDown={onSpinePointerDown}

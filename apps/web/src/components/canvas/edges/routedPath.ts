@@ -467,7 +467,16 @@ function buildBackEdgeRoutedPath(
 ): RoutedPath {
   const offset = SMOOTHSTEP_OFFSET;
 
-  if (sourcePosition === Position.Bottom && targetPosition === Position.Left) {
+  // The loop is the same polyline whether it leaves the node downward or upward:
+  // out to `spineY`, across, then into the target. Only `spineY` differs, and it
+  // is the dragged value. Written for Bottom alone before UF-040 made top exits
+  // first-class, which left a Top source falling through to getSmoothStepPath,
+  // whose Top→Left output has no horizontal middle segment for `centerY` to
+  // govern — so the drag was stored and then silently discarded at render
+  // (UF-056).
+  const verticalSource = sourcePosition === Position.Bottom || sourcePosition === Position.Top;
+
+  if (verticalSource && targetPosition === Position.Left) {
     const targetGappedX = targetX - offset;
     const anchorX = (sourceX + targetGappedX) / 2;
     const points: XYPosition[] = [
@@ -484,7 +493,7 @@ function buildBackEdgeRoutedPath(
     };
   }
 
-  if (sourcePosition === Position.Bottom && targetPosition === Position.Right) {
+  if (verticalSource && targetPosition === Position.Right) {
     const targetGappedX = targetX + offset;
     const anchorX = (sourceX + targetGappedX) / 2;
     const points: XYPosition[] = [
