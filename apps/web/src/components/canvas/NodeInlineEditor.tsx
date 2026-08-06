@@ -6,6 +6,7 @@
 
 import type {
   Context,
+  ContextScalarValue,
   ContextSlot,
   Node as DslNode,
   Field,
@@ -51,7 +52,7 @@ const OPS_FOR_TYPE: Record<SlotType, readonly PredicateOp[]> = {
   number: PREDICATE_OPS,
 };
 
-function defaultValueFor(slot: ContextSlot | undefined): unknown {
+function defaultValueFor(slot: ContextSlot | undefined): ContextScalarValue {
   switch (slot?.type) {
     case 'boolean':
       return true;
@@ -504,8 +505,8 @@ function ValueInput({
   onChange,
 }: {
   slot: ContextSlot | undefined;
-  value: unknown;
-  onChange: (value: unknown) => void;
+  value: Predicate['value'];
+  onChange: (value: Predicate['value']) => void;
 }) {
   const t = useTranslations('inspector.value');
   if (slot?.type === 'boolean') {

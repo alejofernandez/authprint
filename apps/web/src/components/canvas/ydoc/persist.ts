@@ -28,6 +28,13 @@ export type { EdgeLayoutEntry, EdgeLayoutRecord, EdgeRoutes, LayoutPositions };
 
 export type LayoutBlock = { nodes: LayoutPositions; edges: EdgeRoutes };
 
+/** Magnitude clamp so a finite-but-absurd coordinate cannot strand a node (US-140). */
+export const LAYOUT_COORD_MAX = 1e7;
+
+function clampLayoutCoord(n: number): number {
+  return Math.round(Math.max(-LAYOUT_COORD_MAX, Math.min(LAYOUT_COORD_MAX, n)));
+}
+
 export type FlowArtifact = { flow: Flow; layout: LayoutPositions; edgeLayout?: EdgeRoutes };
 
 /** Snapshot the live Y.Doc into its persistable parts. `layout` holds only the
@@ -58,8 +65,8 @@ function normalizeLayout(
     a < b ? -1 : a > b ? 1 : 0,
   )) {
     const entry: NodeLayoutRecord = {
-      x: Math.round(record.x),
-      y: Math.round(record.y),
+      x: clampLayoutCoord(record.x),
+      y: clampLayoutCoord(record.y),
     };
     if (record.displayErrorState) entry.displayErrorState = true;
     out[id] = entry;
@@ -79,7 +86,7 @@ function parseWaypointList(value: unknown): { x: number; y: number }[] {
       typeof y === 'number' &&
       Number.isFinite(y)
     ) {
-      route.push({ x: Math.round(x), y: Math.round(y) });
+      route.push({ x: clampLayoutCoord(x), y: clampLayoutCoord(y) });
     }
   }
   return route;
@@ -115,11 +122,17 @@ function serializeEdgeLayoutEntry(record: EdgeLayoutRecord): unknown {
   const hasSides = record.sourceSide !== undefined || record.targetSide !== undefined;
   if (!hasPoints && !hasSides) return undefined;
   if (hasPoints && !hasSides) {
-    return record.points?.map(({ x, y }) => ({ x: Math.round(x), y: Math.round(y) }));
+    return record.points?.map(({ x, y }) => ({
+      x: clampLayoutCoord(x),
+      y: clampLayoutCoord(y),
+    }));
   }
   const out: Record<string, unknown> = {};
   if (hasPoints) {
-    out.points = record.points?.map(({ x, y }) => ({ x: Math.round(x), y: Math.round(y) }));
+    out.points = record.points?.map(({ x, y }) => ({
+      x: clampLayoutCoord(x),
+      y: clampLayoutCoord(y),
+    }));
   }
   if (record.sourceSide !== undefined) out.sourceSide = record.sourceSide;
   if (record.targetSide !== undefined) out.targetSide = record.targetSide;
@@ -149,7 +162,10 @@ function parseNodePositions(value: unknown): LayoutPositions {
       typeof y === 'number' &&
       Number.isFinite(y)
     ) {
-      const record: NodeLayoutRecord = { x: Math.round(x), y: Math.round(y) };
+      const record: NodeLayoutRecord = {
+        x: clampLayoutCoord(x),
+        y: clampLayoutCoord(y),
+      };
       const displayErrorState = (pos as Record<string, unknown>).displayErrorState;
       if (displayErrorState === true) record.displayErrorState = true;
       out[id] = record;

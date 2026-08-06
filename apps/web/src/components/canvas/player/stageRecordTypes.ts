@@ -1,6 +1,13 @@
 // US-119 — props-only types for stage record mode (consumed by US-120 wiring).
 
-import type { Branding, Flow, FlowTheme, Node, ScreenNode } from '@authprint/dsl';
+import type {
+  Branding,
+  ContextScalarValue,
+  Flow,
+  FlowTheme,
+  Node,
+  ScreenNode,
+} from '@authprint/dsl';
 import type { BranchFix, PendingDecision } from './recorder.ts';
 import type { PlayerStep } from './steps.ts';
 
@@ -8,7 +15,7 @@ export type StageRecordCallbacks = {
   onRecordAction?: (actionId: string) => void;
   onRecordResult?: (result: string) => void;
   onContinueDecision?: () => void;
-  onApplyBranchFix?: (fix: BranchFix) => void;
+  onApplyBranchFix?: (fix: BranchFix, value?: ContextScalarValue) => void;
   onToggleExpectedOutcome?: (checked: boolean) => void;
   onDone?: () => void;
 };
@@ -48,7 +55,7 @@ export type RecordModeDecisionProps = {
   flow: Flow;
   previousStepName?: string | null;
   onContinueDecision?: () => void;
-  onApplyBranchFix?: (fix: BranchFix) => void;
+  onApplyBranchFix?: (fix: BranchFix, value?: ContextScalarValue) => void;
   /** False for a mid-trace focused decision: the branch is already walked. */
   showContinue?: boolean;
 };

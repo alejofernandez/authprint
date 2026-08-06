@@ -63,7 +63,7 @@
     "sidecarNeedsMatch": "{name} needs a matching .authprint file",
     "layoutFileFallback": "Layout file",
     "noFileSelected": "No .authprint file selected",
-    "fileTooLarge": "{name} is too large to load"
+    "fileTooLarge": "{name} is larger than 8 MB and cannot be opened"
   },
   "inspector": {
     "sections": {

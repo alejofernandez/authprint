@@ -1,6 +1,14 @@
 import { z } from 'zod';
 import { FLOW_THEMES } from '../vocabulary.ts';
 import { AnnotationSchema } from './annotation.ts';
+import {
+  BOUND,
+  IdString,
+  NameString,
+  OptionalCompanyNameString,
+  OptionalDescriptionString,
+  OptionalPrimaryColorSchema,
+} from './bounds.ts';
 import { EdgeSchema } from './edge.ts';
 import { NodeSchema } from './node.ts';
 import { ContextSchema } from './predicate.ts';
@@ -26,14 +34,14 @@ import { ScenarioSchema } from './scenario.ts';
 // generic placeholder.
 export const BrandingSchema = z.object({
   theme: z.enum(FLOW_THEMES).default('light'),
-  companyName: z.string().optional(),
-  primaryColor: z.string().optional(),
+  companyName: OptionalCompanyNameString,
+  primaryColor: OptionalPrimaryColorSchema,
 });
 
 export const FlowSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  description: z.string().optional(),
+  id: IdString,
+  name: NameString,
+  description: OptionalDescriptionString,
 
   // .prefault({}) (not .default({})) so an omitted `branding` key still runs
   // through BrandingSchema's own field defaults (theme: 'light') rather than
@@ -44,10 +52,10 @@ export const FlowSchema = z.object({
   // validation (E2, layer 1) enforces meaningful constraints (Entry
   // present, every path terminates, etc.) at a higher layer.
   context: ContextSchema.default({}),
-  nodes: z.array(NodeSchema).default([]),
-  edges: z.array(EdgeSchema).default([]),
-  annotations: z.array(AnnotationSchema).default([]),
-  scenarios: z.array(ScenarioSchema).default([]),
+  nodes: z.array(NodeSchema).max(BOUND.nodes).default([]),
+  edges: z.array(EdgeSchema).max(BOUND.edges).default([]),
+  annotations: z.array(AnnotationSchema).max(BOUND.annotations).default([]),
+  scenarios: z.array(ScenarioSchema).max(BOUND.scenarios).default([]),
 });
 
 export type Flow = z.infer<typeof FlowSchema>;

@@ -1,4 +1,12 @@
 import { z } from 'zod';
+import {
+  BOUND,
+  ContextScalarValueSchema,
+  IdString,
+  maxRecordKeys,
+  NameString,
+  OptionalDescriptionString,
+} from './bounds.ts';
 
 // Scenarios (see @authprint/dsl-spec semantics.md) — first-class entities that
 // describe a trace through the flow under declared conditions. Authprint
@@ -7,30 +15,34 @@ import { z } from 'zod';
 // ─── Script steps ───────────────────────────────────────────────────────────
 // Each step says: at this node, take this action / inject this result.
 
-const ContextPatchSchema = z.record(z.string(), z.unknown());
+const ContextPatchSchema = maxRecordKeys(
+  z.record(IdString, ContextScalarValueSchema),
+  BOUND.contextSlots,
+  'context patch',
+);
 
 export const ScreenStepSchema = z.object({
   type: z.literal('screen'),
-  nodeId: z.string().min(1),
-  action: z.string().min(1),
+  nodeId: IdString,
+  action: IdString,
   set: ContextPatchSchema.optional(),
 });
 
 export const ActionStepSchema = z.object({
   type: z.literal('action'),
-  nodeId: z.string().min(1),
+  nodeId: IdString,
   result: z.enum(['success', 'error']),
   // Scenario-authored copy for the error banner when this failure is walked;
   // overrides the node's own errorMessage for this scenario only.
-  errorMessage: z.string().min(1).optional(),
+  errorMessage: z.string().min(1).max(BOUND.description).optional(),
   set: ContextPatchSchema.optional(),
 });
 
 export const ExternalStepSchema = z.object({
   type: z.literal('external'),
-  nodeId: z.string().min(1),
+  nodeId: IdString,
   result: z.enum(['success', 'error', 'denied', 'cancelled']),
-  errorMessage: z.string().min(1).optional(),
+  errorMessage: z.string().min(1).max(BOUND.description).optional(),
   set: ContextPatchSchema.optional(),
 });
 
@@ -45,8 +57,8 @@ export type ScriptStep = z.infer<typeof ScriptStepSchema>;
 // ─── Expected outcome (optional assertion) ──────────────────────────────────
 
 export const ExpectedOutcomeSchema = z.object({
-  outcomeId: z.string().min(1).optional(),
-  sequence: z.array(z.string().min(1)).optional(),
+  outcomeId: IdString.optional(),
+  sequence: z.array(IdString).max(BOUND.expectedSequence).optional(),
 });
 
 export type ExpectedOutcome = z.infer<typeof ExpectedOutcomeSchema>;
@@ -54,13 +66,17 @@ export type ExpectedOutcome = z.infer<typeof ExpectedOutcomeSchema>;
 // ─── Scenario ───────────────────────────────────────────────────────────────
 
 export const ScenarioSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  description: z.string().optional(),
+  id: IdString,
+  name: NameString,
+  description: OptionalDescriptionString,
   // Initial Context slot values. Type-vs-value cross-check happens at the
   // model-checking layer (it needs access to the Flow's Context declaration).
-  initialContext: z.record(z.string(), z.unknown()),
-  inputScript: z.array(ScriptStepSchema),
+  initialContext: maxRecordKeys(
+    z.record(IdString, ContextScalarValueSchema),
+    BOUND.contextSlots,
+    'initialContext',
+  ),
+  inputScript: z.array(ScriptStepSchema).max(BOUND.inputScript),
   expectedOutcome: ExpectedOutcomeSchema.optional(),
 });
 

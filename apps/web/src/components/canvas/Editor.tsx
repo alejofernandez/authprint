@@ -11,6 +11,7 @@
 import '@xyflow/react/dist/style.css';
 
 import type { Flow, Scenario } from '@authprint/dsl';
+import { MAX_AUTHPRINT_BYTES } from '@authprint/dsl';
 import {
   Background,
   type Connection,
@@ -159,7 +160,6 @@ const FILE_EXT = '.authprint';
 const LAYOUT_EXT = '.authprint.layout';
 const MIME = 'application/vnd.authprint+yaml';
 const LAYOUT_MIME = 'application/vnd.authprint.layout+yaml';
-const MAX_BYTES = 2_000_000; // generous guard; real flows are a few KB
 
 // Flow name → safe file stem; never empty.
 function slugify(name: string): string {
@@ -356,7 +356,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
       const primary = authprints[0];
       if (!primary) return;
 
-      if (primary.size > MAX_BYTES) {
+      if (primary.size > MAX_AUTHPRINT_BYTES) {
         setNotice({
           kind: 'error',
           title: tNotices('fileTooLarge', { name: primary.name }),
@@ -371,7 +371,7 @@ function EditorShell({ initialFlow, patterns }: { initialFlow: Flow; patterns: P
       );
       const sidecar = sidecarName ? sidecars.find((f) => f.name === sidecarName) : undefined;
 
-      if (sidecar && sidecar.size > MAX_BYTES) {
+      if (sidecar && sidecar.size > MAX_AUTHPRINT_BYTES) {
         setNotice({
           kind: 'error',
           title: tNotices('fileTooLarge', { name: sidecar.name }),

@@ -1,5 +1,6 @@
 'use client';
 
+import type { ContextScalarValue } from '@authprint/dsl';
 import { useTranslations } from 'next-intl';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { ScreenMockup } from '../nodes/screen/ScreenMockup.tsx';
@@ -382,7 +383,7 @@ function BranchFixOption({
   otherBranch: string;
   otherDest: string;
   previousStepName?: string | null;
-  onApply?: (fix: BranchFix) => void;
+  onApply?: (fix: BranchFix, value?: ContextScalarValue) => void;
 }) {
   const t = useTranslations('player.recordMode.decision.fix');
 
@@ -428,7 +429,7 @@ function NeedsValuePrompt({
 }: {
   slot: string;
   op: PendingDecision['predicate']['op'];
-  onApply?: (fix: BranchFix) => void;
+  onApply?: (fix: BranchFix, value?: ContextScalarValue) => void;
 }) {
   const t = useTranslations('player.recordMode.decision.fix');
   const [draft, setDraft] = useState('');
@@ -469,7 +470,7 @@ function NeedsValuePrompt({
   );
 }
 
-function parseDraftValue(raw: string, op: PendingDecision['predicate']['op']): unknown {
+function parseDraftValue(raw: string, op: PendingDecision['predicate']['op']): ContextScalarValue {
   const trimmed = raw.trim();
   if (trimmed === 'true') return true;
   if (trimmed === 'false') return false;

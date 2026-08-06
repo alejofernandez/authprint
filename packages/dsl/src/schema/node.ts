@@ -1,5 +1,13 @@
 import { z } from 'zod';
 import { TRAIT_IDS } from '../vocabulary.ts';
+import {
+  BOUND,
+  IdString,
+  NameString,
+  OptionalErrorMessageString,
+  OptionalNameString,
+  OptionalNotesString,
+} from './bounds.ts';
 import { FieldSchema } from './field.ts';
 import { PredicateSchema } from './predicate.ts';
 
@@ -16,7 +24,7 @@ import { PredicateSchema } from './predicate.ts';
 
 export const EntryNodeSchema = z.object({
   type: z.literal('entry'),
-  id: z.string().min(1),
+  id: IdString,
 });
 export type EntryNode = z.infer<typeof EntryNodeSchema>;
 
@@ -25,13 +33,13 @@ export type EntryNode = z.infer<typeof EntryNodeSchema>;
 
 export const ScreenNodeSchema = z.object({
   type: z.literal('screen'),
-  id: z.string().min(1),
-  name: z.string().min(1),
-  kind: z.string().min(1),
+  id: IdString,
+  name: NameString,
+  kind: IdString,
   // Defaults match the serializer's "omit when at default" behavior, so a
   // minimal Screen declaration round-trips cleanly.
   traits: z.array(z.enum(TRAIT_IDS)).default([]),
-  fields: z.array(FieldSchema).default([]),
+  fields: z.array(FieldSchema).max(BOUND.fields).default([]),
   // `fidelity` was removed (US-124). Zod's default object behavior strips
   // unknown keys, so legacy `fidelity: …` lines parse cleanly and are dropped.
 });
@@ -43,9 +51,9 @@ export type ScreenNode = z.infer<typeof ScreenNodeSchema>;
 
 export const DecisionNodeSchema = z.object({
   type: z.literal('decision'),
-  id: z.string().min(1),
-  name: z.string().min(1).optional(),
-  kind: z.string().min(1),
+  id: IdString,
+  name: OptionalNameString,
+  kind: IdString,
   predicate: PredicateSchema,
 });
 export type DecisionNode = z.infer<typeof DecisionNodeSchema>;
@@ -56,13 +64,13 @@ export type DecisionNode = z.infer<typeof DecisionNodeSchema>;
 
 export const ActionNodeSchema = z.object({
   type: z.literal('action'),
-  id: z.string().min(1),
-  name: z.string().min(1),
-  kind: z.string().min(1),
-  errorMessage: z.string().optional(),
+  id: IdString,
+  name: NameString,
+  kind: IdString,
+  errorMessage: OptionalErrorMessageString,
   // Optional free-text notes (markdown subset). Absent and empty are the same
   // on write: never serialize `notes: ''`.
-  notes: z.string().optional(),
+  notes: OptionalNotesString,
 });
 export type ActionNode = z.infer<typeof ActionNodeSchema>;
 
@@ -72,11 +80,11 @@ export type ActionNode = z.infer<typeof ActionNodeSchema>;
 
 export const ExternalNodeSchema = z.object({
   type: z.literal('external'),
-  id: z.string().min(1),
-  name: z.string().min(1),
-  kind: z.string().min(1),
-  errorMessage: z.string().optional(),
-  notes: z.string().optional(),
+  id: IdString,
+  name: NameString,
+  kind: IdString,
+  errorMessage: OptionalErrorMessageString,
+  notes: OptionalNotesString,
 });
 export type ExternalNode = z.infer<typeof ExternalNodeSchema>;
 
@@ -85,9 +93,9 @@ export type ExternalNode = z.infer<typeof ExternalNodeSchema>;
 
 export const OutcomeNodeSchema = z.object({
   type: z.literal('outcome'),
-  id: z.string().min(1),
-  name: z.string().min(1),
-  kind: z.string().min(1),
+  id: IdString,
+  name: NameString,
+  kind: IdString,
 });
 export type OutcomeNode = z.infer<typeof OutcomeNodeSchema>;
 

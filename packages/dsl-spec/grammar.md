@@ -13,7 +13,7 @@ description: <string?>     # optional
 branding:                  # flow-level; feeds mockup-tier Screen previews
   theme: <light | dark | both>   # default: light
   companyName: <string?>   # optional
-  primaryColor: <string?>  # optional
+  primaryColor: <colour?>  # optional; hex / rgb(a)|hsl(a) / CSS name
 context: { ... }            # default: {}
 nodes: [ ... ]              # default: []
 edges: [ ... ]              # default: []
@@ -22,6 +22,37 @@ scenarios: [ ... ]          # default: []
 ```
 
 The file extension `.authprint` is the indicator that the document is a flow; a wrapper key would be redundant.
+
+## Structural ceilings (Tier 1)
+
+Hard limits in the schema and at the file-open boundary. They reject corruption and denial-of-service payloads; they are **not** taste constraints. Soft advisories for "this title is awkwardly long" belong in a separate validator tier and are not specified here.
+
+| Bound | Ceiling |
+|---|---|
+| Whole-file source (picker / drop, before parse) | 8 MiB |
+| Identifiers (`id`, `kind`, `action`, slot names, field `type` / `name`) | 128 characters |
+| `name`, edge `label`, `branding.companyName` | 4096 characters |
+| `description`, `errorMessage`, `Annotation.text` | 8192 characters |
+| Action / External `notes` | 32768 characters |
+| Context / predicate / patch string scalars | 4096 characters |
+| `nodes` | 10000 |
+| `edges` | 20000 |
+| `annotations` | 5000 |
+| `scenarios` | 500 |
+| Scenario `inputScript` steps | 2000 |
+| Fields per Screen | 200 |
+| Context slots (and keys on `initialContext` / step `set`) | 500 |
+| Enum slot `values` (and `in` / `not-in` predicate arrays) | 200 |
+| `expectedOutcome.sequence` | 2000 |
+| Layout coordinates (`x` / `y`) | ±1×10⁷ (clamped on load) |
+
+`branding.primaryColor`, when present, must be one of:
+
+- Hex: `#` + 3, 4, 6, or 8 hex digits
+- `rgb()` / `rgba()` / `hsl()` / `hsla()` with numeric (optionally `%`) comma-separated arguments
+- A bare CSS colour name: `[a-z]{3,20}` (cannot contain `(`, `:`, or `/`, so it cannot smuggle a function)
+
+Everything else is a schema violation. Predicate / context / patch values are scalars (`boolean` | finite `number` | string), except `in` / `not-in` which take a bounded array of scalars. Nested objects are rejected at parse.
 
 **Reserved top-level key — `layout`.** A *bundled* `.authprint` (the editor's default single-file save) carries node positions in a top-level `layout:` mapping (`nodeId: { x, y, … }`) alongside the flow. `layout` is **reserved and ignored by the semantic parser**: it is not part of the data model (Principle 2 — layout is view, not data; `FlowSchema` has no `layout` field), so `parse()` strips it and emits no diagnostic. Editors read `layout` separately to restore positions and per-node view flags; a clean *semantic-only* export omits it entirely.
 

@@ -1,6 +1,6 @@
 // US-110 / US-120 — player-mode session + Edit⇄Play shell + headless playback.
 
-import type { Flow, Scenario, ScenarioRun } from '@authprint/dsl';
+import type { ContextScalarValue, Flow, Scenario, ScenarioRun } from '@authprint/dsl';
 import { runScenario } from '@authprint/dsl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -31,7 +31,7 @@ export type PlayerSession = {
   run: ScenarioRun;
   name: string;
   flow: Flow;
-  initialContext: Record<string, unknown>;
+  initialContext: Scenario['initialContext'];
 };
 
 export type PlayerModePersist = {
@@ -78,16 +78,16 @@ export type PlayerModeValue = {
   recordAction: (actionId: string) => void;
   recordResult: (result: string) => void;
   continueDecision: () => void;
-  applyFix: (fix: BranchFix, value?: unknown) => void;
+  applyFix: (fix: BranchFix, value?: ContextScalarValue) => void;
   toggleExpectedOutcome: (checked: boolean) => void;
   editStepAction: (scriptStepIndex: number, action: string) => void;
   editStepResult: (
     scriptStepIndex: number,
     result: 'success' | 'error' | 'denied' | 'cancelled',
   ) => void;
-  editStepPatch: (scriptStepIndex: number, slot: string, value: unknown | null) => void;
+  editStepPatch: (scriptStepIndex: number, slot: string, value: ContextScalarValue | null) => void;
   /** Focused-entry editing (UF-031): set or clear an initialContext slot. */
-  editInitialContext: (slot: string, value: unknown | null) => void;
+  editInitialContext: (slot: string, value: ContextScalarValue | null) => void;
   /** Failure copy on an action/external step; null clears (UF-034). */
   editStepErrorMessage: (scriptStepIndex: number, message: string | null) => void;
   deleteFrom: (scriptStepIndex: number) => void;
@@ -97,7 +97,7 @@ export type PlayerModeValue = {
     run: ScenarioRun,
     name: string,
     flow: Flow,
-    initialContext: Record<string, unknown>,
+    initialContext: Scenario['initialContext'],
   ) => void;
 } & ReturnType<typeof usePlayer>;
 
@@ -425,7 +425,7 @@ export function usePlayerMode(persist?: PlayerModePersist): PlayerModeValue {
   }, [recording]);
 
   const applyFix = useCallback(
-    (fix: BranchFix, value?: unknown) => {
+    (fix: BranchFix, value?: ContextScalarValue) => {
       if (!draft || !flow) return;
       const next = applyBranchFix(flow, draft, fix, value);
       writeDraft(next, flow);
@@ -461,7 +461,7 @@ export function usePlayerMode(persist?: PlayerModePersist): PlayerModeValue {
   );
 
   const editStepPatch = useCallback(
-    (scriptStepIndex: number, slot: string, value: unknown | null) => {
+    (scriptStepIndex: number, slot: string, value: ContextScalarValue | null) => {
       if (!draft || !flow) return;
       const next =
         value === null
@@ -483,7 +483,7 @@ export function usePlayerMode(persist?: PlayerModePersist): PlayerModeValue {
   );
 
   const editInitialContext = useCallback(
-    (slot: string, value: unknown | null) => {
+    (slot: string, value: ContextScalarValue | null) => {
       if (!draft || !flow) return;
       const next =
         value === null
@@ -509,7 +509,12 @@ export function usePlayerMode(persist?: PlayerModePersist): PlayerModeValue {
 
   // Legacy enter() used by play-only call sites — maps to enterPlay.
   const enter = useCallback(
-    (run: ScenarioRun, name: string, nextFlow: Flow, initialContext: Record<string, unknown>) => {
+    (
+      run: ScenarioRun,
+      name: string,
+      nextFlow: Flow,
+      initialContext: Scenario['initialContext'],
+    ) => {
       const scenario =
         nextFlow.scenarios.find((s) => s.id === run.scenarioId) ??
         ({

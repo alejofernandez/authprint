@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IdString, OptionalLabelString } from './bounds.ts';
 import type { Node } from './node.ts';
 
 // ─── Trigger union ──────────────────────────────────────────────────────────
@@ -16,7 +17,7 @@ export const InteractionTriggerSchema = z.object({
   type: z.literal('interaction'),
   // Accepts any string at parse time. User actions are extensible (see
   // USER_ACTIONS_BUILTIN); the validator emits warnings for unknown labels.
-  action: z.string().min(1),
+  action: IdString,
 });
 
 export const BranchTriggerSchema = z.object({
@@ -48,11 +49,11 @@ export type Trigger = z.infer<typeof TriggerSchema>;
 
 export const EdgeSchema = z
   .object({
-    id: z.string().min(1),
-    source: z.string().min(1),
-    target: z.string().min(1),
+    id: IdString,
+    source: IdString,
+    target: IdString,
     trigger: TriggerSchema,
-    label: z.string().optional(),
+    label: OptionalLabelString,
   })
   .refine((edge) => edge.source !== edge.target, {
     message: 'self-loops are not allowed in v1 (source must differ from target)',

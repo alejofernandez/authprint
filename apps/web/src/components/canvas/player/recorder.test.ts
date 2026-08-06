@@ -388,7 +388,7 @@ describe('predicate semantics parity with the interpreter', () => {
     });
   }
 
-  function draftAtGate(initialContext: Record<string, unknown>): Scenario {
+  function draftAtGate(initialContext: Scenario['initialContext']): Scenario {
     return {
       id: 'sc-gate',
       name: 'Gate draft',

@@ -436,3 +436,14 @@ describe('import packaging detection (US-066)', () => {
     expect(isLayoutSidecarFile('flow.authprint.layout')).toBe(true);
   });
 });
+
+describe('layout coordinate clamp (US-140)', () => {
+  test('finite but absurd coordinates clamp to ±1e7', () => {
+    const { nodes, edges } = parseLayoutBlock({
+      nodes: { n1: { x: 1e9, y: -2e8 } },
+      edges: { e1: [{ x: 5e7, y: -9e7 }] },
+    });
+    expect(nodes.n1).toEqual({ x: 1e7, y: -1e7 });
+    expect(edges.e1?.points).toEqual([{ x: 1e7, y: -1e7 }]);
+  });
+});

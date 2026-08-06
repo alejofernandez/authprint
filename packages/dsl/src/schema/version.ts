@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IdString, NameString } from './bounds.ts';
 
 // Version metadata (see @authprint/dsl-spec semantics.md — Versions).
 //
@@ -9,11 +10,11 @@ import { z } from 'zod';
 export const VersionTypeSchema = z.enum(['auto', 'named']);
 
 export const VersionSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
+  id: IdString,
+  name: NameString,
   type: VersionTypeSchema,
   createdAt: z.iso.datetime(),
-  createdBy: z.string().min(1),
+  createdBy: IdString,
 });
 
 export type Version = z.infer<typeof VersionSchema>;

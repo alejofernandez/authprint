@@ -1,6 +1,7 @@
 // US-117 — headless scenario recorder core (Edit mode engine).
 
 import type {
+  ContextScalarValue,
   Edge,
   Flow,
   Node,
@@ -19,8 +20,8 @@ export type RecordingHead = {
 };
 
 export type BranchFix =
-  | { kind: 'initial-context'; slot: string; value: unknown }
-  | { kind: 'step-patch'; stepIndex: number; slot: string; value: unknown }
+  | { kind: 'initial-context'; slot: string; value: ContextScalarValue }
+  | { kind: 'step-patch'; stepIndex: number; slot: string; value: ContextScalarValue }
   | { kind: 'needs-value'; slot: string; op: Predicate['op'] };
 
 export type PendingDecision = {
@@ -123,9 +124,14 @@ function applyStepPatch(
 
 // Only booleans have a single derivable "other" value; anything else must
 // prompt — a null write would fail the slot's declared-type validation.
-function negateEqualsValue(value: unknown): unknown {
+function negateEqualsValue(value: Predicate['value']): ContextScalarValue | undefined {
   if (typeof value === 'boolean') return !value;
   return undefined;
+}
+
+function asContextScalar(value: Predicate['value'] | undefined): ContextScalarValue | undefined {
+  if (value === undefined || Array.isArray(value)) return undefined;
+  return value;
 }
 
 function buildPendingDecision(
@@ -161,7 +167,7 @@ function buildPendingDecision(
   const otherValue =
     node.predicate.op === 'equals'
       ? otherBranch
-        ? node.predicate.value
+        ? asContextScalar(node.predicate.value)
         : negateEqualsValue(node.predicate.value)
       : undefined;
 
@@ -593,7 +599,7 @@ export function setStepPatch(
   draft: Scenario,
   stepIndex: number,
   slot: string,
-  value: unknown,
+  value: ContextScalarValue,
 ): Scenario {
   const script = [...draft.inputScript];
   const step = script[stepIndex];
@@ -660,7 +666,7 @@ export function applyBranchFix(
   flow: Flow,
   draft: Scenario,
   fix: BranchFix,
-  value?: unknown,
+  value?: ContextScalarValue,
 ): Scenario {
   let next = draft;
 
@@ -696,7 +702,7 @@ export function setInitialContextValue(
   flow: Flow,
   draft: Scenario,
   slot: string,
-  value: unknown,
+  value: ContextScalarValue,
 ): Scenario {
   return maybeSetOutcomeOnHead(
     flow,

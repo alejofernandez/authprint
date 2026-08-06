@@ -1,6 +1,6 @@
 'use client';
 
-import type { ContextSlot } from '@authprint/dsl';
+import type { ContextScalarValue, ContextSlot } from '@authprint/dsl';
 import { useTranslations } from 'next-intl';
 
 const rowSelectCls =
@@ -15,8 +15,8 @@ export function StepPatchRow({
 }: {
   slot: string;
   declaration: ContextSlot;
-  value: unknown | undefined;
-  onChange: (value: unknown | null) => void;
+  value: ContextScalarValue | undefined;
+  onChange: (value: ContextScalarValue | null) => void;
 }) {
   const t = useTranslations('player.stepEditor.setPatch');
   const noneValue = '__none__';

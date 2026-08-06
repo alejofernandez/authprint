@@ -3,7 +3,7 @@
 // UF-016 / UF-025 — the focused step's set: patch panel, floating to the right
 // of the stage shape. Delete-from-here and back-to-recording live on the dock.
 
-import type { ContextSlot } from '@authprint/dsl';
+import type { ContextScalarValue, ContextSlot } from '@authprint/dsl';
 import { useTranslations } from 'next-intl';
 import { StepPatchRow } from './StepPatchRow.tsx';
 import type { EditableScriptStep } from './stepEditorTypes.ts';
@@ -17,7 +17,7 @@ export function FocusedStepControls({
 }: {
   editable: EditableScriptStep;
   contextSlots: Record<string, ContextSlot>;
-  onSetPatchChange: (slot: string, value: unknown | null) => void;
+  onSetPatchChange: (slot: string, value: ContextScalarValue | null) => void;
   onErrorMessageChange?: (message: string | null) => void;
   className?: string;
 }) {

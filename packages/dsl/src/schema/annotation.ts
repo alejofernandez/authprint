@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ANNOTATION_KINDS } from '../vocabulary.ts';
+import { AnnotationTextString, IdString } from './bounds.ts';
 
 // Annotations are sticky-note style notes. They attach to a node, an
 // edge, or float on the canvas. They are NOT comments — comments are a v1.5
@@ -7,12 +8,12 @@ import { ANNOTATION_KINDS } from '../vocabulary.ts';
 
 export const NodeAttachmentSchema = z.object({
   type: z.literal('node'),
-  nodeId: z.string().min(1),
+  nodeId: IdString,
 });
 
 export const EdgeAttachmentSchema = z.object({
   type: z.literal('edge'),
-  edgeId: z.string().min(1),
+  edgeId: IdString,
 });
 
 export const FloatingAttachmentSchema = z.object({
@@ -30,9 +31,9 @@ export const AnnotationAttachmentSchema = z.discriminatedUnion('type', [
 export type AnnotationAttachment = z.infer<typeof AnnotationAttachmentSchema>;
 
 export const AnnotationSchema = z.object({
-  id: z.string().min(1),
+  id: IdString,
   kind: z.enum(ANNOTATION_KINDS),
-  text: z.string().min(1),
+  text: AnnotationTextString,
   attachment: AnnotationAttachmentSchema,
 });
 

@@ -499,7 +499,7 @@ function EditChrome({
                   flow={flow}
                   previousStepName={lastScriptedNameBeforeFocus}
                   showContinue={false}
-                  onApplyBranchFix={(fix, value?: unknown) => {
+                  onApplyBranchFix={(fix, value) => {
                     player.applyFix(fix, value);
                     onClearFocus();
                   }}

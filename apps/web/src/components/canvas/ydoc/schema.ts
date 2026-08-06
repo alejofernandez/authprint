@@ -240,7 +240,7 @@ function readPredicateMap(map: Y.Map<unknown>): Predicate {
   return {
     slot: map.get('slot') as string,
     op: map.get('op') as Predicate['op'],
-    value: map.get('value'),
+    value: map.get('value') as Predicate['value'],
   };
 }
 
