@@ -55,7 +55,7 @@ const components: Components = {
       return <code className="font-mono text-[11px]">{children}</code>;
     }
     return (
-      <code className="rounded bg-bg-subtle px-1 py-0.5 font-mono text-[11px] text-fg-default">
+      <code className="break-words whitespace-pre-wrap rounded bg-bg-subtle px-1 py-0.5 font-mono text-[11px] text-fg-default">
         {children}
       </code>
     );

@@ -3,6 +3,7 @@ import { PlayerStage, type PlayerStageProps } from '../PlayerStage.tsx';
 import {
   fixtureAction,
   fixtureActionVerify,
+  fixtureActionWithNotes,
   fixtureDecision,
   fixtureEntry,
   fixtureExternal,
@@ -16,6 +17,7 @@ import {
   fixtureScreenPasskeyEnroll,
   stepAction,
   stepActionVerify,
+  stepActionWithNotes,
   stepDecision,
   stepEntry,
   stepOutcomeError,
@@ -148,6 +150,26 @@ export const InterstitialActionLight: Story = {
     theme: 'light',
     step: stepAction,
     node: fixtureAction,
+  },
+};
+
+export const InterstitialActionWithNotesLight: Story = {
+  args: {
+    theme: 'light',
+    width: 520,
+    height: 360,
+    step: stepActionWithNotes,
+    node: fixtureActionWithNotes,
+  },
+};
+
+export const InterstitialActionWithNotesDark: Story = {
+  args: {
+    theme: 'dark',
+    width: 520,
+    height: 360,
+    step: stepActionWithNotes,
+    node: fixtureActionWithNotes,
   },
 };
 

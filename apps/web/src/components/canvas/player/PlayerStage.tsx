@@ -286,13 +286,14 @@ function StageContent({
       );
     case 'decision':
     case 'action':
-    case 'external':
-      if (backdropStep && backdropNode) {
-        return (
+    case 'external': {
+      const accent = step.nodeType === 'decision' ? 'decision' : 'action';
+      const card =
+        backdropStep && backdropNode ? (
           <InterstitialOverlayStage
             step={step}
             node={node}
-            accent={step.nodeType === 'decision' ? 'decision' : 'action'}
+            accent={accent}
             backdropNode={backdropNode}
             branding={branding}
             editorTheme={editorTheme}
@@ -300,15 +301,21 @@ function StageContent({
             flow={flow}
             immersive={immersive}
           />
+        ) : (
+          <InterstitialCard step={step} node={node} accent={accent} />
         );
-      }
+      const notes =
+        (node.type === 'action' || node.type === 'external') && node.notes ? node.notes : null;
+      if (!notes) return card;
+      // UF-060: notes sit beside the composition as a detached post-it, not
+      // inside the action card (which read as part of the action).
       return (
-        <InterstitialCard
-          step={step}
-          node={node}
-          accent={step.nodeType === 'decision' ? 'decision' : 'action'}
-        />
+        <div className="flex items-center justify-center gap-4">
+          {card}
+          <NotesPostIt notes={notes} />
+        </div>
       );
+    }
     case 'outcome':
       return <OutcomeEndCard step={step} node={node} />;
     case 'entry':
@@ -449,8 +456,6 @@ function InterstitialCard({
       : step.resolution;
 
   const overlay = variant === 'overlay';
-  const notes =
-    (node.type === 'action' || node.type === 'external') && node.notes ? node.notes : null;
 
   return (
     <div
@@ -466,12 +471,22 @@ function InterstitialCard({
       {resolution ? (
         <div className={`mt-3 text-xs font-medium ${accentText}`}>&rarr; {resolution}</div>
       ) : null}
-      {notes ? (
-        <div className="mt-3 max-h-24 overflow-y-auto text-left">
-          <NoteMarkdownLazy>{notes}</NoteMarkdownLazy>
-        </div>
-      ) : null}
     </div>
+  );
+}
+
+/**
+ * Detached notes card beside the player interstitial (UF-060). Post-it shape
+ * and offset, but not post-it yellow — §7 reserves warm for state signals.
+ */
+function NotesPostIt({ notes }: { notes: string }) {
+  return (
+    <aside
+      className="-rotate-1 w-[180px] max-h-40 shrink-0 overflow-y-auto rounded-md border border-border-default bg-bg-panel px-2.5 py-2 text-left shadow-md dark:border-border-default dark:bg-bg-panel"
+      data-notes-postit
+    >
+      <NoteMarkdownLazy>{notes}</NoteMarkdownLazy>
+    </aside>
   );
 }
 

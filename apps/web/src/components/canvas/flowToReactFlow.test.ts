@@ -53,3 +53,30 @@ describe('flowToReactFlow — validation attachment (E33)', () => {
     expect(edges[0]?.data).toEqual({ waypoints: route });
   });
 });
+
+describe('nodeSize notes (UF-061)', () => {
+  test('action/external grow when notes are present', async () => {
+    const { nodeSize, NODE_SIZE, NODE_NOTES_EXTRA_HEIGHT } = await import('./flowToReactFlow.ts');
+    const plain = nodeSize({ type: 'action', id: 'a', name: 'A', kind: 'send-otp' });
+    expect(plain).toEqual(NODE_SIZE.action);
+
+    const noted = nodeSize({
+      type: 'action',
+      id: 'a',
+      name: 'A',
+      kind: 'send-otp',
+      notes: 'sets `user_metadata.logins_count`',
+    });
+    expect(noted.height).toBe(NODE_SIZE.action.height + NODE_NOTES_EXTRA_HEIGHT);
+    expect(noted.width).toBe(NODE_SIZE.action.width);
+
+    const emptyNotes = nodeSize({
+      type: 'external',
+      id: 'x',
+      name: 'X',
+      kind: 'google',
+      notes: '   ',
+    });
+    expect(emptyNotes).toEqual(NODE_SIZE.external);
+  });
+});

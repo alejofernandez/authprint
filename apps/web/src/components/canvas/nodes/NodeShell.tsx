@@ -3,6 +3,7 @@
 // label + id/kind layout inside.
 
 import type { ReactNode } from 'react';
+import { NoteMarkdownLazy } from '../NoteMarkdownLazy.tsx';
 
 export type NodeShellProps = {
   /** Structural type label shown subtly above the name. */
@@ -14,15 +15,15 @@ export type NodeShellProps = {
   /** Kind string (e.g., 'password') — shown when present. Entry has none. */
   kind?: string;
   /**
-   * Plain-text notes preview (markdown already stripped). Rendered only when
-   * present so nodes without notes keep an unchanged DOM.
+   * Optional notes markdown. Rendered only when present so nodes without notes
+   * keep an unchanged DOM. Separator appears with the notes block.
    */
-  notesPreview?: string;
+  notes?: string;
   /** Outer wrapper element/className supplied by the per-type component. */
   children?: ReactNode;
 };
 
-export function NodeShellContent({ typeLabel, name, id, kind, notesPreview }: NodeShellProps) {
+export function NodeShellContent({ typeLabel, name, id, kind, notes }: NodeShellProps) {
   return (
     <div className="px-3 py-2 min-w-44">
       <div className="text-[10px] uppercase tracking-wider font-medium text-fg-subtle">
@@ -36,10 +37,19 @@ export function NodeShellContent({ typeLabel, name, id, kind, notesPreview }: No
       ) : (
         <div className="mt-1 text-[11px] text-fg-subtle font-mono truncate">{id}</div>
       )}
-      {notesPreview ? (
-        <div className="mt-1 text-[11px] leading-snug text-fg-muted line-clamp-2 whitespace-pre-line">
-          {notesPreview}
-        </div>
+      {notes ? (
+        <>
+          <div
+            className="mt-1.5 border-border-subtle border-t dark:border-border-default"
+            aria-hidden
+          />
+          {/* ~five lines at 11px/leading-snug; overflow clipped so layout stays bounded. */}
+          <div className="mt-1.5 max-h-[4.75rem] overflow-hidden text-left">
+            <NoteMarkdownLazy className="[&_li]:my-0 [&_p]:my-0.5 [&_ul]:my-0.5 [&_ol]:my-0.5">
+              {notes}
+            </NoteMarkdownLazy>
+          </div>
+        </>
       ) : null}
     </div>
   );

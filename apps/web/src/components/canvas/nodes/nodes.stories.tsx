@@ -53,7 +53,9 @@ const actionWithNotes: ActionNode = {
   id: 'send-otp-notes',
   name: 'Send sign-in code',
   kind: 'send-otp',
-  notes: '## Retry\n\n- maxAttempts: 3\n- backoff: exponential\n',
+  // Motivating UF-058/061 case: snake_case inside code must survive on the canvas.
+  notes:
+    '## Retry\n\nsets `user_metadata.logins_count`\n\n- maxAttempts: 3\n- payload `{ allow_signup: true }`\n',
 };
 
 const external: ExternalNode = {
@@ -418,10 +420,10 @@ export const ActionLight: Story = { args: { type: 'action', node: action, theme:
 export const ActionDark: Story = { args: { type: 'action', node: action, theme: 'dark' } };
 
 export const ActionWithNotesLight: Story = {
-  args: { type: 'action', node: actionWithNotes, theme: 'light', height: 280 },
+  args: { type: 'action', node: actionWithNotes, theme: 'light', height: 320 },
 };
 export const ActionWithNotesDark: Story = {
-  args: { type: 'action', node: actionWithNotes, theme: 'dark', height: 280 },
+  args: { type: 'action', node: actionWithNotes, theme: 'dark', height: 320 },
 };
 
 export const ExternalLight: Story = { args: { type: 'external', node: external, theme: 'light' } };

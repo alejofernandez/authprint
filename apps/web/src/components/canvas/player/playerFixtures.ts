@@ -88,6 +88,15 @@ export const fixtureAction: ActionNode = {
   kind: 'send-otp',
 };
 
+export const fixtureActionWithNotes: ActionNode = {
+  type: 'action',
+  id: 'a1-notes',
+  name: 'Send sign-in code',
+  kind: 'send-otp',
+  notes:
+    '## Retry\n\nsets `user_metadata.logins_count`\n\n- maxAttempts: 3\n- payload `{ allow_signup: true }`\n',
+};
+
 export const fixtureExternal: ExternalNode = {
   type: 'external',
   id: 'x1',
@@ -156,6 +165,18 @@ export const stepDecision = step({
 export const stepAction = step({
   index: 3,
   nodeId: 'a1',
+  nodeType: 'action',
+  displayName: 'Send sign-in code',
+  exitTriggerLabel: 'success',
+  decisionQuestion: null,
+  decisionBranch: null,
+  resolution: 'success',
+  matchesExpectedOutcome: null,
+});
+
+export const stepActionWithNotes = step({
+  index: 3,
+  nodeId: 'a1-notes',
   nodeType: 'action',
   displayName: 'Send sign-in code',
   exitTriggerLabel: 'success',

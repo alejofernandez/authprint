@@ -94,8 +94,19 @@ export const NODE_SIZE: Record<DslNode['type'], { width: number; height: number 
   outcome: { width: 180, height: 68 },
 };
 
+/** Extra elk height when an Action/External carries notes (~separator + five lines). */
+export const NODE_NOTES_EXTRA_HEIGHT = 92;
+
 export function nodeSize(node: DslNode): { width: number; height: number } {
-  return NODE_SIZE[node.type];
+  const base = NODE_SIZE[node.type];
+  if (
+    (node.type === 'action' || node.type === 'external') &&
+    node.notes !== undefined &&
+    node.notes.trim() !== ''
+  ) {
+    return { width: base.width, height: base.height + NODE_NOTES_EXTRA_HEIGHT };
+  }
+  return base;
 }
 
 export type FlowToReactFlowResult = {

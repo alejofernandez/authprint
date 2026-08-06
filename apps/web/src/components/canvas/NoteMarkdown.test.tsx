@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NOTE_MARKDOWN_ALLOWED_ELEMENTS, NoteMarkdown } from './NoteMarkdown.tsx';
-import { stripMarkdown } from './stripMarkdown.ts';
 
 const ALLOWED = new Set<string>(NOTE_MARKDOWN_ALLOWED_ELEMENTS);
 
@@ -14,29 +13,6 @@ function tagNames(html: string): string[] {
   }
   return tags;
 }
-
-describe('stripMarkdown', () => {
-  test('strips common markers into plain text', () => {
-    const plain = stripMarkdown('## Title\n\n- **bold** item\n\n`code` and [link](https://x)');
-    expect(plain).toContain('Title');
-    expect(plain).toContain('bold item');
-    expect(plain).toContain('code');
-    expect(plain).toContain('link');
-    expect(plain).not.toContain('##');
-    expect(plain).not.toContain('https://');
-  });
-
-  test('spends no preview line on a blank paragraph separator', () => {
-    // The node clamps to two lines with `whitespace-pre-line`. A preserved
-    // blank line burns one of them and hides the content underneath, which is
-    // what the first ActionWithNotes baseline recorded.
-    const lines = stripMarkdown('## Retry\n\n- maxAttempts: 3\n- backoff: exponential\n').split(
-      '\n',
-    );
-    expect(lines.slice(0, 2)).toEqual(['Retry', 'maxAttempts: 3']);
-    expect(lines.some((l) => l.trim() === '')).toBe(false);
-  });
-});
 
 describe('NoteMarkdown allowlist (hostile fixture)', () => {
   const HOSTILE = [
@@ -80,5 +56,21 @@ describe('NoteMarkdown allowlist (hostile fixture)', () => {
     expect(html).toMatch(/<code[\s>]/i);
     expect(html).toMatch(/<ul[\s>]/i);
     expect(html).toMatch(/<ol[\s>]/i);
+  });
+
+  test('preserves snake_case inside inline code (UF-061)', () => {
+    const html = renderToStaticMarkup(
+      createElement(NoteMarkdown, null, 'sets `user_metadata.logins_count`'),
+    );
+    expect(html).toContain('user_metadata.logins_count');
+    expect(html).not.toContain('usermetadata');
+  });
+
+  test('inline code wraps rather than overflowing (UF-060)', () => {
+    const html = renderToStaticMarkup(
+      createElement(NoteMarkdown, null, '`user_metadata.logins_count`'),
+    );
+    expect(html).toMatch(/break-words/);
+    expect(html).toMatch(/whitespace-pre-wrap/);
   });
 });

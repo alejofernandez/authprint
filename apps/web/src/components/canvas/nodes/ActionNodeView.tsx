@@ -7,7 +7,6 @@
 import type { ActionNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { GEO_SOURCE_TOP } from '../connectionSides.ts';
-import { stripMarkdown } from '../stripMarkdown.ts';
 import { SourceHandlePlus } from './HandlePlus.tsx';
 import { NodeShellContent } from './NodeShell.tsx';
 import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
@@ -19,7 +18,6 @@ type ActionNodeProps = NodeProps & { data: CanvasNodeData<ActionNode> };
 export function ActionNodeView({ data, selected }: ActionNodeProps) {
   const { node } = data;
   const connected = data.connectedHandles;
-  const notesPreview = node.notes ? stripMarkdown(node.notes) : undefined;
   // Top-out (UF-040): drag/reconnect only — no `+` (same reason as Screen).
   return (
     <CanvasNodeRoot
@@ -35,7 +33,7 @@ export function ActionNodeView({ data, selected }: ActionNodeProps) {
         name={node.name}
         id={node.id}
         kind={node.kind}
-        notesPreview={notesPreview}
+        notes={node.notes}
       />
       <Handle type="source" position={Position.Top} id={GEO_SOURCE_TOP} title="Exit from the top" />
       <Handle type="source" position={Position.Right} id="on-success" />
