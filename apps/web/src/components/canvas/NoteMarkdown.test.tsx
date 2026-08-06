@@ -25,6 +25,17 @@ describe('stripMarkdown', () => {
     expect(plain).not.toContain('##');
     expect(plain).not.toContain('https://');
   });
+
+  test('spends no preview line on a blank paragraph separator', () => {
+    // The node clamps to two lines with `whitespace-pre-line`. A preserved
+    // blank line burns one of them and hides the content underneath, which is
+    // what the first ActionWithNotes baseline recorded.
+    const lines = stripMarkdown('## Retry\n\n- maxAttempts: 3\n- backoff: exponential\n').split(
+      '\n',
+    );
+    expect(lines.slice(0, 2)).toEqual(['Retry', 'maxAttempts: 3']);
+    expect(lines.some((l) => l.trim() === '')).toBe(false);
+  });
 });
 
 describe('NoteMarkdown allowlist (hostile fixture)', () => {
