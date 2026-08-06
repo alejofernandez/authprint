@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { contentSecurityPolicy } from './contentSecurityPolicy.ts';
 
 const withNextIntl = createNextIntlPlugin();
 
@@ -43,7 +44,15 @@ const nextConfig: NextConfig = {
             key: 'X-DNS-Prefetch-Control',
             value: 'off',
           },
-          // TODO(E14 CSP): Content Security Policy requires dynamic nonces; implement via middleware.
+          {
+            // US-141: nonce-free CSP. `script-src` keeps `'unsafe-inline'` on
+            // purpose (THEME_INIT_SCRIPT + Next bootstraps); closing it is
+            // US-142 and costs the edge cache. `img-src` / `connect-src` are
+            // the exfil fence for untrusted note markdown — see
+            // contentSecurityPolicy.ts.
+            key: 'Content-Security-Policy',
+            value: contentSecurityPolicy({ isDev: process.env.NODE_ENV === 'development' }),
+          },
         ],
       },
       {
