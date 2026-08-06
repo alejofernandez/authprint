@@ -154,6 +154,13 @@ export function buildNodeMap(node: DslNode): Y.Map<unknown> {
   if ((node.type === 'action' || node.type === 'external') && node.errorMessage !== undefined) {
     map.set('errorMessage', node.errorMessage);
   }
+  if (
+    (node.type === 'action' || node.type === 'external') &&
+    node.notes !== undefined &&
+    node.notes !== ''
+  ) {
+    map.set('notes', node.notes);
+  }
 
   return map;
 }
@@ -185,12 +192,14 @@ export function readNodeMap(map: Y.Map<unknown>): DslNode {
     case 'action':
     case 'external': {
       const errorMessage = map.get('errorMessage') as string | undefined;
+      const notes = map.get('notes') as string | undefined;
       return {
         type,
         id,
         name: map.get('name') as string,
         kind: map.get('kind') as string,
         ...(errorMessage !== undefined ? { errorMessage } : {}),
+        ...(notes !== undefined ? { notes } : {}),
       } as DslNode;
     }
     default:

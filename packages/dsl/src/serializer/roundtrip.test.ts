@@ -365,6 +365,49 @@ describe('round-trip — hand-built flows', () => {
     expect(reparse(without)).toEqual(without);
   });
 
+  test('action/external notes round-trip markdown and omit when absent', () => {
+    // Heading, bullet list, fenced code, trailing newline — yaml.stringify
+    // falls back to a literal block scalar on its own; no serializer machinery.
+    const notes =
+      '## Retry policy\n\n- maxAttempts: 3\n- backoff: exponential\n\n```\nAuthorization: Bearer <token>\n```\n';
+    const withNotes = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      nodes: [
+        { type: 'entry', id: 'e1' },
+        {
+          type: 'action',
+          id: 'a1',
+          name: 'Validate',
+          kind: 'validate-credentials',
+          notes,
+        },
+        {
+          type: 'external',
+          id: 'x1',
+          name: 'Google',
+          kind: 'google',
+          notes: 'Redirect URI must match the registered client.\n',
+        },
+      ],
+    });
+    expect(reparse(withNotes)).toEqual(withNotes);
+    const yaml = serialize(withNotes);
+    expect(yaml).toContain('notes:');
+    expect(yaml).not.toContain("notes: ''");
+
+    const without = FlowSchema.parse({
+      id: 'f1',
+      name: 'X',
+      nodes: [
+        { type: 'entry', id: 'e1' },
+        { type: 'action', id: 'a1', name: 'Send OTP', kind: 'send-otp' },
+      ],
+    });
+    expect(serialize(without)).not.toContain('notes');
+    expect(reparse(without)).toEqual(without);
+  });
+
   test('error-banner trait round-trips on screens', () => {
     const flow = FlowSchema.parse({
       id: 'f1',

@@ -23,6 +23,7 @@ import {
   setNodeErrorMessage,
   setNodeKind,
   setNodeName,
+  setNodeNotes,
   setPrimaryColor,
   setScreenDisplayErrorState,
   setScreenFields,
@@ -252,6 +253,37 @@ describe('attribute edits', () => {
     a = readFlow(doc).nodes.find((n) => n.id === 'a1');
     expect(a?.type === 'action' && 'errorMessage' in a).toBe(false);
     expect(setNodeErrorMessage(doc, 's1', 'nope').ok).toBe(false);
+  });
+
+  test('setNodeNotes writes through on action/external and clears when empty', () => {
+    const doc = hydrate({
+      id: 'f',
+      name: 'F',
+      branding: { theme: 'light' },
+      context: {},
+      nodes: [
+        { type: 'entry', id: 'entry' },
+        { type: 'action', id: 'a1', name: 'Validate', kind: 'validate-credentials' },
+        { type: 'external', id: 'x1', name: 'Google', kind: 'google' },
+        { type: 'screen', id: 's1', name: 'Sign in', kind: 'password', traits: [], fields: [] },
+      ],
+      edges: [],
+      annotations: [],
+      scenarios: [],
+    });
+    const markdown = '## Headers\n\n- one\n- two\n';
+    expect(setNodeNotes(doc, 'a1', markdown).ok).toBe(true);
+    let a = readFlow(doc).nodes.find((n) => n.id === 'a1');
+    expect(a?.type === 'action' && a.notes).toBe(markdown);
+
+    expect(setNodeNotes(doc, 'x1', 'Redirect URI must match.\n').ok).toBe(true);
+    const x = readFlow(doc).nodes.find((n) => n.id === 'x1');
+    expect(x?.type === 'external' && x.notes).toBe('Redirect URI must match.\n');
+
+    expect(setNodeNotes(doc, 'a1', '   ').ok).toBe(true);
+    a = readFlow(doc).nodes.find((n) => n.id === 'a1');
+    expect(a?.type === 'action' && 'notes' in a).toBe(false);
+    expect(setNodeNotes(doc, 's1', 'nope').ok).toBe(false);
   });
 
   test('setScreenTraits, fields replace cleanly and round-trip', () => {

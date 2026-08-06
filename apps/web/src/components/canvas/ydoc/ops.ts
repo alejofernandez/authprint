@@ -343,6 +343,23 @@ export function setNodeErrorMessage(
   return ok;
 }
 
+export function setNodeNotes(doc: Y.Doc, id: string, notes: string | undefined): OpResult {
+  const node = nodesMap(doc).get(id);
+  if (!node) return fail(`node '${id}' does not exist`);
+  const type = node.get('type');
+  if (type !== 'action' && type !== 'external') {
+    return fail(`node '${id}' is not action/external`);
+  }
+  // Empty (or whitespace-only) clears the field. Non-empty values keep their
+  // authored whitespace, including trailing newlines that round-trip in YAML.
+  const empty = notes === undefined || notes.trim() === '';
+  doc.transact(() => {
+    if (empty) node.delete('notes');
+    else node.set('notes', notes);
+  }, LOCAL_ORIGIN);
+  return ok;
+}
+
 // Traits/fields are replaced wholesale (a fresh Y.Array) on each edit — granular
 // per-item CRDT merge isn't needed for single-user v1, and replace keeps the
 // editor simple. The nested-Y.Array shape is preserved for when it matters.

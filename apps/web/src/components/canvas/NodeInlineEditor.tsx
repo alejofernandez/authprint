@@ -28,6 +28,7 @@ import {
 } from '@authprint/dsl';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { NoteMarkdownLazy } from './NoteMarkdownLazy.tsx';
 import { traitChromeOutranksActionLink } from './nodes/screen/traitChrome.tsx';
 import { screenActions } from './screenActions.ts';
 import type { NodeLayoutRecord } from './ydoc/schema.ts';
@@ -36,6 +37,7 @@ export type NodeEditActions = {
   setName: (id: string, name: string) => void;
   setKind: (id: string, kind: string) => void;
   setErrorMessage: (id: string, errorMessage: string) => void;
+  setNotes: (id: string, notes: string) => void;
   setTraits: (id: string, traits: string[]) => void;
   setFields: (id: string, fields: Field[]) => void;
   setPredicate: (id: string, predicate: Predicate) => void;
@@ -150,6 +152,43 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+/** Notes textarea: Enter inserts a newline and must not commit (UF-039 exception). */
+function NotesField({
+  nodeId,
+  initialNotes,
+  onCommit,
+}: {
+  nodeId: string;
+  initialNotes: string;
+  onCommit: (notes: string) => void;
+}) {
+  const t = useTranslations('inspector');
+  const [draft, setDraft] = useState(initialNotes);
+
+  return (
+    <div className="space-y-2">
+      <label className="block space-y-1" htmlFor={`notes-${nodeId}`}>
+        <span className="text-xs text-fg-subtle dark:text-fg-subtle">{t('labels.notes')}</span>
+        <textarea
+          id={`notes-${nodeId}`}
+          className={`${inputCls} min-h-[6rem] resize-y font-mono text-xs leading-snug`}
+          value={draft}
+          placeholder={t('placeholders.notes')}
+          rows={5}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => onCommit(draft)}
+        />
+      </label>
+      {draft.trim() ? (
+        <div className="rounded border border-border-subtle bg-bg-subtle/60 px-2 py-1.5 dark:border-border-default">
+          <div className={`${labelCls} mb-1`}>{t('notes.preview')}</div>
+          <NoteMarkdownLazy>{draft}</NoteMarkdownLazy>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ErrorBannerVisibilityIcon({ visible }: { visible: boolean }) {
   if (visible) {
     return (
@@ -248,6 +287,15 @@ export function NodeInlineEditor({
               }}
             />
           </label>
+        )}
+
+        {errorSource && (
+          <NotesField
+            key={`notes-${node.id}`}
+            nodeId={node.id}
+            initialNotes={errorSource.notes ?? ''}
+            onCommit={(notes) => actions.setNotes(node.id, notes)}
+          />
         )}
       </Section>
 

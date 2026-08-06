@@ -7,6 +7,7 @@
 import type { ExternalNode } from '@authprint/dsl';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { GEO_SOURCE_TOP, GEO_TARGET_BOTTOM, GEO_TARGET_TOP } from '../connectionSides.ts';
+import { stripMarkdown } from '../stripMarkdown.ts';
 import { SourceHandlePlus } from './HandlePlus.tsx';
 import { NodeShellContent } from './NodeShell.tsx';
 import { CanvasNodeRoot, ValidationCue } from './nodeA11y.tsx';
@@ -18,6 +19,7 @@ type ExternalNodeProps = NodeProps & { data: CanvasNodeData<ExternalNode> };
 export function ExternalNodeView({ data, selected }: ExternalNodeProps) {
   const { node } = data;
   const connected = data.connectedHandles;
+  const notesPreview = node.notes ? stripMarkdown(node.notes) : undefined;
   // `+` covers the mandatory success/error paths. denied/cancelled stay in the
   // model but share the single bottom handle (routed there by sourceHandleFor);
   // they get first-class handles later via drag-from-handle (US-050).
@@ -38,7 +40,13 @@ export function ExternalNodeView({ data, selected }: ExternalNodeProps) {
       <div className="absolute top-1.5 right-2 text-teal-600 dark:text-teal-400" aria-hidden>
         ↗
       </div>
-      <NodeShellContent typeLabel="External" name={node.name} id={node.id} kind={node.kind} />
+      <NodeShellContent
+        typeLabel="External"
+        name={node.name}
+        id={node.id}
+        kind={node.kind}
+        notesPreview={notesPreview}
+      />
       <Handle type="source" position={Position.Right} id="on-success" />
       <Handle type="source" position={Position.Bottom} id="on-error" />
       <Handle type="source" position={Position.Top} id={GEO_SOURCE_TOP} style={{ left: '65%' }} />

@@ -90,6 +90,7 @@ describe('node round-trip', () => {
       name: 'Validate',
       kind: 'validate-credentials',
       errorMessage: 'Invalid credentials.',
+      notes: '## Headers\n\n- one\n',
     },
     { type: 'external', id: 'x1', name: 'Google', kind: 'google' },
     {

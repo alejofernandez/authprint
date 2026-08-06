@@ -13,11 +13,16 @@ export type NodeShellProps = {
   id: string;
   /** Kind string (e.g., 'password') — shown when present. Entry has none. */
   kind?: string;
+  /**
+   * Plain-text notes preview (markdown already stripped). Rendered only when
+   * present so nodes without notes keep an unchanged DOM.
+   */
+  notesPreview?: string;
   /** Outer wrapper element/className supplied by the per-type component. */
   children?: ReactNode;
 };
 
-export function NodeShellContent({ typeLabel, name, id, kind }: NodeShellProps) {
+export function NodeShellContent({ typeLabel, name, id, kind, notesPreview }: NodeShellProps) {
   return (
     <div className="px-3 py-2 min-w-44">
       <div className="text-[10px] uppercase tracking-wider font-medium text-fg-subtle">
@@ -31,6 +36,11 @@ export function NodeShellContent({ typeLabel, name, id, kind }: NodeShellProps) 
       ) : (
         <div className="mt-1 text-[11px] text-fg-subtle font-mono truncate">{id}</div>
       )}
+      {notesPreview ? (
+        <div className="mt-1 text-[11px] leading-snug text-fg-muted line-clamp-2 whitespace-pre-line">
+          {notesPreview}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -139,6 +139,7 @@ nodes:                        # optional, default: []
     name: <string>
     kind: <ActionKind>          # built-in or custom
     errorMessage: <string?>     # optional authored copy for error-banner screens
+    notes: <string?>            # optional free text; markdown subset (see below)
 
   # External
   - type: external
@@ -146,6 +147,7 @@ nodes:                        # optional, default: []
     name: <string>
     kind: <ExternalKind>        # built-in or custom
     errorMessage: <string?>     # optional authored copy for error-banner screens
+    notes: <string?>            # optional free text; markdown subset (see below)
 
   # Outcome
   - type: outcome
@@ -246,6 +248,35 @@ Bundled `.authprint` files use the same shape under a top-level `layout:` key (n
 | `displayErrorState` | screens with `error-banner` | `false` (omitted) | When `true`, the screen shows the error-banner preview on the static canvas. Scenario playback shows the banner regardless (derived from the run). |
 
 Same strict YAML subset applies. Nodes without entries fall back to auto-layout.
+
+## Node `notes` (Action and External only)
+
+`notes` is an optional free-text string on **Action** and **External** nodes. It is semantic (lives in the `.authprint` file), not layout. Screens, Decisions, Outcomes, and Entry do not carry `notes`.
+
+Absent and empty are the same on write: never emit `notes: ''`. Multi-line values typically emit as YAML literal block scalars (`|` / `|-`); that is ordinary YAML, not a special Authprint construct.
+
+### Markdown subset
+
+Notes are authored as raw markdown. Implementations that render notes **must** support only this closed subset, and **must never** render the excluded constructs as interactive or fetchable content.
+
+**Supported:**
+
+- Headings (`#`–`###`)
+- Bold and italic
+- Inline code and fenced code blocks
+- Bullet lists and ordered lists
+
+**Never rendered (at any level of the stack):**
+
+- Links of every form (inline, reference, autolink, bare URL)
+- Images
+- Raw or embedded HTML
+- Tables, blockquotes, footnotes, horizontal rules
+- Anything that carries a URL, or that can cause a fetch
+
+Excluded syntax degrades to its text content (with any URL dropped). Example: `[docs](https://example.com)` shows as `docs`, not as a link.
+
+**Hard line breaks via two trailing spaces are not supported.** They survive YAML block scalars, but any whitespace-trimming tool silently destroys them. Authors should use a blank line instead.
 
 ## What's not in v1 grammar
 

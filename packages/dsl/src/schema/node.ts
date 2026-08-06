@@ -60,6 +60,9 @@ export const ActionNodeSchema = z.object({
   name: z.string().min(1),
   kind: z.string().min(1),
   errorMessage: z.string().optional(),
+  // Optional free-text notes (markdown subset). Absent and empty are the same
+  // on write: never serialize `notes: ''`.
+  notes: z.string().optional(),
 });
 export type ActionNode = z.infer<typeof ActionNodeSchema>;
 
@@ -73,6 +76,7 @@ export const ExternalNodeSchema = z.object({
   name: z.string().min(1),
   kind: z.string().min(1),
   errorMessage: z.string().optional(),
+  notes: z.string().optional(),
 });
 export type ExternalNode = z.infer<typeof ExternalNodeSchema>;
 

@@ -537,3 +537,31 @@ test.describe('delete without a keyboard (US-136)', () => {
     await expect(page.locator('.react-flow__edge')).toHaveCount(edgesBefore);
   });
 });
+
+test.describe('node notes textarea (US-139)', () => {
+  test('Enter inserts a newline and does not commit', async ({ page }) => {
+    await openSampleFlow(page);
+    const node = page.locator('.react-flow__node-action').first();
+    const box = await node.boundingBox();
+    if (!box) throw new Error('no action node');
+    const x = box.x + box.width / 2;
+    const y = box.y + 6;
+
+    await page.mouse.click(x, y);
+    await page.waitForTimeout(250);
+    await page.mouse.click(x, y);
+    await expect(page.locator(INSPECTOR)).toBeVisible();
+
+    const notes = page.locator(`${INSPECTOR} textarea`);
+    await expect(notes).toBeVisible();
+    await notes.click();
+    await notes.fill('line one');
+    await notes.press('Enter');
+    await notes.type('line two');
+
+    await expect(notes).toBeFocused();
+    await expect(notes).toHaveValue('line one\nline two');
+    // Still open — Enter must not blur/dismiss the way single-line fields do.
+    await expect(page.locator(INSPECTOR)).toBeVisible();
+  });
+});

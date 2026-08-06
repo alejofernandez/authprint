@@ -142,6 +142,7 @@ function canonicalizeAction(n: ActionNode): Record<string, unknown> {
     kind: n.kind,
   };
   if (n.errorMessage !== undefined) out.errorMessage = n.errorMessage;
+  if (n.notes !== undefined && n.notes !== '') out.notes = n.notes;
   return out;
 }
 
@@ -153,6 +154,7 @@ function canonicalizeExternal(n: ExternalNode): Record<string, unknown> {
     kind: n.kind,
   };
   if (n.errorMessage !== undefined) out.errorMessage = n.errorMessage;
+  if (n.notes !== undefined && n.notes !== '') out.notes = n.notes;
   return out;
 }
 

@@ -77,7 +77,11 @@
     "labels": {
       "name": "Name",
       "kind": "Kind",
-      "errorMessage": "Error message"
+      "errorMessage": "Error message",
+      "notes": "Notes"
+    },
+    "notes": {
+      "preview": "Preview"
     },
     "actions": {
       "empty": "No actions yet",
@@ -93,7 +97,8 @@
       "redundantTraitWins": "This is how the \"{action}\" action is drawn, so that action has no separate link. Both are fine to keep."
     },
     "placeholders": {
-      "errorMessage": "Shown on error-banner screens when this step fails"
+      "errorMessage": "Shown on error-banner screens when this step fails",
+      "notes": "Markdown notes for this step (headings, lists, code)"
     },
     "kind": {
       "chooseFromList": "Choose from list",

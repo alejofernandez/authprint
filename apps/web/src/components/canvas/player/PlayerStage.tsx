@@ -10,6 +10,7 @@ import type {
   ScreenNode,
 } from '@authprint/dsl';
 import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
+import { NoteMarkdownLazy } from '../NoteMarkdownLazy.tsx';
 import { ScreenMockup } from '../nodes/screen/ScreenMockup.tsx';
 import { resolveScreenTheme } from '../nodes/screen/screenTheme.ts';
 import { screenActionGroups } from '../screenActions.ts';
@@ -448,6 +449,8 @@ function InterstitialCard({
       : step.resolution;
 
   const overlay = variant === 'overlay';
+  const notes =
+    (node.type === 'action' || node.type === 'external') && node.notes ? node.notes : null;
 
   return (
     <div
@@ -462,6 +465,11 @@ function InterstitialCard({
       {detail ? <div className="mt-1 text-xs text-fg-muted">{detail}</div> : null}
       {resolution ? (
         <div className={`mt-3 text-xs font-medium ${accentText}`}>&rarr; {resolution}</div>
+      ) : null}
+      {notes ? (
+        <div className="mt-3 max-h-24 overflow-y-auto text-left">
+          <NoteMarkdownLazy>{notes}</NoteMarkdownLazy>
+        </div>
       ) : null}
     </div>
   );

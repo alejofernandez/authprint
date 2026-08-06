@@ -45,7 +45,13 @@ const config: TestRunnerConfig = {
     } else if (isPlayerCanvas) {
       await canvas.waitFor({ state: 'visible' });
     } else {
-      await canvas.locator('.react-flow__node').first().waitFor({ state: 'visible' });
+      // Node stories mount a React Flow node; NoteMarkdown and similar static
+      // canvases use the same test id without a .react-flow__node.
+      await canvas.waitFor({ state: 'visible' });
+      const flowNode = canvas.locator('.react-flow__node').first();
+      if ((await flowNode.count()) > 0) {
+        await flowNode.waitFor({ state: 'visible' });
+      }
     }
     await page.evaluate(() => document.fonts.ready);
 

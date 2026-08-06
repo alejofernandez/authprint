@@ -22,9 +22,16 @@ The closed set of node types. DSL `type:` field carries the lowercase string.
 | `entry` | `Entry` | Flow start. Exactly one per flow. |
 | `screen` | `Screen` | User-facing step. Carries `kind`, `traits`, `fields`. |
 | `decision` | `Decision` | Predicate-evaluated branching. No UI. |
-| `action` | `Action` | Server-side step. No UI. Mandatory `on-success` + `on-error` outgoing edges. |
-| `external` | `External` | Hand-off to external system. Visual treatment: "you leave and return." |
+| `action` | `Action` | Server-side step. No UI. Mandatory `on-success` + `on-error` outgoing edges. Optional `errorMessage`, optional `notes` (markdown subset). |
+| `external` | `External` | Hand-off to external system. Visual treatment: "you leave and return." Optional `errorMessage`, optional `notes` (markdown subset). |
 | `outcome` | `Outcome` | Terminal state. Multiple per flow allowed. |
+
+### Optional fields on Action / External
+
+| Field | Type | Meaning |
+|---|---|---|
+| `errorMessage` | string? | Authored copy for error-banner screens when this step fails |
+| `notes` | string? | Free-text design notes; rendered as a closed markdown subset (see `grammar.md` §Node `notes`). Absent and empty are the same on write |
 
 ---
 

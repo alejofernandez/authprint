@@ -48,6 +48,14 @@ const action: ActionNode = {
   kind: 'send-otp',
 };
 
+const actionWithNotes: ActionNode = {
+  type: 'action',
+  id: 'send-otp-notes',
+  name: 'Send sign-in code',
+  kind: 'send-otp',
+  notes: '## Retry\n\n- maxAttempts: 3\n- backoff: exponential\n',
+};
+
 const external: ExternalNode = {
   type: 'external',
   id: 'google',
@@ -408,6 +416,13 @@ export const DecisionDark: Story = { args: { type: 'decision', node: decision, t
 
 export const ActionLight: Story = { args: { type: 'action', node: action, theme: 'light' } };
 export const ActionDark: Story = { args: { type: 'action', node: action, theme: 'dark' } };
+
+export const ActionWithNotesLight: Story = {
+  args: { type: 'action', node: actionWithNotes, theme: 'light', height: 280 },
+};
+export const ActionWithNotesDark: Story = {
+  args: { type: 'action', node: actionWithNotes, theme: 'dark', height: 280 },
+};
 
 export const ExternalLight: Story = { args: { type: 'external', node: external, theme: 'light' } };
 export const ExternalDark: Story = { args: { type: 'external', node: external, theme: 'dark' } };
