@@ -80,9 +80,6 @@
       "errorMessage": "Error message",
       "notes": "Notes"
     },
-    "notes": {
-      "preview": "Preview"
-    },
     "actions": {
       "empty": "No actions yet",
       "toTarget": "→ {target}",

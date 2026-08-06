@@ -28,7 +28,6 @@ import {
 } from '@authprint/dsl';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { NoteMarkdownLazy } from './NoteMarkdownLazy.tsx';
 import { traitChromeOutranksActionLink } from './nodes/screen/traitChrome.tsx';
 import { screenActions } from './screenActions.ts';
 import type { NodeLayoutRecord } from './ydoc/schema.ts';
@@ -163,29 +162,19 @@ function NotesField({
   onCommit: (notes: string) => void;
 }) {
   const t = useTranslations('inspector');
-  const [draft, setDraft] = useState(initialNotes);
 
   return (
-    <div className="space-y-2">
-      <label className="block space-y-1" htmlFor={`notes-${nodeId}`}>
-        <span className="text-xs text-fg-subtle dark:text-fg-subtle">{t('labels.notes')}</span>
-        <textarea
-          id={`notes-${nodeId}`}
-          className={`${inputCls} min-h-[6rem] resize-y font-mono text-xs leading-snug`}
-          value={draft}
-          placeholder={t('placeholders.notes')}
-          rows={5}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => onCommit(draft)}
-        />
-      </label>
-      {draft.trim() ? (
-        <div className="rounded border border-border-subtle bg-bg-subtle/60 px-2 py-1.5 dark:border-border-default">
-          <div className={`${labelCls} mb-1`}>{t('notes.preview')}</div>
-          <NoteMarkdownLazy>{draft}</NoteMarkdownLazy>
-        </div>
-      ) : null}
-    </div>
+    <label className="block space-y-1" htmlFor={`notes-${nodeId}`}>
+      <span className="text-xs text-fg-subtle dark:text-fg-subtle">{t('labels.notes')}</span>
+      <textarea
+        id={`notes-${nodeId}`}
+        className={`${inputCls} min-h-[6rem] resize-y font-mono text-xs leading-snug`}
+        defaultValue={initialNotes}
+        placeholder={t('placeholders.notes')}
+        rows={5}
+        onBlur={(e) => onCommit(e.target.value)}
+      />
+    </label>
   );
 }
 
