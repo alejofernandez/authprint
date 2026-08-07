@@ -6,6 +6,8 @@ import {
 import { screenInteractionSideTier } from '../screenInteractionSides.ts';
 
 /** Per-operation timings for the play-mode interaction film (FS-01). */
+/** Hold the cursor on-screen before the first move so it reads as present. */
+export const FILM_INTRO_MS = 450;
 export const FILM_MOVE_MS = 750;
 export const FILM_FILL_MS = 500;
 export const FILM_CLICK_MS = 450;
@@ -102,7 +104,7 @@ export function planInteractionFilm(
   const fillsFields = isPrimaryScreenExit(exitActionId);
   const actionTargetId = actionFilmTargetId(node, exitActionId);
   const fieldValues: Record<string, string | boolean> = {};
-  const ops: FilmOp[] = [];
+  const ops: FilmOp[] = [{ kind: 'settle', durationMs: FILM_INTRO_MS }];
 
   if (fillsFields) {
     for (const field of node.fields) {

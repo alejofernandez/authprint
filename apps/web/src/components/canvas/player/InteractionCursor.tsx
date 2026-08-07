@@ -70,8 +70,8 @@ const CURSOR_INNER =
   'M 174.76 430.58 C180.73,432.71 186.05,432.30 192.05,429.25 C197.13,426.67 199.18,424.22 225.73,389.04 C241.28,368.44 255.91,349.62 258.25,347.22 C268.71,336.49 286.76,326.13 302.50,321.82 C310.12,319.73 313.02,319.60 363.00,319.06 C414.69,318.51 415.56,318.47 419.62,316.29 C430.69,310.37 435.05,296.49 429.33,285.37 C427.41,281.64 420.51,275.66 371.91,235.68 C357.45,223.77 261.64,144.63 216.22,107.07 C201.21,94.65 187.04,83.63 184.72,82.56 C178.86,79.87 168.05,79.91 162.00,82.65 C153.18,86.64 146.52,94.66 144.97,103.19 C144.56,105.38 145.52,133.58 147.09,165.84 C148.66,198.10 151.09,247.90 152.48,276.50 C153.88,305.10 155.91,346.95 157.00,369.50 C158.08,392.05 159.24,412.17 159.57,414.21 C160.24,418.41 164.71,425.11 168.49,427.58 C169.88,428.50 172.70,429.84 174.76,430.58 Z';
 
 /**
- * Floating pointer for the play-mode interaction film. Visible as soon as the
- * screen mounts (center / carried tip), then lerps to `[data-film-target]`.
+ * Floating pointer for the play-mode interaction film. Painted on the first
+ * screen frame (center / carried tip); later lerps to `[data-film-target]`.
  */
 export function InteractionCursor({
   containerRef,
@@ -98,9 +98,8 @@ export function InteractionCursor({
   const lastTargetRef = useRef<string | null>(null);
   const [rippleKey, setRippleKey] = useState(0);
   const wasClickingRef = useRef(false);
-  const seededRef = useRef(false);
 
-  // Appear on the first screen paint — don't wait for a measured film target.
+  // Appear with the screen — never wait on a measured film target.
   useLayoutEffect(() => {
     if (!active) {
       setSeedPos(null);
@@ -108,26 +107,45 @@ export function InteractionCursor({
       fromPosRef.current = null;
       settledPosRef.current = null;
       lastTargetRef.current = null;
-      seededRef.current = false;
       return;
     }
-    const root = containerRef.current;
-    if (!root) return;
-    if (!seededRef.current) {
-      seededRef.current = true;
+    if (seedPos) return;
+
+    let cancelled = false;
+    let frame = 0;
+
+    const trySeed = () => {
+      if (cancelled) return;
+      const root = containerRef.current;
+      if (!root || root.offsetWidth < 1 || root.offsetHeight < 1) {
+        frame = requestAnimationFrame(trySeed);
+        return;
+      }
       if (!carryFromPrior) clearFilmCursorMemory();
       const seed = initialFromPos(root, carryFromPrior);
-      setSeedPos(seed);
       fromPosRef.current = seed;
       settledPosRef.current = seed;
-    }
-  }, [active, carryFromPrior, containerRef]);
+      setSeedPos(seed);
+    };
+
+    trySeed();
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [active, carryFromPrior, containerRef, seedPos]);
 
   // Resolve / retry the destination until the mockup mounts the film target.
   useLayoutEffect(() => {
     if (!active) return;
     const root = containerRef.current;
-    if (!root || !targetId) return;
+    if (!root) return;
+
+    if (!targetId) {
+      setToPos(null);
+      lastTargetRef.current = null;
+      return;
+    }
 
     let cancelled = false;
     let frame = 0;
@@ -161,37 +179,49 @@ export function InteractionCursor({
     wasClickingRef.current = clicking;
   }, [clicking]);
 
-  useLayoutEffect(() => {
-    if (!toPos) return;
-    if (moveProgress === null || moveProgress >= 1) {
-      settledPosRef.current = toPos;
-    }
-  }, [toPos, moveProgress]);
-
-  const pos = (() => {
+  const tip: CursorPos | null = (() => {
     if (!active) return null;
     const from = fromPosRef.current ?? seedPos;
     if (!from) return null;
+    // No destination yet (intro dwell, or target not in the DOM): hold seed / carry.
     if (!toPos || !targetId) return from;
-    const t = moveProgress === null ? 1 : easeInOutCubic(Math.min(1, Math.max(0, moveProgress)));
+    // Fill / click / settle: sit on the measured target.
+    if (moveProgress === null) return toPos;
+    const t = easeInOutCubic(Math.min(1, Math.max(0, moveProgress)));
     return lerpPos(from, toPos, t);
   })();
 
   useLayoutEffect(() => {
-    const root = containerRef.current;
-    if (!root || !pos) return;
-    writeFilmCursorMemory(filmCursorToNorm(root, pos));
-  }, [containerRef, pos]);
+    if (!tip) return;
+    if (moveProgress === null || moveProgress >= 1) {
+      settledPosRef.current = tip;
+      if (toPos && (moveProgress === null || moveProgress >= 1)) {
+        fromPosRef.current = toPos;
+      }
+    }
+  }, [tip, toPos, moveProgress]);
 
-  if (!pos) return null;
+  useLayoutEffect(() => {
+    const root = containerRef.current;
+    if (!root || !tip) return;
+    writeFilmCursorMemory(filmCursorToNorm(root, tip));
+  }, [containerRef, tip]);
+
+  if (!active) return null;
+
+  // CSS center until layout seeds coords — still visible on the first paint.
+  const style =
+    tip !== null
+      ? { left: tip.x - HOTSPOT_X, top: tip.y - HOTSPOT_Y }
+      : {
+          left: `calc(50% - ${HOTSPOT_X}px)`,
+          top: `calc(50% - ${HOTSPOT_Y}px)`,
+        };
 
   return (
     <div
       className="pointer-events-none absolute z-20"
-      style={{
-        left: pos.x - HOTSPOT_X,
-        top: pos.y - HOTSPOT_Y,
-      }}
+      style={style}
       data-interaction-cursor
       aria-hidden
     >

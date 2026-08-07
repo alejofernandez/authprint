@@ -6,6 +6,7 @@ import {
   FILM_ALT_SETTLE_MS,
   FILM_CLICK_MS,
   FILM_FILL_MS,
+  FILM_INTRO_MS,
   FILM_MOVE_MS,
   FILM_SETTLE_MS,
   filmClockAt,
@@ -49,9 +50,12 @@ describe('planInteractionFilm', () => {
     expect(plan).not.toBeNull();
     if (!plan) return;
     expect(plan.fillsFields).toBe(true);
+    expect(plan.ops[0]).toEqual({ kind: 'settle', durationMs: FILM_INTRO_MS });
     expect(plan.ops.filter((o) => o.kind === 'fill')).toHaveLength(2);
     expect(plan.ops.some((o) => o.kind === 'click')).toBe(true);
-    expect(plan.totalMs).toBe(FILM_MOVE_MS * 3 + FILM_FILL_MS * 2 + FILM_CLICK_MS + FILM_SETTLE_MS);
+    expect(plan.totalMs).toBe(
+      FILM_INTRO_MS + FILM_MOVE_MS * 3 + FILM_FILL_MS * 2 + FILM_CLICK_MS + FILM_SETTLE_MS,
+    );
   });
 
   test('alternate exit skips fill', () => {
@@ -63,9 +67,12 @@ describe('planInteractionFilm', () => {
     expect(plan).not.toBeNull();
     if (!plan) return;
     expect(plan.fillsFields).toBe(false);
+    expect(plan.ops[0]).toEqual({ kind: 'settle', durationMs: FILM_INTRO_MS });
     expect(plan.ops.filter((o) => o.kind === 'fill')).toHaveLength(0);
     expect(plan.ops.filter((o) => o.kind === 'move')).toHaveLength(1);
-    expect(plan.totalMs).toBe(FILM_ALT_MOVE_MS + FILM_ALT_CLICK_MS + FILM_ALT_SETTLE_MS);
+    expect(plan.totalMs).toBe(
+      FILM_INTRO_MS + FILM_ALT_MOVE_MS + FILM_ALT_CLICK_MS + FILM_ALT_SETTLE_MS,
+    );
     const move = plan.ops.find((o) => o.kind === 'move');
     expect(move?.durationMs).toBe(FILM_ALT_MOVE_MS);
   });
@@ -99,18 +106,19 @@ describe('filmClockAt', () => {
     const start = filmClockAt(plan.ops, 0);
     expect(start.done).toBe(false);
     expect(start.opIndex).toBe(0);
-    expect(start.moveProgress).toBe(0);
+    expect(start.moveProgress).toBeNull();
+    expect(start.cursorTargetId).toBeNull();
 
-    const midMove = filmClockAt(plan.ops, FILM_MOVE_MS / 2);
+    const midMove = filmClockAt(plan.ops, FILM_INTRO_MS + FILM_MOVE_MS / 2);
     expect(midMove.moveProgress).toBeCloseTo(0.5);
     expect(midMove.filling).toBeNull();
 
-    const midFill = filmClockAt(plan.ops, FILM_MOVE_MS + FILM_FILL_MS / 2);
+    const midFill = filmClockAt(plan.ops, FILM_INTRO_MS + FILM_MOVE_MS + FILM_FILL_MS / 2);
     expect(midFill.filling?.fieldName).toBe('email');
     expect(midFill.filledFields.size).toBe(0);
     expect(midFill.moveProgress).toBeNull();
 
-    const afterFirst = filmClockAt(plan.ops, FILM_MOVE_MS + FILM_FILL_MS);
+    const afterFirst = filmClockAt(plan.ops, FILM_INTRO_MS + FILM_MOVE_MS + FILM_FILL_MS);
     expect(afterFirst.filledFields.has('email')).toBe(true);
 
     const end = filmClockAt(plan.ops, plan.totalMs);
