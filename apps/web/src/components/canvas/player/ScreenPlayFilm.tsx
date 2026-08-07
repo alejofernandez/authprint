@@ -78,6 +78,7 @@ export function ScreenPlayFilm({
         clicking={Boolean(clock?.clickingTargetId)}
         moveProgress={clock?.moveProgress ?? null}
         carryFromPrior={carryCursorFromPrior}
+        active={Boolean(plan)}
       />
     </div>
   );
