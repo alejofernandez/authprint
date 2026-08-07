@@ -14,7 +14,12 @@ import {
   timelineStepIndexFromOffset,
   timelineStripWidth,
 } from './timelineGeometry.ts';
-import { advancePlayerPlayback, clampPlayerIndex } from './usePlayer.ts';
+import {
+  advancePlayerPlayback,
+  clampPlayerIndex,
+  planAutoAdvance,
+  shouldArmAutoplayTimer,
+} from './usePlayer.ts';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 
@@ -282,6 +287,52 @@ describe('usePlayer — playback helpers', () => {
     expect(afterFirstFilm).toEqual({ index: 2, stop: false });
     const afterSecondFilm = advancePlayerPlayback(3, 7, null);
     expect(afterSecondFilm).toEqual({ index: 4, stop: false });
+  });
+});
+
+describe('usePlayer — requestAutoAdvance (planAutoAdvance)', () => {
+  test('advances only while playing', () => {
+    expect(planAutoAdvance(false, 1, 5, null)).toEqual({ applied: false });
+    expect(planAutoAdvance(true, 1, 5, null)).toEqual({
+      applied: true,
+      index: 2,
+      stop: false,
+    });
+  });
+
+  test('stops at the last step', () => {
+    expect(planAutoAdvance(true, 4, 5, null)).toEqual({
+      applied: true,
+      index: 4,
+      stop: true,
+    });
+  });
+
+  test('stops at a divergence', () => {
+    expect(planAutoAdvance(true, 1, 6, 2)).toEqual({
+      applied: true,
+      index: 2,
+      stop: true,
+    });
+  });
+
+  test('duplicate call in one turn advances once (idempotent on same index)', () => {
+    const first = planAutoAdvance(true, 1, 7, null);
+    const second = planAutoAdvance(true, 1, 7, null);
+    expect(first).toEqual(second);
+    expect(first).toEqual({ applied: true, index: 2, stop: false });
+  });
+});
+
+describe('usePlayer — holdsAutoAdvance (shouldArmAutoplayTimer)', () => {
+  test('a held index does not run the autoplay timer', () => {
+    expect(shouldArmAutoplayTimer(true, 5, true)).toBe(false);
+  });
+
+  test('an unheld index does run the autoplay timer while playing', () => {
+    expect(shouldArmAutoplayTimer(true, 5, false)).toBe(true);
+    expect(shouldArmAutoplayTimer(false, 5, false)).toBe(false);
+    expect(shouldArmAutoplayTimer(true, 0, false)).toBe(false);
   });
 });
 

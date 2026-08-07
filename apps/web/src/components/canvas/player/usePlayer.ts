@@ -1,7 +1,7 @@
 // US-107 — headless playback state for the scenario player (no UI).
 // FS-01 — Screen steps can hold autoplay until the interaction film completes.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { PlayerStep } from './steps.ts';
 
 export const PLAYER_SPEEDS_SEC = [2, 2.5, 3] as const;
@@ -66,6 +66,30 @@ export function advancePlayerPlayback(
   return { index, stop: false };
 }
 
+/**
+ * Pure decision for a film-complete / auto-advance request.
+ * Duplicate calls with the same inputs are idempotent (same next index).
+ */
+export function planAutoAdvance(
+  playing: boolean,
+  currentIndex: number,
+  stepCount: number,
+  divergedIndex: number | null,
+): { applied: false } | { applied: true; index: number; stop: boolean } {
+  if (!playing) return { applied: false };
+  const { index, stop } = advancePlayerPlayback(currentIndex, stepCount, divergedIndex);
+  return { applied: true, index, stop };
+}
+
+/** Whether the dwell timer should arm for this tick. */
+export function shouldArmAutoplayTimer(
+  playing: boolean,
+  stepCount: number,
+  held: boolean,
+): boolean {
+  return playing && stepCount > 0 && !held;
+}
+
 export function usePlayer({
   steps,
   divergedIndex,
@@ -77,10 +101,6 @@ export function usePlayer({
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeedState] = useState<PlayerSpeed>(PLAYER_SPEEDS_SEC[0]);
-  const playingRef = useRef(playing);
-  playingRef.current = playing;
-  /** Dedupe film-complete + Strict-Mode double calls in the same turn. */
-  const autoAdvanceLockRef = useRef(false);
 
   const seek = useCallback(
     (nextIndex: number) => {
@@ -105,13 +125,13 @@ export function usePlayer({
   }, [lastIndex]);
 
   const togglePlay = useCallback(() => {
-    if (playingRef.current) {
+    if (playing) {
       setPlaying(false);
       return;
     }
     setIndex((i) => (i >= lastIndex ? 0 : i));
     setPlaying(true);
-  }, [lastIndex]);
+  }, [playing, lastIndex]);
 
   const setSpeed = useCallback((nextSpeed: PlayerSpeed) => {
     setSpeedState(nextSpeed);
@@ -120,42 +140,26 @@ export function usePlayer({
   const pause = useCallback(() => setPlaying(false), []);
 
   const requestAutoAdvance = useCallback(() => {
-    if (!playingRef.current) return;
-    // Nested setState(setIndex inside setPlaying) double-advanced under React
-    // Strict Mode (film complete skipped the following action/screen). Keep this
-    // updater-free of nested dispatches and ignore re-entrant calls in-turn.
-    if (autoAdvanceLockRef.current) return;
-    autoAdvanceLockRef.current = true;
-    queueMicrotask(() => {
-      autoAdvanceLockRef.current = false;
-    });
-
-    setIndex((current) => {
-      const { index: advanced, stop } = advancePlayerPlayback(current, stepCount, divergedIndex);
-      if (stop) {
-        queueMicrotask(() => setPlaying(false));
-      }
-      return advanced;
-    });
-  }, [stepCount, divergedIndex]);
+    const plan = planAutoAdvance(playing, index, stepCount, divergedIndex);
+    if (!plan.applied) return;
+    setIndex(plan.index);
+    if (plan.stop) setPlaying(false);
+  }, [playing, index, stepCount, divergedIndex]);
 
   const held = holdsAutoAdvance?.(index) ?? false;
+  const armTimer = shouldArmAutoplayTimer(playing, stepCount, held);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: index must reschedule the next autoplay tick after each advance
   useEffect(() => {
-    if (!playing || stepCount === 0) return;
-    if (held) return;
+    if (!armTimer) return;
 
     const timer = setTimeout(() => {
-      setIndex((current) => {
-        const { index: advanced, stop } = advancePlayerPlayback(current, stepCount, divergedIndex);
-        if (stop) setPlaying(false);
-        return advanced;
-      });
+      const { index: advanced, stop } = advancePlayerPlayback(index, stepCount, divergedIndex);
+      setIndex(advanced);
+      if (stop) setPlaying(false);
     }, speed * 1000);
 
     return () => clearTimeout(timer);
-  }, [playing, index, speed, stepCount, divergedIndex, held]);
+  }, [armTimer, index, speed, stepCount, divergedIndex]);
 
   return {
     index,

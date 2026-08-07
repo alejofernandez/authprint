@@ -53,6 +53,18 @@ function lerpPos(from: CursorPos, to: CursorPos, t: number): CursorPos {
   };
 }
 
+function tipFromMove(
+  from: CursorPos,
+  to: CursorPos | null,
+  targetId: string | null,
+  moveProgress: number | null,
+): CursorPos {
+  if (!to || !targetId) return from;
+  if (moveProgress === null) return to;
+  const t = easeInOutCubic(Math.min(1, Math.max(0, moveProgress)));
+  return lerpPos(from, to, t);
+}
+
 /** Painted size; paths use viewBox 0 0 512 512 from the authored cursor.svg. */
 const CURSOR_SIZE = 24;
 /** Tip of the NE-pointing arrowhead in the 512 viewBox. */
@@ -72,6 +84,9 @@ const CURSOR_INNER =
 /**
  * Floating pointer for the play-mode interaction film. Painted on the first
  * screen frame (center / carried tip); later lerps to `[data-film-target]`.
+ *
+ * Render is a pure function of props + `tip` state. Measurement and lerp live
+ * in layout effects that write `tip` — never read refs during render.
  */
 export function InteractionCursor({
   containerRef,
@@ -91,125 +106,118 @@ export function InteractionCursor({
   carryFromPrior: boolean;
   active: boolean;
 }) {
-  const [seedPos, setSeedPos] = useState<CursorPos | null>(null);
-  const [toPos, setToPos] = useState<CursorPos | null>(null);
-  const fromPosRef = useRef<CursorPos | null>(null);
-  const settledPosRef = useRef<CursorPos | null>(null);
-  const lastTargetRef = useRef<string | null>(null);
+  const [tip, setTip] = useState<CursorPos | null>(null);
   const [rippleKey, setRippleKey] = useState(0);
+  // Bookkeeping only — effects read/write these; render never does.
+  const fromRef = useRef<CursorPos | null>(null);
+  const settledRef = useRef<CursorPos | null>(null);
+  const toRef = useRef<CursorPos | null>(null);
+  const lastTargetRef = useRef<string | null>(null);
+  const seededRef = useRef(false);
   const wasClickingRef = useRef(false);
 
-  // Appear with the screen — never wait on a measured film target.
   useLayoutEffect(() => {
     if (!active) {
-      setSeedPos(null);
-      setToPos(null);
-      fromPosRef.current = null;
-      settledPosRef.current = null;
+      seededRef.current = false;
+      fromRef.current = null;
+      settledRef.current = null;
+      toRef.current = null;
       lastTargetRef.current = null;
-      return;
+      const clear = requestAnimationFrame(() => setTip(null));
+      return () => cancelAnimationFrame(clear);
     }
-    if (seedPos) return;
 
     let cancelled = false;
-    let frame = 0;
+    let retryFrame = 0;
+    let paintFrame = 0;
 
-    const trySeed = () => {
+    const publish = (next: CursorPos) => {
+      if (cancelled) return;
+      cancelAnimationFrame(paintFrame);
+      paintFrame = requestAnimationFrame(() => {
+        if (cancelled) return;
+        setTip(next);
+        const root = containerRef.current;
+        if (root) writeFilmCursorMemory(filmCursorToNorm(root, next));
+      });
+    };
+
+    const seedIfNeeded = (root: HTMLElement): CursorPos | null => {
+      if (fromRef.current) return fromRef.current;
+      if (root.offsetWidth < 1 || root.offsetHeight < 1) return null;
+      if (!seededRef.current) {
+        seededRef.current = true;
+        if (!carryFromPrior) clearFilmCursorMemory();
+      }
+      const seed = initialFromPos(root, carryFromPrior);
+      fromRef.current = seed;
+      settledRef.current = seed;
+      return seed;
+    };
+
+    const tick = () => {
       if (cancelled) return;
       const root = containerRef.current;
-      if (!root || root.offsetWidth < 1 || root.offsetHeight < 1) {
-        frame = requestAnimationFrame(trySeed);
+      if (!root) {
+        retryFrame = requestAnimationFrame(tick);
         return;
       }
-      if (!carryFromPrior) clearFilmCursorMemory();
-      const seed = initialFromPos(root, carryFromPrior);
-      fromPosRef.current = seed;
-      settledPosRef.current = seed;
-      setSeedPos(seed);
-    };
 
-    trySeed();
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(frame);
-    };
-  }, [active, carryFromPrior, containerRef, seedPos]);
-
-  // Resolve / retry the destination until the mockup mounts the film target.
-  useLayoutEffect(() => {
-    if (!active) return;
-    const root = containerRef.current;
-    if (!root) return;
-
-    if (!targetId) {
-      setToPos(null);
-      lastTargetRef.current = null;
-      return;
-    }
-
-    let cancelled = false;
-    let frame = 0;
-
-    const tryMeasure = () => {
-      if (cancelled) return;
-      const next = measureTarget(root, targetId);
-      if (!next) {
-        frame = requestAnimationFrame(tryMeasure);
+      const from = seedIfNeeded(root);
+      if (!from) {
+        retryFrame = requestAnimationFrame(tick);
         return;
       }
+
+      if (!targetId) {
+        toRef.current = null;
+        lastTargetRef.current = null;
+        publish(from);
+        return;
+      }
+
+      const measured = measureTarget(root, targetId);
+      if (!measured) {
+        publish(from);
+        retryFrame = requestAnimationFrame(tick);
+        return;
+      }
+
       if (lastTargetRef.current !== targetId) {
-        fromPosRef.current =
-          settledPosRef.current ?? seedPos ?? initialFromPos(root, carryFromPrior);
+        fromRef.current = settledRef.current ?? from;
         lastTargetRef.current = targetId;
       }
-      setToPos(next);
+      toRef.current = measured;
+
+      const origin = fromRef.current ?? from;
+      const next = tipFromMove(origin, measured, targetId, moveProgress);
+      if (moveProgress === null || moveProgress >= 1) {
+        settledRef.current = next;
+        fromRef.current = measured;
+      }
+      publish(next);
     };
 
-    tryMeasure();
+    tick();
     return () => {
       cancelled = true;
-      cancelAnimationFrame(frame);
+      cancelAnimationFrame(retryFrame);
+      cancelAnimationFrame(paintFrame);
     };
-  }, [active, containerRef, targetId, carryFromPrior, seedPos]);
+  }, [active, carryFromPrior, containerRef, targetId, moveProgress]);
 
   useLayoutEffect(() => {
     if (clicking && !wasClickingRef.current) {
-      setRippleKey((k) => k + 1);
+      const frame = requestAnimationFrame(() => setRippleKey((k) => k + 1));
+      wasClickingRef.current = clicking;
+      return () => cancelAnimationFrame(frame);
     }
     wasClickingRef.current = clicking;
   }, [clicking]);
 
-  const tip: CursorPos | null = (() => {
-    if (!active) return null;
-    const from = fromPosRef.current ?? seedPos;
-    if (!from) return null;
-    // No destination yet (intro dwell, or target not in the DOM): hold seed / carry.
-    if (!toPos || !targetId) return from;
-    // Fill / click / settle: sit on the measured target.
-    if (moveProgress === null) return toPos;
-    const t = easeInOutCubic(Math.min(1, Math.max(0, moveProgress)));
-    return lerpPos(from, toPos, t);
-  })();
-
-  useLayoutEffect(() => {
-    if (!tip) return;
-    if (moveProgress === null || moveProgress >= 1) {
-      settledPosRef.current = tip;
-      if (toPos && (moveProgress === null || moveProgress >= 1)) {
-        fromPosRef.current = toPos;
-      }
-    }
-  }, [tip, toPos, moveProgress]);
-
-  useLayoutEffect(() => {
-    const root = containerRef.current;
-    if (!root || !tip) return;
-    writeFilmCursorMemory(filmCursorToNorm(root, tip));
-  }, [containerRef, tip]);
-
   if (!active) return null;
 
-  // CSS center until layout seeds coords — still visible on the first paint.
+  // CSS center until the effect publishes coords — still visible on first paint.
   const style =
     tip !== null
       ? { left: tip.x - HOTSPOT_X, top: tip.y - HOTSPOT_Y }
