@@ -23,6 +23,7 @@ import {
   RecordModeResolveStage,
   RecordModeScreenStage,
 } from './RecordModeStage.tsx';
+import { ScreenPlayFilm } from './ScreenPlayFilm.tsx';
 import type { PlayerStageRecordProps, PlayerStageViewProps } from './stageRecordTypes.ts';
 import type { PlayerStep } from './steps.ts';
 import { screenErrorBannerCopyForStep } from './steps.ts';
@@ -48,6 +49,11 @@ type PlayerStageSharedProps = {
   immersive?: boolean;
   onRevealOnCanvas?: (nodeId: string) => void;
   revealLabel?: string;
+  /** FS-01 play-mode interaction film. */
+  playFilm?: {
+    playing: boolean;
+    onComplete: () => void;
+  } | null;
 };
 
 export type PlayerStageProps = PlayerStageSharedProps &
@@ -72,6 +78,7 @@ export function PlayerStage(props: PlayerStageProps) {
   } = props;
 
   const isRecord = props.mode === 'record';
+  const playFilm = !isRecord ? props.playFilm : null;
 
   const inner =
     isDiverged && divergence ? (
@@ -101,6 +108,7 @@ export function PlayerStage(props: PlayerStageProps) {
         backdropStep={backdropStep}
         backdropNode={backdropNode}
         immersive={immersive}
+        playFilm={playFilm}
       />
     );
 
@@ -258,6 +266,7 @@ function StageContent({
   backdropStep,
   backdropNode,
   immersive = false,
+  playFilm = null,
 }: {
   step: PlayerStep;
   node: Node;
@@ -269,6 +278,7 @@ function StageContent({
   backdropStep?: PlayerStep | null;
   backdropNode?: ScreenNode | null;
   immersive?: boolean;
+  playFilm?: PlayerStageSharedProps['playFilm'];
 }) {
   switch (step.nodeType) {
     case 'screen':
@@ -282,6 +292,7 @@ function StageContent({
           flow={flow}
           runTrace={runTrace}
           immersive={immersive}
+          playFilm={playFilm}
         />
       );
     case 'decision':
@@ -340,6 +351,7 @@ function ScreenStageFrame({
   flow,
   runTrace,
   immersive = false,
+  playFilm = null,
 }: {
   step: PlayerStep;
   node: ScreenNode;
@@ -349,6 +361,7 @@ function ScreenStageFrame({
   flow?: Flow;
   runTrace?: ScenarioRun['trace'];
   immersive?: boolean;
+  playFilm?: PlayerStageSharedProps['playFilm'];
 }) {
   const screenTheme = resolveScreenTheme(flowTheme, editorTheme);
   // step.errorBannerCopy is the fully resolved chain from derivePlayerSteps,
@@ -359,22 +372,38 @@ function ScreenStageFrame({
     step.errorBannerCopy ??
     (flow && runTrace ? screenErrorBannerCopyForStep(flow, runTrace, step.index) : null);
   const groups = flow ? screenActionGroups(flow, node.id) : { secondary: [], social: [] };
+  const useFilm = Boolean(playFilm && step.exitActionId);
   return (
     <div
       className={`${screenTheme === 'dark' ? 'flow-theme-dark ' : ''}origin-center`}
       style={immersive ? undefined : { transform: `scale(${STAGE_PRESENTATION_SCALE})` }}
     >
       <div className="rounded-xl border border-border-default bg-bg-panel shadow-sm">
-        <ScreenMockup
-          node={node}
-          branding={branding}
-          errorBannerCopy={errorBannerCopy}
-          stageLayout="player"
-          highlightedAction={step.exitActionId}
-          highlightedActionLabel={step.exitTriggerLabel}
-          secondaryActions={groups.secondary}
-          socialActions={groups.social}
-        />
+        {useFilm && playFilm ? (
+          <ScreenPlayFilm
+            key={`${step.index}:${step.exitActionId ?? ''}`}
+            node={node}
+            branding={branding}
+            errorBannerCopy={errorBannerCopy}
+            highlightedAction={step.exitActionId}
+            highlightedActionLabel={step.exitTriggerLabel}
+            secondaryActions={groups.secondary}
+            socialActions={groups.social}
+            playing={playFilm.playing}
+            onFilmComplete={playFilm.onComplete}
+          />
+        ) : (
+          <ScreenMockup
+            node={node}
+            branding={branding}
+            errorBannerCopy={errorBannerCopy}
+            stageLayout="player"
+            highlightedAction={step.exitActionId}
+            highlightedActionLabel={step.exitTriggerLabel}
+            secondaryActions={groups.secondary}
+            socialActions={groups.social}
+          />
+        )}
       </div>
     </div>
   );

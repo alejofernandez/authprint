@@ -137,6 +137,17 @@ export function usePlayerMode(persist?: PlayerModePersist): PlayerModeValue {
   const player = usePlayer({
     steps,
     divergedIndex,
+    holdsAutoAdvance: (i) => {
+      if (shellMode !== 'play') return false;
+      if (
+        typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      ) {
+        return false;
+      }
+      const step = steps[i];
+      return Boolean(step && step.nodeType === 'screen' && step.exitActionId);
+    },
   });
 
   const { seek, pause } = player;

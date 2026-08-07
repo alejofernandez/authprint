@@ -1,4 +1,5 @@
 // US-107 — headless playback state for the scenario player (no UI).
+// FS-01 — Screen steps can hold autoplay until the interaction film completes.
 
 import { useCallback, useEffect, useState } from 'react';
 import type { PlayerStep } from './steps.ts';
@@ -9,6 +10,11 @@ export type PlayerSpeed = (typeof PLAYER_SPEEDS_SEC)[number];
 export type UsePlayerOptions = {
   steps: PlayerStep[];
   divergedIndex: number | null;
+  /**
+   * When true for the current index, the autoplay timer does not run; the
+   * interaction film (or caller) must call `requestAutoAdvance` instead.
+   */
+  holdsAutoAdvance?: (index: number) => boolean;
 };
 
 export type UsePlayerResult = {
@@ -25,6 +31,11 @@ export type UsePlayerResult = {
   togglePlay: () => void;
   pause: () => void;
   setSpeed: (speed: PlayerSpeed) => void;
+  /**
+   * Advance while staying in play mode (used when a Screen film finishes).
+   * No-op when not playing.
+   */
+  requestAutoAdvance: () => void;
 };
 
 export function clampPlayerIndex(index: number, stepCount: number): number {
@@ -55,7 +66,11 @@ export function advancePlayerPlayback(
   return { index, stop: false };
 }
 
-export function usePlayer({ steps, divergedIndex }: UsePlayerOptions): UsePlayerResult {
+export function usePlayer({
+  steps,
+  divergedIndex,
+  holdsAutoAdvance,
+}: UsePlayerOptions): UsePlayerResult {
   const stepCount = steps.length;
   const lastIndex = Math.max(stepCount - 1, 0);
 
@@ -99,9 +114,27 @@ export function usePlayer({ steps, divergedIndex }: UsePlayerOptions): UsePlayer
 
   const pause = useCallback(() => setPlaying(false), []);
 
+  const requestAutoAdvance = useCallback(() => {
+    setPlaying((isPlaying) => {
+      if (!isPlaying) return false;
+      setIndex((current) => {
+        const { index: advanced, stop } = advancePlayerPlayback(current, stepCount, divergedIndex);
+        if (stop) {
+          // Stop after this advance lands.
+          queueMicrotask(() => setPlaying(false));
+        }
+        return advanced;
+      });
+      return true;
+    });
+  }, [stepCount, divergedIndex]);
+
+  const held = holdsAutoAdvance?.(index) ?? false;
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: index must reschedule the next autoplay tick after each advance
   useEffect(() => {
     if (!playing || stepCount === 0) return;
+    if (held) return;
 
     const timer = setTimeout(() => {
       setIndex((current) => {
@@ -112,7 +145,7 @@ export function usePlayer({ steps, divergedIndex }: UsePlayerOptions): UsePlayer
     }, speed * 1000);
 
     return () => clearTimeout(timer);
-  }, [playing, index, speed, stepCount, divergedIndex]);
+  }, [playing, index, speed, stepCount, divergedIndex, held]);
 
   return {
     index,
@@ -127,5 +160,6 @@ export function usePlayer({ steps, divergedIndex }: UsePlayerOptions): UsePlayer
     togglePlay,
     pause,
     setSpeed,
+    requestAutoAdvance,
   };
 }

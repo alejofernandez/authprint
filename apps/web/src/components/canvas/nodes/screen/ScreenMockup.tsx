@@ -14,6 +14,7 @@ import { PlayerScreenCard } from './PlayerScreenCard.tsx';
 import {
   ActionHighlightShell,
   PlayerActionCallout,
+  resolveScreenActionHighlightTarget,
   useScreenActionHighlight,
 } from './screenActionHighlight.tsx';
 import { humanize, screenCta } from './screenCopy.ts';
@@ -58,13 +59,23 @@ function Monogram({ primaryColor }: { primaryColor: string }) {
   );
 }
 
-function TextInput({ masked, showToggle }: { masked: boolean; showToggle?: boolean }) {
+function TextInput({
+  masked,
+  showToggle,
+  value,
+}: {
+  masked: boolean;
+  showToggle?: boolean;
+  value?: string;
+}) {
   return (
     <div className="h-6 rounded-md border border-zinc-200 flow-dark:border-zinc-700 bg-zinc-50 flow-dark:bg-zinc-800/60 px-2 flex items-center justify-between gap-1">
       {masked ? (
         <span className="text-[10px] tracking-[0.2em] text-zinc-400 flow-dark:text-zinc-500">
-          ••••••••
+          {value === undefined ? '••••••••' : value}
         </span>
+      ) : value && value.length > 0 ? (
+        <span className="truncate text-[10px] text-zinc-700 flow-dark:text-zinc-200">{value}</span>
       ) : (
         <span />
       )}
@@ -73,15 +84,18 @@ function TextInput({ masked, showToggle }: { masked: boolean; showToggle?: boole
   );
 }
 
-function OtpInput() {
+function OtpInput({ value }: { value?: string }) {
+  const digits = value ?? '';
   return (
     <div className="flex gap-1">
       {Array.from({ length: 6 }, (_, i) => (
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static mockup boxes
           key={i}
-          className="w-5 h-6 rounded-md border border-zinc-200 flow-dark:border-zinc-700 bg-zinc-50 flow-dark:bg-zinc-800/60"
-        />
+          className="flex w-5 h-6 items-center justify-center rounded-md border border-zinc-200 flow-dark:border-zinc-700 bg-zinc-50 flow-dark:bg-zinc-800/60 text-[10px] font-mono text-zinc-700 flow-dark:text-zinc-200"
+        >
+          {digits[i] ?? ''}
+        </div>
       ))}
     </div>
   );
@@ -109,25 +123,43 @@ function FieldRow({
   traits,
   highlightPasskey = false,
   highlightLabel,
+  displayValue,
 }: {
   field: Field;
   traits: ReadonlySet<TraitId>;
   highlightPasskey?: boolean;
   highlightLabel?: string | null;
+  displayValue?: string | boolean;
 }) {
   if (field.type === 'checkbox') {
+    const checked = displayValue === true;
     // A static mock of a checkbox row — not a real control, so a plain div
     // (not <label>) is correct here.
     return (
-      <div className="flex items-center gap-1.5 text-[10px] text-zinc-600 flow-dark:text-zinc-300">
-        <span className="w-3 h-3 rounded-[3px] border border-zinc-300 flow-dark:border-zinc-600 bg-zinc-50 flow-dark:bg-zinc-800/60" />
+      <div
+        className="flex items-center gap-1.5 text-[10px] text-zinc-600 flow-dark:text-zinc-300"
+        data-film-target={`field:${field.name}`}
+      >
+        <span
+          className={`flex h-3 w-3 items-center justify-center rounded-[3px] border border-zinc-300 flow-dark:border-zinc-600 ${
+            checked
+              ? 'bg-accent-primary-solid text-[8px] text-white'
+              : 'bg-zinc-50 flow-dark:bg-zinc-800/60'
+          }`}
+        >
+          {checked ? '✓' : null}
+        </span>
         {humanize(field.name)}
       </div>
     );
   }
   if (field.type === 'passkey') {
     return (
-      <ActionHighlightShell active={highlightPasskey} label={highlightLabel ?? undefined}>
+      <ActionHighlightShell
+        active={highlightPasskey}
+        label={highlightLabel ?? undefined}
+        filmTarget="action:passkey-field"
+      >
         <PasskeyButton />
       </ActionHighlightShell>
     );
@@ -137,13 +169,18 @@ function FieldRow({
   const showToggle = masked && traits.has('show-password-toggle');
   const showStrengthMeter =
     STRENGTH_METER_TYPES.has(field.type) && traits.has('password-strength-meter');
+  const textValue = typeof displayValue === 'string' ? displayValue : undefined;
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1" data-film-target={`field:${field.name}`}>
       <div className="text-[9px] font-medium text-zinc-500 flow-dark:text-zinc-400">
         {humanize(field.name)}
       </div>
-      {field.type === 'otp' ? <OtpInput /> : <TextInput masked={masked} showToggle={showToggle} />}
+      {field.type === 'otp' ? (
+        <OtpInput value={textValue} />
+      ) : (
+        <TextInput masked={masked} showToggle={showToggle} value={textValue} />
+      )}
       {showStrengthMeter ? <PasswordStrengthMeter /> : null}
     </div>
   );
@@ -174,6 +211,7 @@ export function ScreenMockup({
   highlightedActionLabel = null,
   secondaryActions = [],
   socialActions = [],
+  filmFieldValues,
 }: {
   node: ScreenNode;
   branding?: Branding;
@@ -187,6 +225,8 @@ export function ScreenMockup({
   /** `social-*` actions (UF-051), graph order. These draw the provider cluster,
    *  which is why they are separate from `secondaryActions` rather than links. */
   socialActions?: readonly string[];
+  /** Play-mode interaction film: visible field contents (FS-01). */
+  filmFieldValues?: ReadonlyMap<string, string | boolean>;
 }) {
   const cta = screenCta(node.kind);
   const traitSet = new Set(node.traits);
@@ -268,6 +308,7 @@ export function ScreenMockup({
             traits={traitSet}
             highlightPasskey={highlight.isPasskeyFieldHighlighted(f)}
             highlightLabel={highlight.label}
+            displayValue={filmFieldValues?.get(f.name)}
           />
         ))}
       </div>
@@ -279,6 +320,7 @@ export function ScreenMockup({
         <ActionHighlightShell
           active={highlight.target === 'primary-cta'}
           label={highlight.label ?? undefined}
+          filmTarget="action:primary-cta"
         >
           <div
             className="flex h-7 items-center justify-center rounded-md font-medium text-[11px] text-white"
@@ -290,15 +332,24 @@ export function ScreenMockup({
       ) : null}
       {displayedSecondaryActions.length > 0 ? (
         <div className="space-y-2">
-          {displayedSecondaryActions.map((action) => (
-            <ActionHighlightShell
-              key={action}
-              active={highlightedAction === action}
-              label={highlight.label ?? undefined}
-            >
-              <MockLink>{humanize(action)}</MockLink>
-            </ActionHighlightShell>
-          ))}
+          {displayedSecondaryActions.map((action) => {
+            const target = resolveScreenActionHighlightTarget(
+              action,
+              node.traits,
+              node.fields,
+              node.kind,
+            );
+            return (
+              <ActionHighlightShell
+                key={action}
+                active={highlightedAction === action}
+                label={highlight.label ?? undefined}
+                filmTarget={`action:${target === 'social-action' ? `social:${action}` : target}`}
+              >
+                <MockLink>{humanize(action)}</MockLink>
+              </ActionHighlightShell>
+            );
+          })}
         </div>
       ) : null}
       {socialActions.length > 0 ? (
@@ -308,6 +359,7 @@ export function ScreenMockup({
               key={action}
               active={highlightedAction === action}
               label={highlight.label ?? undefined}
+              filmTarget={`action:social:${action}`}
             >
               <SocialProviderButton
                 chrome={socialChromeForProvider(socialProviderForAction(action))}
@@ -323,6 +375,7 @@ export function ScreenMockup({
               key={trait}
               active={highlight.isTraitHighlighted(trait)}
               label={highlight.label ?? undefined}
+              filmTarget={`action:${trait}`}
             >
               <TraitChromeBlock trait={trait} />
             </ActionHighlightShell>
@@ -330,7 +383,11 @@ export function ScreenMockup({
         </div>
       ) : null}
       {showActionCallout ? (
-        <PlayerActionCallout action={highlightedAction ?? ''} exitLabel={highlightedActionLabel} />
+        <PlayerActionCallout
+          action={highlightedAction ?? ''}
+          exitLabel={highlightedActionLabel}
+          filmTarget={`action:${highlight.target ?? 'callout'}`}
+        />
       ) : null}
     </>
   );

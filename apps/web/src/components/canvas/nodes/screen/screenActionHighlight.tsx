@@ -84,11 +84,14 @@ export function ActionHighlightShell({
   label,
   children,
   className,
+  filmTarget,
 }: {
   active: boolean;
   label?: string;
   children: ReactNode;
   className?: string;
+  /** Play-mode interaction film cursor target (FS-01). */
+  filmTarget?: string;
 }) {
   return (
     <div
@@ -96,6 +99,7 @@ export function ActionHighlightShell({
         `${className ?? ''} ${active ? PLAYER_ACTION_HIGHLIGHT_CLASS : ''}`.trim() || undefined
       }
       data-action-highlight={active || undefined}
+      data-film-target={filmTarget}
       title={active ? label : undefined}
     >
       {children}
@@ -106,15 +110,18 @@ export function ActionHighlightShell({
 export function PlayerActionCallout({
   action,
   exitLabel,
+  filmTarget = 'action:callout',
 }: {
   action: string;
   exitLabel?: string | null;
+  filmTarget?: string;
 }) {
   const label = actionHighlightLabel(action, exitLabel);
   return (
     <div
       className={`${PLAYER_ACTION_HIGHLIGHT_CLASS} px-2.5 py-1.5 text-center text-[10px] font-medium text-accent-primary-fg-emphasis flow-dark:text-accent-primary-fg-on-bg`}
       data-action-highlight
+      data-film-target={filmTarget}
       title={`Next step: ${label}`}
     >
       → {label}

@@ -68,6 +68,7 @@ export function PlayerMode({
     prev,
     togglePlay,
     pause,
+    requestAutoAdvance,
   } = player;
 
   // Focus resets when the scenario changes and can't outlive a shrunken strip
@@ -182,6 +183,8 @@ export function PlayerMode({
             setContextOpen={setContextOpen}
             editorTheme={resolvedEditorTheme}
             onRevealOnCanvas={onRevealOnCanvas}
+            playing={playing}
+            onFilmComplete={requestAutoAdvance}
           />
         ) : null}
 
@@ -547,6 +550,8 @@ function PlayChrome({
   setContextOpen,
   editorTheme,
   onRevealOnCanvas,
+  playing,
+  onFilmComplete,
 }: {
   session: NonNullable<ReturnType<typeof usePlayerModeContext>['session']>;
   steps: ReturnType<typeof usePlayerModeContext>['steps'];
@@ -556,6 +561,8 @@ function PlayChrome({
   setContextOpen: (open: boolean | ((v: boolean) => boolean)) => void;
   editorTheme: 'light' | 'dark';
   onRevealOnCanvas?: (nodeId: string) => void;
+  playing: boolean;
+  onFilmComplete: () => void;
 }) {
   const t = useTranslations('player');
   const { run, flow, initialContext } = session;
@@ -647,6 +654,11 @@ function PlayChrome({
         backdropNode={backdrop?.node ?? null}
         onRevealOnCanvas={onRevealOnCanvas}
         revealLabel={t('revealOnCanvas')}
+        playFilm={
+          activeStep.nodeType === 'screen' && activeStep.exitActionId
+            ? { playing, onComplete: onFilmComplete }
+            : null
+        }
       />
     </>
   );
