@@ -14,6 +14,8 @@ export type TransportLabels = {
   stepBack: string;
   stepForward: string;
   play: string;
+  /** Shown instead of play when the transport is parked on the last step. */
+  replay: string;
   pause: string;
   exit: string;
   scenarioPickerOpen: string;
@@ -266,7 +268,8 @@ export function PlayerTransportPill({
       return;
     }
     // US-134: play immediately — expand has its own control; no dblclick delay.
-    if (!(atEnd && !diverged && !playing)) onTogglePlay();
+    // At end, togglePlay restarts from step 0 (replay).
+    onTogglePlay();
   };
 
   const onCompactExpand = () => {
@@ -287,7 +290,7 @@ export function PlayerTransportPill({
       : { left: '50%', bottom: TRANSPORT_BOUNDS_INSET, transform: 'translateX(-50%)' };
 
   const gripLabel = compact ? labels.expand : labels.collapse;
-  const playLabel = playing ? labels.pause : labels.play;
+  const playLabel = playing ? labels.pause : atEnd ? labels.replay : labels.play;
 
   const pillTone = diverged
     ? 'border-signal-error-border bg-signal-error-bg/95 text-signal-error-label dark:border-signal-error-border-strong dark:bg-signal-error-bg-muted dark:text-signal-error-label'
@@ -313,7 +316,7 @@ export function PlayerTransportPill({
             title={playLabel}
             className={`flex items-center rounded-l-full px-3 py-1.5 text-sm font-medium ${
               dragging ? 'cursor-grabbing' : 'cursor-grab'
-            } ${atEnd && !diverged && !playing ? 'opacity-60' : ''}`}
+            }`}
             onClick={onCompactClick}
             onPointerDown={onCompactPointerDown}
             onPointerMove={onCompactPointerMove}
@@ -456,7 +459,7 @@ export function PlayerTransportPill({
               ⏸
             </ControlButton>
           ) : (
-            <ControlButton label={labels.play} onClick={onTogglePlay} disabled={atEnd && !diverged}>
+            <ControlButton label={playLabel} onClick={onTogglePlay}>
               ▶
             </ControlButton>
           )}

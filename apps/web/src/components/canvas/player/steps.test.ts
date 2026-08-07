@@ -274,6 +274,15 @@ describe('usePlayer — playback helpers', () => {
   test('advancePlayerPlayback stops at last step', () => {
     expect(advancePlayerPlayback(4, 5, null)).toEqual({ index: 4, stop: true });
   });
+
+  test('two advances from a screen land on the next screen, not the one after', () => {
+    // Login-with-password shape: screen → action → screen → screen → …
+    // A double film-complete used to skip the action (and later the password screen).
+    const afterFirstFilm = advancePlayerPlayback(1, 7, null);
+    expect(afterFirstFilm).toEqual({ index: 2, stop: false });
+    const afterSecondFilm = advancePlayerPlayback(3, 7, null);
+    expect(afterSecondFilm).toEqual({ index: 4, stop: false });
+  });
 });
 
 describe('scenario-step errorMessage reaches the banner copy (UF-034)', () => {

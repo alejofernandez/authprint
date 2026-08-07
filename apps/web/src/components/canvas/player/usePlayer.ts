@@ -1,7 +1,7 @@
 // US-107 — headless playback state for the scenario player (no UI).
 // FS-01 — Screen steps can hold autoplay until the interaction film completes.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PlayerStep } from './steps.ts';
 
 export const PLAYER_SPEEDS_SEC = [2, 2.5, 3] as const;
@@ -77,6 +77,10 @@ export function usePlayer({
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeedState] = useState<PlayerSpeed>(PLAYER_SPEEDS_SEC[0]);
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
+  /** Dedupe film-complete + Strict-Mode double calls in the same turn. */
+  const autoAdvanceLockRef = useRef(false);
 
   const seek = useCallback(
     (nextIndex: number) => {
@@ -101,11 +105,12 @@ export function usePlayer({
   }, [lastIndex]);
 
   const togglePlay = useCallback(() => {
-    setPlaying((wasPlaying) => {
-      if (wasPlaying) return false;
-      setIndex((i) => (i >= lastIndex ? 0 : i));
-      return true;
-    });
+    if (playingRef.current) {
+      setPlaying(false);
+      return;
+    }
+    setIndex((i) => (i >= lastIndex ? 0 : i));
+    setPlaying(true);
   }, [lastIndex]);
 
   const setSpeed = useCallback((nextSpeed: PlayerSpeed) => {
@@ -115,17 +120,22 @@ export function usePlayer({
   const pause = useCallback(() => setPlaying(false), []);
 
   const requestAutoAdvance = useCallback(() => {
-    setPlaying((isPlaying) => {
-      if (!isPlaying) return false;
-      setIndex((current) => {
-        const { index: advanced, stop } = advancePlayerPlayback(current, stepCount, divergedIndex);
-        if (stop) {
-          // Stop after this advance lands.
-          queueMicrotask(() => setPlaying(false));
-        }
-        return advanced;
-      });
-      return true;
+    if (!playingRef.current) return;
+    // Nested setState(setIndex inside setPlaying) double-advanced under React
+    // Strict Mode (film complete skipped the following action/screen). Keep this
+    // updater-free of nested dispatches and ignore re-entrant calls in-turn.
+    if (autoAdvanceLockRef.current) return;
+    autoAdvanceLockRef.current = true;
+    queueMicrotask(() => {
+      autoAdvanceLockRef.current = false;
+    });
+
+    setIndex((current) => {
+      const { index: advanced, stop } = advancePlayerPlayback(current, stepCount, divergedIndex);
+      if (stop) {
+        queueMicrotask(() => setPlaying(false));
+      }
+      return advanced;
     });
   }, [stepCount, divergedIndex]);
 

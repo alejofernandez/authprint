@@ -310,3 +310,24 @@ html .react-flow.dark {
   min-width: 24px;
   min-height: 24px;
 }
+
+/* FS-01: video-editor style tap ripple on the play-mode interaction film. */
+@keyframes film-tap-ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(0.35);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.4);
+    opacity: 0;
+  }
+}
+.film-tap-ripple {
+  animation: film-tap-ripple 450ms ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .film-tap-ripple {
+    animation: none;
+    opacity: 0;
+  }
+}

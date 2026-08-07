@@ -53,6 +53,8 @@ type PlayerStageSharedProps = {
   playFilm?: {
     playing: boolean;
     onComplete: () => void;
+    /** Resume the hand from the prior screen film (false on the first step). */
+    carryCursorFromPrior?: boolean;
   } | null;
 };
 
@@ -391,6 +393,7 @@ function ScreenStageFrame({
             socialActions={groups.social}
             playing={playFilm.playing}
             onFilmComplete={playFilm.onComplete}
+            carryCursorFromPrior={Boolean(playFilm.carryCursorFromPrior)}
           />
         ) : (
           <ScreenMockup

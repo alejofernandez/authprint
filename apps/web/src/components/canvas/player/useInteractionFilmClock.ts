@@ -31,12 +31,15 @@ export function useInteractionFilmClock(
   useEffect(() => {
     if (!ops || ops.length === 0 || reduced) return;
     if (!playing) return;
+    if (completedRef.current) return;
 
     let frame = 0;
     let last = performance.now();
+    let cancelled = false;
 
     const tick = (now: number) => {
-      const delta = now - last;
+      if (cancelled) return;
+      const delta = Math.min(64, Math.max(0, now - last));
       last = now;
       const next = Math.min(totalMs, elapsedRef.current + delta);
       elapsedRef.current = next;
@@ -44,7 +47,10 @@ export function useInteractionFilmClock(
       if (next >= totalMs) {
         if (!completedRef.current) {
           completedRef.current = true;
-          onCompleteRef.current?.();
+          // Defer so we never nest advance inside the rAF/React render turn.
+          queueMicrotask(() => {
+            if (!cancelled) onCompleteRef.current?.();
+          });
         }
         return;
       }
@@ -52,7 +58,10 @@ export function useInteractionFilmClock(
     };
 
     frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
   }, [ops, playing, totalMs, reduced]);
 
   if (!ops || ops.length === 0) return null;

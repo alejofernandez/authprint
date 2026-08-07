@@ -21,6 +21,7 @@ export function ScreenPlayFilm({
   socialActions,
   playing,
   onFilmComplete,
+  carryCursorFromPrior = false,
 }: {
   node: ScreenNode;
   branding?: Branding;
@@ -31,6 +32,8 @@ export function ScreenPlayFilm({
   socialActions: readonly string[];
   playing: boolean;
   onFilmComplete?: () => void;
+  /** Later screens resume the hand from the prior film's last fingertip. */
+  carryCursorFromPrior?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const plan = useMemo(
@@ -73,6 +76,8 @@ export function ScreenPlayFilm({
         containerRef={containerRef}
         targetId={clock?.cursorTargetId ?? null}
         clicking={Boolean(clock?.clickingTargetId)}
+        moveProgress={clock?.moveProgress ?? null}
+        carryFromPrior={carryCursorFromPrior}
       />
     </div>
   );

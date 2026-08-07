@@ -213,6 +213,7 @@ export function PlayerMode({
               stepBack: t('transport.stepBack'),
               stepForward: t('transport.stepForward'),
               play: t('transport.play'),
+              replay: t('transport.replay'),
               pause: t('transport.pause'),
               exit: t('transport.exit'),
               scenarioPickerOpen: t('scenarioPicker.open'),
@@ -656,7 +657,17 @@ function PlayChrome({
         revealLabel={t('revealOnCanvas')}
         playFilm={
           activeStep.nodeType === 'screen' && activeStep.exitActionId
-            ? { playing, onComplete: onFilmComplete }
+            ? {
+                playing,
+                onComplete: onFilmComplete,
+                // First screen film of the run always opens from center; later
+                // ones resume where the prior film left the tip. (index > 0 is
+                // wrong when step 0 is entry/decision — the first screen is
+                // often index 1+.)
+                carryCursorFromPrior: steps
+                  .slice(0, index)
+                  .some((s) => s.nodeType === 'screen' && s.exitActionId),
+              }
             : null
         }
       />

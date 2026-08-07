@@ -6,10 +6,14 @@ import {
 import { screenInteractionSideTier } from '../screenInteractionSides.ts';
 
 /** Per-operation timings for the play-mode interaction film (FS-01). */
-export const FILM_MOVE_MS = 400;
+export const FILM_MOVE_MS = 750;
 export const FILM_FILL_MS = 500;
-export const FILM_CLICK_MS = 350;
+export const FILM_CLICK_MS = 450;
 export const FILM_SETTLE_MS = 250;
+/** Alternate exits are a single move+click — slightly slower so they don't flash by. */
+export const FILM_ALT_MOVE_MS = 1100;
+export const FILM_ALT_CLICK_MS = 550;
+export const FILM_ALT_SETTLE_MS = 350;
 
 const MASKED_TYPES = new Set(['password', 'new-password', 'confirm-password']);
 
@@ -73,6 +77,10 @@ export function filmTargetIdForHighlight(
 ): string {
   if (target === 'social-action') return `action:social:${action}`;
   if (target === 'passkey-field') return `action:passkey-field`;
+  // Flexible/retreat exits often share the same highlight *kind* (`callout` /
+  // `retreat`) while rendering as distinct secondary links. Include the action
+  // id so the film cursor lands on the highlighted link, not the first one.
+  if (target === 'callout' || target === 'retreat') return `action:secondary:${action}`;
   return `action:${target}`;
 }
 
@@ -115,9 +123,12 @@ export function planInteractionFilm(
     }
   }
 
-  ops.push({ kind: 'move', targetId: actionTargetId, durationMs: FILM_MOVE_MS });
-  ops.push({ kind: 'click', targetId: actionTargetId, durationMs: FILM_CLICK_MS });
-  ops.push({ kind: 'settle', durationMs: FILM_SETTLE_MS });
+  const moveMs = fillsFields ? FILM_MOVE_MS : FILM_ALT_MOVE_MS;
+  const clickMs = fillsFields ? FILM_CLICK_MS : FILM_ALT_CLICK_MS;
+  const settleMs = fillsFields ? FILM_SETTLE_MS : FILM_ALT_SETTLE_MS;
+  ops.push({ kind: 'move', targetId: actionTargetId, durationMs: moveMs });
+  ops.push({ kind: 'click', targetId: actionTargetId, durationMs: clickMs });
+  ops.push({ kind: 'settle', durationMs: settleMs });
 
   const totalMs = ops.reduce((sum, op) => sum + op.durationMs, 0);
   return { ops, totalMs, fillsFields, actionTargetId, fieldValues };
@@ -133,6 +144,8 @@ export type FilmClockState = {
   filling: { fieldName: string; progress: number } | null;
   cursorTargetId: string | null;
   clickingTargetId: string | null;
+  /** 0..1 while a move op is in progress; null otherwise (sit on target). */
+  moveProgress: number | null;
 };
 
 export function filmClockAt(ops: readonly FilmOp[], elapsedMs: number): FilmClockState {
@@ -145,6 +158,7 @@ export function filmClockAt(ops: readonly FilmOp[], elapsedMs: number): FilmCloc
       filling: null,
       cursorTargetId: null,
       clickingTargetId: null,
+      moveProgress: null,
     };
   }
 
@@ -153,12 +167,17 @@ export function filmClockAt(ops: readonly FilmOp[], elapsedMs: number): FilmCloc
   let remaining = Math.max(0, elapsedMs);
 
   for (let i = 0; i < ops.length; i++) {
-    const op = ops[i]!;
+    const op = ops[i];
+    if (!op) break;
     if (remaining < op.durationMs) {
       const opProgress = op.durationMs === 0 ? 1 : remaining / op.durationMs;
       let filling: FilmClockState['filling'] = null;
       let clickingTargetId: string | null = null;
-      if (op.kind === 'move') cursorTargetId = op.targetId;
+      let moveProgress: number | null = null;
+      if (op.kind === 'move') {
+        cursorTargetId = op.targetId;
+        moveProgress = opProgress;
+      }
       if (op.kind === 'fill') {
         filling = { fieldName: op.fieldName, progress: opProgress };
         cursorTargetId = filmTargetIdForField(op.fieldName);
@@ -176,6 +195,7 @@ export function filmClockAt(ops: readonly FilmOp[], elapsedMs: number): FilmCloc
         filling,
         cursorTargetId,
         clickingTargetId,
+        moveProgress,
       };
     }
     remaining -= op.durationMs;
@@ -191,6 +211,7 @@ export function filmClockAt(ops: readonly FilmOp[], elapsedMs: number): FilmCloc
     filling: null,
     cursorTargetId,
     clickingTargetId: null,
+    moveProgress: null,
   };
 }
 

@@ -10,11 +10,11 @@
 
 import type { Branding, Field, ScreenNode, TraitId } from '@authprint/dsl';
 import { actionForTrait, socialProviderForAction, traitForAction } from '@authprint/dsl';
+import { actionFilmTargetId } from '../../player/interactionFilm.ts';
 import { PlayerScreenCard } from './PlayerScreenCard.tsx';
 import {
   ActionHighlightShell,
   PlayerActionCallout,
-  resolveScreenActionHighlightTarget,
   useScreenActionHighlight,
 } from './screenActionHighlight.tsx';
 import { humanize, screenCta } from './screenCopy.ts';
@@ -332,24 +332,16 @@ export function ScreenMockup({
       ) : null}
       {displayedSecondaryActions.length > 0 ? (
         <div className="space-y-2">
-          {displayedSecondaryActions.map((action) => {
-            const target = resolveScreenActionHighlightTarget(
-              action,
-              node.traits,
-              node.fields,
-              node.kind,
-            );
-            return (
-              <ActionHighlightShell
-                key={action}
-                active={highlightedAction === action}
-                label={highlight.label ?? undefined}
-                filmTarget={`action:${target === 'social-action' ? `social:${action}` : target}`}
-              >
-                <MockLink>{humanize(action)}</MockLink>
-              </ActionHighlightShell>
-            );
-          })}
+          {displayedSecondaryActions.map((action) => (
+            <ActionHighlightShell
+              key={action}
+              active={highlightedAction === action}
+              label={highlight.label ?? undefined}
+              filmTarget={actionFilmTargetId(node, action)}
+            >
+              <MockLink>{humanize(action)}</MockLink>
+            </ActionHighlightShell>
+          ))}
         </div>
       ) : null}
       {socialActions.length > 0 ? (
@@ -386,7 +378,11 @@ export function ScreenMockup({
         <PlayerActionCallout
           action={highlightedAction ?? ''}
           exitLabel={highlightedActionLabel}
-          filmTarget={`action:${highlight.target ?? 'callout'}`}
+          filmTarget={
+            highlightedAction
+              ? actionFilmTargetId(node, highlightedAction)
+              : `action:${highlight.target ?? 'callout'}`
+          }
         />
       ) : null}
     </>
