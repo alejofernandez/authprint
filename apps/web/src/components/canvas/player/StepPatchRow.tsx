@@ -2,9 +2,29 @@
 
 import type { ContextScalarValue, ContextSlot } from '@authprint/dsl';
 import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
 
 const rowSelectCls =
   'w-full select-text rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-fg-default outline-none focus:border-accent-primary-border focus-visible:ring-2 focus-visible:ring-accent-primary-border focus-visible:ring-offset-1 dark:focus-visible:ring-offset-bg-panel';
+
+/**
+ * Label above, control below, control full width (UF-063).
+ *
+ * These rows were label-left / control-right, which cannot line up: a slot name
+ * is a dotted path of unpredictable length, so every control started at a
+ * different x and took a different width. Sizing the label column instead would
+ * mean truncating identifiers, and the tail of `user_metadata.logins_count` is
+ * the part that carries the meaning. Stacking is also what the `errorMessage`
+ * field directly above these rows in the same panel already does.
+ */
+function PatchField({ slot, children }: { slot: string; children: ReactNode }) {
+  return (
+    <label className="block" htmlFor={`set-${slot}`}>
+      <span className="mb-1 block break-all font-mono text-fg-muted text-xs">{slot}</span>
+      {children}
+    </label>
+  );
+}
 
 /** One typed `set:` patch input for a declared context slot. */
 export function StepPatchRow({
@@ -24,11 +44,10 @@ export function StepPatchRow({
   if (declaration.type === 'boolean') {
     const selected = value === true ? 'true' : value === false ? 'false' : noneValue;
     return (
-      <label className="flex items-center justify-between gap-2" htmlFor={`set-${slot}`}>
-        <span className="font-mono text-xs text-fg-muted">{slot}</span>
+      <PatchField slot={slot}>
         <select
           id={`set-${slot}`}
-          className={`${rowSelectCls} w-auto min-w-[88px]`}
+          className={rowSelectCls}
           value={selected}
           onChange={(e) => {
             const v = e.target.value;
@@ -40,7 +59,7 @@ export function StepPatchRow({
           <option value="true">true</option>
           <option value="false">false</option>
         </select>
-      </label>
+      </PatchField>
     );
   }
 
@@ -48,11 +67,10 @@ export function StepPatchRow({
     const values = declaration.values ?? [];
     const selected = typeof value === 'string' && values.includes(value) ? value : noneValue;
     return (
-      <label className="flex items-center justify-between gap-2" htmlFor={`set-${slot}`}>
-        <span className="font-mono text-xs text-fg-muted">{slot}</span>
+      <PatchField slot={slot}>
         <select
           id={`set-${slot}`}
-          className={`${rowSelectCls} w-auto min-w-[88px]`}
+          className={rowSelectCls}
           value={selected}
           onChange={(e) => {
             const v = e.target.value;
@@ -66,19 +84,18 @@ export function StepPatchRow({
             </option>
           ))}
         </select>
-      </label>
+      </PatchField>
     );
   }
 
   if (declaration.type === 'number') {
     const display = value === undefined || value === null ? '' : String(value);
     return (
-      <label className="flex items-center justify-between gap-2" htmlFor={`set-${slot}`}>
-        <span className="font-mono text-xs text-fg-muted">{slot}</span>
+      <PatchField slot={slot}>
         <input
           id={`set-${slot}`}
           type="number"
-          className={`${rowSelectCls} w-auto min-w-[88px]`}
+          className={rowSelectCls}
           value={display}
           placeholder={t('none')}
           onChange={(e) => {
@@ -96,18 +113,17 @@ export function StepPatchRow({
             e.currentTarget.blur();
           }}
         />
-      </label>
+      </PatchField>
     );
   }
 
   const display = typeof value === 'string' ? value : '';
   return (
-    <label className="flex items-center justify-between gap-2" htmlFor={`set-${slot}`}>
-      <span className="font-mono text-xs text-fg-muted">{slot}</span>
+    <PatchField slot={slot}>
       <input
         id={`set-${slot}`}
         type="text"
-        className={`${rowSelectCls} w-auto min-w-[88px]`}
+        className={rowSelectCls}
         value={display}
         placeholder={t('none')}
         onChange={(e) => {
@@ -121,6 +137,6 @@ export function StepPatchRow({
           e.currentTarget.blur();
         }}
       />
-    </label>
+    </PatchField>
   );
 }

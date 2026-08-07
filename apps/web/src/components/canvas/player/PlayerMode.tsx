@@ -471,7 +471,10 @@ function EditChrome({
               <div className="relative">
                 <RecordModeEntryStage />
                 {Object.keys(flow.context).length > 0 ? (
-                  <div className="absolute top-1/2 left-full ml-4 w-[300px] -translate-y-1/2 space-y-2 rounded-lg border border-border-subtle bg-bg-panel/95 p-3 text-left shadow-sm dark:border-border-default">
+                  // UF-063: stacked labels double each row's height, so the
+                  // panel gains a bound rather than growing off the stage on a
+                  // flow with many declared slots.
+                  <div className="absolute top-1/2 left-full ml-4 max-h-[70vh] w-[300px] -translate-y-1/2 space-y-2 overflow-y-auto rounded-lg border border-border-subtle bg-bg-panel/95 p-3 text-left shadow-sm dark:border-border-default">
                     <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle">
                       {t('edit.initialContextTitle')}
                     </p>
