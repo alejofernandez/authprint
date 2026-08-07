@@ -23,6 +23,15 @@
   --fg-muted: #52525b; /* zinc-600 */
   --fg-subtle: #71717a; /* zinc-500 */
   --fg-secondary: #3f3f46; /* zinc-700 */
+
+  /* Note paper (UF-062). A deliberate, scoped exception to "warm is reserved
+     for state" (§7): this is a desaturated *paper* tone with its own token, not
+     a borrowed signal colour, and it carries no state meaning. State stays
+     saturated and lives on borders, text and icons. Never reuse
+     --signal-warning-* here, and never use these for anything but note paper. */
+  --note-surface: #fefce8; /* yellow-50 */
+  --note-border: #e7e0c0;
+  --note-fold: #f0ebd0;
   --fg-soft: #3f3f46; /* zinc-700 — pairs with lighter dark counterpart at call sites */
 
   /* Accent (indigo / violet family) */
@@ -100,6 +109,13 @@
   --fg-secondary: #d4d4d8; /* zinc-300 */
   --fg-soft: #e4e4e7; /* zinc-200 */
 
+  /* Note paper (UF-062). Dark mode drops the yellow entirely: a warm surface at
+     this luminance reads as a warning rather than as paper. A distinct neutral
+     does the same job of separating the note from panel and canvas chrome. */
+  --note-surface: #2b2b30; /* between bg-panel and bg-subtle, deliberately neither */
+  --note-border: #45454d;
+  --note-fold: #3a3a41;
+
   --accent-primary: #818cf8; /* indigo-400 */
   --accent-primary-solid: #818cf8;
   --accent-primary-bg: #1e1b4b; /* indigo-950 — use /60 for muted fills */
@@ -163,6 +179,9 @@
   --color-fg-subtle: var(--fg-subtle);
   --color-fg-secondary: var(--fg-secondary);
   --color-fg-soft: var(--fg-soft);
+  --color-note-surface: var(--note-surface);
+  --color-note-border: var(--note-border);
+  --color-note-fold: var(--note-fold);
   --color-accent-primary: var(--accent-primary);
   --color-accent-primary-solid: var(--accent-primary-solid);
   --color-accent-primary-bg: var(--accent-primary-bg);

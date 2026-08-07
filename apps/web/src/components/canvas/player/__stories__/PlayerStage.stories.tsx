@@ -156,7 +156,10 @@ export const InterstitialActionLight: Story = {
 export const InterstitialActionWithNotesLight: Story = {
   args: {
     theme: 'light',
-    width: 520,
+    // Wide enough to hold a centred card plus the note beside it. The real
+    // stage is the full viewport (measured 1440px); a 520px frame clipped the
+    // note and made the baseline assert a crop rather than the design.
+    width: 900,
     height: 360,
     step: stepActionWithNotes,
     node: fixtureActionWithNotes,
@@ -166,7 +169,7 @@ export const InterstitialActionWithNotesLight: Story = {
 export const InterstitialActionWithNotesDark: Story = {
   args: {
     theme: 'dark',
-    width: 520,
+    width: 900,
     height: 360,
     step: stepActionWithNotes,
     node: fixtureActionWithNotes,

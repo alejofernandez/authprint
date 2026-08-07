@@ -309,8 +309,16 @@ function StageContent({
       if (!notes) return card;
       // UF-060: notes sit beside the composition as a detached post-it, not
       // inside the action card (which read as part of the action).
+      //
+      // UF-062: the note is absolutely positioned against the card rather than
+      // sharing a flex row with it. A flex row centres card+note *together*, so
+      // the screen shifted left the moment a note existed. The stage is a video
+      // of a login flow with annotations over it, so the screen is the fixed
+      // centre and everything else is placed in relation to it. This wrapper is
+      // sized by the card alone, so the card lands in exactly the same place
+      // whether or not the step carries a note.
       return (
-        <div className="flex items-center justify-center gap-4">
+        <div className="relative">
           {card}
           <NotesPostIt notes={notes} />
         </div>
@@ -479,14 +487,50 @@ function InterstitialCard({
  * Detached notes card beside the player interstitial (UF-060). Post-it shape
  * and offset, but not post-it yellow — §7 reserves warm for state signals.
  */
+/** Size of the folded paper corner, in px. Shared by the clip and the fold. */
+const NOTE_FOLD = 16;
+
+/**
+ * Detached notes card beside the player interstitial (UF-060, restyled UF-062).
+ *
+ * Absolutely positioned so the screen never moves: the card owns the centre and
+ * the note hangs off its right edge. Square corners, a folded bottom-right, and
+ * its own `--note-*` paper tokens so it reads as paper rather than as another
+ * node. The tokens are a scoped exception to §7's "warm is reserved for state":
+ * a desaturated paper surface carries no state meaning, and dark mode drops the
+ * yellow entirely because a warm surface at that luminance reads as a warning.
+ */
 function NotesPostIt({ notes }: { notes: string }) {
   return (
-    <aside
-      className="-rotate-1 w-[180px] max-h-40 shrink-0 overflow-y-auto rounded-md border border-border-default bg-bg-panel px-2.5 py-2 text-left shadow-md dark:border-border-default dark:bg-bg-panel"
-      data-notes-postit
-    >
-      <NoteMarkdownLazy>{notes}</NoteMarkdownLazy>
-    </aside>
+    <div className="-translate-y-1/2 absolute top-1/2 left-full ml-5 w-[260px]" data-notes-postit>
+      {/* The tilt lives on this wrapper, not on the paper and the fold
+          separately: rotating siblings about their own centres would drift them
+          apart and the fold would stop meeting the cut corner. */}
+      <div className="-rotate-1 relative">
+        <aside
+          className="max-h-48 overflow-y-auto border border-note-border bg-note-surface px-3 py-2.5 text-left shadow-md"
+          style={{
+            clipPath: `polygon(0 0, 100% 0, 100% calc(100% - ${NOTE_FOLD}px), calc(100% - ${NOTE_FOLD}px) 100%, 0 100%)`,
+          }}
+        >
+          {/* One step down from the interstitial's own type, so the note reads
+              as secondary at a glance rather than as a second card of equal
+              weight. */}
+          <NoteMarkdownLazy className="[&_code]:text-[10px] [&_li]:text-[11px] [&_p]:text-[11px] [&_pre]:text-[10px]">
+            {notes}
+          </NoteMarkdownLazy>
+        </aside>
+        <span
+          aria-hidden
+          className="absolute right-0 bottom-0 bg-note-fold"
+          style={{
+            height: NOTE_FOLD,
+            width: NOTE_FOLD,
+            clipPath: 'polygon(100% 0, 0 100%, 100% 100%)',
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
