@@ -29,7 +29,7 @@ Hard limits in the schema and at the file-open boundary. They reject corruption 
 
 | Bound | Ceiling |
 |---|---|
-| Whole-file source (picker / drop, before parse) | 8 MiB |
+| Whole-file source (picker / drop, before parse) | 2,000,000 bytes |
 | Identifiers (`id`, `kind`, `action`, slot names, field `type` / `name`) | 128 characters |
 | `name`, edge `label`, `branding.companyName` | 4096 characters |
 | `description`, `errorMessage`, `Annotation.text` | 8192 characters |

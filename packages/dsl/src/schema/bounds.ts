@@ -27,8 +27,17 @@ export const BOUND = {
   expectedSequence: 2_000,
 } as const;
 
-/** Whole-file source ceiling for picker / drop (before parse). */
-export const MAX_AUTHPRINT_BYTES = 8 * 1024 * 1024;
+/**
+ * Whole-file source ceiling for picker / drop (before parse).
+ *
+ * This guard is **older than this module** — it lived in `Editor.tsx` at
+ * 2,000,000 bytes with the note "real flows are a few KB". The US-140 brief
+ * asked for 8MiB without knowing that, which would have loosened a shipped
+ * protection fourfold; the number stays where it was. Measured 2026-08-07, the
+ * largest flow in the repo (`demo-flow-zero`) is **18.7KB**, so this is already
+ * about a hundred times any honest document.
+ */
+export const MAX_AUTHPRINT_BYTES = 2_000_000;
 
 export const IdString = z.string().min(1).max(BOUND.identifier);
 export const NameString = z.string().min(1).max(BOUND.name);
