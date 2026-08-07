@@ -1,8 +1,15 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 import { contentSecurityPolicy } from './contentSecurityPolicy.ts';
 
 const withNextIntl = createNextIntlPlugin();
+
+// Worktrees sit under `.worktrees/<branch>/`; Next otherwise climbs to the
+// parent checkout's bun.lock and treats that as the Turbopack root, which can
+// silently resolve workspace packages from `main` while this app runs.
+const monorepoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 const nextConfig: NextConfig = {
   // React Compiler is disabled: React Flow 12.x ships no `'use no memo'` opt-out
@@ -11,6 +18,9 @@ const nextConfig: NextConfig = {
   // so correctness wins. Revisit when React Flow ships compiler-safe builds.
   reactCompiler: false,
   output: 'standalone',
+  turbopack: {
+    root: monorepoRoot,
+  },
   async headers() {
     return [
       {
